@@ -21,17 +21,17 @@ import meteordevelopment.meteorclient.utils.player.InvUtils;
 import meteordevelopment.meteorclient.utils.render.color.SettingColor;
 import meteordevelopment.orbit.EventHandler;
 import meteordevelopment.orbit.EventPriority;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
-import net.minecraft.entity.ItemEntity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.Items;
-import net.minecraft.state.property.Properties;
-import net.minecraft.util.Hand;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Box;
-import net.minecraft.util.math.Direction;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.core.Direction;
+import net.minecraft.world.phys.Vec3;
 
 import java.util.*;
 
@@ -160,7 +160,7 @@ public class AnchorAuraPlus extends BlackOutModule {
     private BlockPos calcPos = null;
     private PlaceData calcData = null;
     private BlockPos renderPos = null;
-    private List<PlayerEntity> targets = new ArrayList<>();
+    private List<Player> targets = new ArrayList<>();
     private final Map<BlockPos, Anchor> anchors = new HashMap<>();
 
     double timer = 0;
@@ -172,7 +172,7 @@ public class AnchorAuraPlus extends BlackOutModule {
         placePos = calcPos;
         placeData = calcData;
 
-        blocks = getBlocks(mc.player.getEyePos(), Math.max(SettingUtils.getPlaceRange(), SettingUtils.getPlaceWallsRange()));
+        blocks = getBlocks(mc.player.getEyePosition(), Math.max(SettingUtils.getPlaceRange(), SettingUtils.getPlaceWallsRange()));
 
         // Reset stuff
         tickTime = System.currentTimeMillis();
@@ -190,7 +190,7 @@ public class AnchorAuraPlus extends BlackOutModule {
         double delta = (System.currentTimeMillis() - lastTime) / 1000f;
         timer += delta;
         lastTime = System.currentTimeMillis();
-        if (tickTime < 0 || mc.player == null || mc.world == null) {
+        if (tickTime < 0 || mc.player == null || mc.level == null) {
             return;
         }
 
@@ -228,7 +228,7 @@ public class AnchorAuraPlus extends BlackOutModule {
             pos = blocks[i];
 
             dmg = getDmg(pos);
-            self = BODamageUtils.anchorDamage(mc.player, mc.player.getBoundingBox(), pos.toCenterPos(), pos, false);
+            self = BODamageUtils.anchorDamage(mc.player, mc.player.getBoundingBox(), pos.getCenter(), pos, false);
 
             if (!dmgCheck(dmg, self)) {
                 continue;
@@ -240,7 +240,7 @@ public class AnchorAuraPlus extends BlackOutModule {
                 continue;
             }
 
-            if (EntityUtils.intersectsWithEntity(new Box(pos), entity -> !(entity instanceof ItemEntity))) {
+            if (EntityUtils.intersectsWithEntity(new AABB(pos), entity -> !(entity instanceof ItemEntity))) {
                 continue;
             }
 
@@ -252,14 +252,14 @@ public class AnchorAuraPlus extends BlackOutModule {
     }
 
     private void updateTargets() {
-        List<PlayerEntity> players = new ArrayList<>();
+        List<Player> players = new ArrayList<>();
         double closestDist = 1000;
-        PlayerEntity closest;
+        Player closest;
         double dist;
         for (int i = 3; i > 0; i--) {
 
             closest = null;
-            for (PlayerEntity player : mc.world.getPlayers()) {
+            for (Player player : mc.level.players()) {
                 if (players.contains(player) || Friends.get().isFriend(player) || player == mc.player) {
                     continue;
                 }
@@ -282,7 +282,7 @@ public class AnchorAuraPlus extends BlackOutModule {
         targets = players;
     }
 
-    private BlockPos[] getBlocks(Vec3d middle, double radius) {
+    private BlockPos[] getBlocks(Vec3 middle, double radius) {
         ArrayList<BlockPos> result = new ArrayList<>();
         int i = (int) Math.ceil(radius);
         BlockPos pos;
@@ -292,7 +292,7 @@ public class AnchorAuraPlus extends BlackOutModule {
                 for (int z = -i; z <= i; z++) {
                     pos = new BlockPos((int) (Math.floor(middle.x) + x), (int) (Math.floor(middle.y) + y), (int) (Math.floor(middle.z) + z));
 
-                    if (!OLEPOSSUtils.replaceable(pos) && !(mc.world.getBlockState(pos).getBlock() == Blocks.RESPAWN_ANCHOR)) {
+                    if (!OLEPOSSUtils.replaceable(pos) && !(mc.level.getBlockState(pos).getBlock() == Blocks.RESPAWN_ANCHOR)) {
                         continue;
                     }
 
@@ -312,8 +312,8 @@ public class AnchorAuraPlus extends BlackOutModule {
     }
 
     private boolean inRangeToTargets(BlockPos pos) {
-        for (PlayerEntity target : targets) {
-            if (target.getEntityPos().add(0, 1, 0).distanceTo(Vec3d.ofCenter(pos)) < 3.5) return true;
+        for (Player target : targets) {
+            if (target.position().add(0, 1, 0).distanceTo(Vec3.atCenterOf(pos)) < 3.5) return true;
         }
         return false;
     }
@@ -382,8 +382,8 @@ public class AnchorAuraPlus extends BlackOutModule {
         }
     }
 
-    private void place(Hand hand) {
-        placeBlock(hand, placeData.pos().toCenterPos(), placeData.dir(), placeData.pos());
+    private void place(InteractionHand hand) {
+        placeBlock(hand, placeData.pos().getCenter(), placeData.dir(), placeData.pos());
 
         if (placeSwing.get()) clientSwing(placeHand.get(), hand);
     }
@@ -392,12 +392,12 @@ public class AnchorAuraPlus extends BlackOutModule {
         if (anchors.containsKey(pos)) {
             return anchors.get(pos);
         }
-        BlockState state = mc.world.getBlockState(pos);
-        return new Anchor(state.getBlock() == Blocks.RESPAWN_ANCHOR ? state.get(Properties.CHARGES) < 1 ? AnchorState.Anchor : AnchorState.Loaded : AnchorState.Air, state.getBlock() == Blocks.RESPAWN_ANCHOR ? state.get(Properties.CHARGES) : 0, System.currentTimeMillis());
+        BlockState state = mc.level.getBlockState(pos);
+        return new Anchor(state.getBlock() == Blocks.RESPAWN_ANCHOR ? state.getValue(BlockStateProperties.RESPAWN_ANCHOR_CHARGES) < 1 ? AnchorState.Anchor : AnchorState.Loaded : AnchorState.Air, state.getBlock() == Blocks.RESPAWN_ANCHOR ? state.getValue(BlockStateProperties.RESPAWN_ANCHOR_CHARGES) : 0, System.currentTimeMillis());
     }
 
     private boolean placeUpdate() {
-        Hand hand = Managers.HOLDING.isHolding(Items.RESPAWN_ANCHOR) ? Hand.MAIN_HAND : mc.player.getOffHandStack().getItem() == Items.RESPAWN_ANCHOR ? Hand.OFF_HAND : null;
+        InteractionHand hand = Managers.HOLDING.isHolding(Items.RESPAWN_ANCHOR) ? InteractionHand.MAIN_HAND : mc.player.getOffhandItem().getItem() == Items.RESPAWN_ANCHOR ? InteractionHand.OFF_HAND : null;
 
         boolean switched = hand != null;
 
@@ -444,7 +444,7 @@ public class AnchorAuraPlus extends BlackOutModule {
             return false;
         }
 
-        place(hand == null ? Hand.MAIN_HAND : hand);
+        place(hand == null ? InteractionHand.MAIN_HAND : hand);
 
         if (SettingUtils.shouldRotate(RotationType.BlockPlace)) {
             Managers.ROTATION.end(Objects.hash(name + "placing"));
@@ -461,7 +461,7 @@ public class AnchorAuraPlus extends BlackOutModule {
     }
 
     private boolean chargeUpdate(BlockPos pos) {
-        Hand hand = Managers.HOLDING.isHolding(Items.GLOWSTONE) ? Hand.MAIN_HAND : mc.player.getOffHandStack().getItem() == Items.GLOWSTONE ? Hand.OFF_HAND : null;
+        InteractionHand hand = Managers.HOLDING.isHolding(Items.GLOWSTONE) ? InteractionHand.MAIN_HAND : mc.player.getOffhandItem().getItem() == Items.GLOWSTONE ? InteractionHand.OFF_HAND : null;
         Direction dir = SettingUtils.getPlaceOnDirection(pos);
 
         if (dir == null) {
@@ -513,7 +513,7 @@ public class AnchorAuraPlus extends BlackOutModule {
             return false;
         }
 
-        interact(pos, dir, hand == null ? Hand.MAIN_HAND : hand);
+        interact(pos, dir, hand == null ? InteractionHand.MAIN_HAND : hand);
 
         if (SettingUtils.shouldRotate(RotationType.Interact)) {
             Managers.ROTATION.end(Objects.hash(name + "interact"));
@@ -530,7 +530,7 @@ public class AnchorAuraPlus extends BlackOutModule {
     }
 
     private boolean explodeUpdate(BlockPos pos) {
-        Hand hand = !Managers.HOLDING.isHolding(Items.GLOWSTONE) ? Hand.MAIN_HAND : mc.player.getOffHandStack().getItem() != Items.GLOWSTONE ? Hand.OFF_HAND : null;
+        InteractionHand hand = !Managers.HOLDING.isHolding(Items.GLOWSTONE) ? InteractionHand.MAIN_HAND : mc.player.getOffhandItem().getItem() != Items.GLOWSTONE ? InteractionHand.OFF_HAND : null;
         Direction dir = SettingUtils.getPlaceOnDirection(pos);
 
         if (dir == null) {
@@ -581,7 +581,7 @@ public class AnchorAuraPlus extends BlackOutModule {
             return false;
         }
 
-        interact(pos, dir, hand == null ? Hand.MAIN_HAND : hand);
+        interact(pos, dir, hand == null ? InteractionHand.MAIN_HAND : hand);
 
         if (SettingUtils.shouldRotate(RotationType.Interact)) {
             Managers.ROTATION.end(Objects.hash(name + "explode"));
@@ -597,8 +597,8 @@ public class AnchorAuraPlus extends BlackOutModule {
         return true;
     }
 
-    private void interact(BlockPos pos, Direction dir, Hand hand) {
-        interactBlock(hand, pos.toCenterPos(), dir, pos);
+    private void interact(BlockPos pos, Direction dir, InteractionHand hand) {
+        interactBlock(hand, pos.getCenter(), dir, pos);
 
         if (interactSwing.get()) clientSwing(interactHand.get(), hand);
     }
@@ -612,8 +612,8 @@ public class AnchorAuraPlus extends BlackOutModule {
 
     private double getDmg(BlockPos pos) {
         double highest = -1;
-        for (PlayerEntity target : targets) {
-            highest = Math.max(highest, BODamageUtils.anchorDamage(target, target.getBoundingBox(), pos.toCenterPos(), pos, true));
+        for (Player target : targets) {
+            highest = Math.max(highest, BODamageUtils.anchorDamage(target, target.getBoundingBox(), pos.getCenter(), pos, true));
         }
         return highest;
     }

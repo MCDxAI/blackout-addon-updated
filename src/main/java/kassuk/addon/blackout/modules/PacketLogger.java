@@ -12,32 +12,32 @@ import meteordevelopment.meteorclient.settings.SettingGroup;
 import meteordevelopment.meteorclient.utils.network.PacketUtils;
 import meteordevelopment.orbit.EventHandler;
 import meteordevelopment.orbit.EventPriority;
-import net.minecraft.item.ItemStack;
-import net.minecraft.network.packet.Packet;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.packet.c2s.common.*;
-import net.minecraft.network.packet.c2s.config.ReadyC2SPacket;
-import net.minecraft.network.packet.c2s.handshake.HandshakeC2SPacket;
-import net.minecraft.network.packet.c2s.login.EnterConfigurationC2SPacket;
-import net.minecraft.network.packet.c2s.login.LoginHelloC2SPacket;
-import net.minecraft.network.packet.c2s.login.LoginKeyC2SPacket;
-import net.minecraft.network.packet.c2s.login.LoginQueryResponseC2SPacket;
+import net.minecraft.network.protocol.configuration.ServerboundFinishConfigurationPacket;
+import net.minecraft.network.protocol.handshake.ClientIntentionPacket;
+import net.minecraft.network.protocol.login.ServerboundLoginAcknowledgedPacket;
+import net.minecraft.network.protocol.login.ServerboundHelloPacket;
+import net.minecraft.network.protocol.login.ServerboundKeyPacket;
+import net.minecraft.network.protocol.login.ServerboundCustomQueryAnswerPacket;
 import net.minecraft.network.packet.c2s.play.*;
-import net.minecraft.network.packet.c2s.query.QueryPingC2SPacket;
-import net.minecraft.network.packet.c2s.query.QueryRequestC2SPacket;
+import net.minecraft.network.protocol.ping.ServerboundPingRequestPacket;
+import net.minecraft.network.protocol.status.ServerboundStatusRequestPacket;
 import net.minecraft.network.packet.s2c.common.*;
-import net.minecraft.network.packet.s2c.config.DynamicRegistriesS2CPacket;
-import net.minecraft.network.packet.s2c.config.FeaturesS2CPacket;
-import net.minecraft.network.packet.s2c.config.ReadyS2CPacket;
+import net.minecraft.network.protocol.configuration.ClientboundRegistryDataPacket;
+import net.minecraft.network.protocol.configuration.ClientboundUpdateEnabledFeaturesPacket;
+import net.minecraft.network.protocol.configuration.ClientboundFinishConfigurationPacket;
 import net.minecraft.network.packet.s2c.login.*;
 import net.minecraft.network.packet.s2c.play.*;
-import net.minecraft.network.packet.s2c.query.PingResultS2CPacket;
-import net.minecraft.network.packet.s2c.query.QueryResponseS2CPacket;
-import net.minecraft.recipe.RecipeEntry;
-import net.minecraft.stat.Stat;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-import net.minecraft.village.TradeOffer;
-import net.minecraft.village.TradeOfferList;
+import net.minecraft.network.protocol.ping.ClientboundPongResponsePacket;
+import net.minecraft.network.protocol.status.ClientboundStatusResponsePacket;
+import net.minecraft.world.item.crafting.RecipeHolder;
+import net.minecraft.stats.Stat;
+import net.minecraft.network.chat.Component;
+import net.minecraft.ChatFormatting;
+import net.minecraft.world.item.trading.MerchantOffer;
+import net.minecraft.world.item.trading.MerchantOffers;
 
 import java.util.*;
 
@@ -73,7 +73,7 @@ public class PacketLogger extends BlackOutModule {
             String message = packetMessage(packet);
 
             if (message == null) return;
-            log(Formatting.AQUA + "Send: " + Formatting.GRAY + message);
+            log(ChatFormatting.AQUA + "Send: " + ChatFormatting.GRAY + message);
         }
     }
 
@@ -83,12 +83,12 @@ public class PacketLogger extends BlackOutModule {
             String message = packetMessage(event.packet);
 
             if (message == null) return;
-            log(Formatting.LIGHT_PURPLE + "Receive: " + Formatting.GRAY + message);
+            log(ChatFormatting.LIGHT_PURPLE + "Receive: " + ChatFormatting.GRAY + message);
         }
     }
 
     private void log(String string) {
-        sendMessage(Text.of(string), 0);
+        sendMessage(Component.nullToEmpty(string), 0);
     }
 
     // this was not fun

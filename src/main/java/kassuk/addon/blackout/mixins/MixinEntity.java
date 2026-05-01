@@ -4,16 +4,16 @@ import kassuk.addon.blackout.modules.AntiCrawl;
 import kassuk.addon.blackout.modules.ForceSneak;
 import kassuk.addon.blackout.modules.StepPlus;
 import meteordevelopment.meteorclient.systems.modules.Modules;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityPose;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.text.Text;
-import net.minecraft.util.ActionResult;
-import net.minecraft.util.Hand;
-import net.minecraft.util.math.Box;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.util.shape.VoxelShape;
-import net.minecraft.world.World;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.Pose;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.phys.shapes.VoxelShape;
+import net.minecraft.world.level.Level;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -27,28 +27,28 @@ import static meteordevelopment.meteorclient.MeteorClient.mc;
 @Mixin(Entity.class)
 public abstract class MixinEntity {
     @Shadow
-    public abstract boolean isInPose(EntityPose pose);
+    public abstract boolean hasPose(Pose pose);
 
     @Shadow
-    public abstract Text getName();
+    public abstract Component getName();
 
     @Shadow
-    public abstract World getEntityWorld();
+    public abstract Level level();
 
     @Shadow
-    public abstract ActionResult interact(PlayerEntity player, Hand hand);
+    public abstract InteractionResult interact(Player player, InteractionHand hand);
 
     @Shadow
-    public abstract float getStepHeight();
+    public abstract float maxUpStep();
 
     @Shadow
-    public abstract boolean isOnGround();
+    public abstract boolean onGround();
 
     @Shadow
-    public abstract Box getBoundingBox();
+    public abstract AABB getBoundingBox();
 
-    @Inject(method = "adjustMovementForCollisions(Lnet/minecraft/util/math/Vec3d;)Lnet/minecraft/util/math/Vec3d;", at = @At("HEAD"), cancellable = true)
-    private void inject(Vec3d movement, CallbackInfoReturnable<Vec3d> cir) {
+    @Inject(method = "collide(Lnet/minecraft/world/phys/Vec3;)Lnet/minecraft/world/phys/Vec3;", at = @At("HEAD"), cancellable = true)
+    private void inject(Vec3 movement, CallbackInfoReturnable<Vec3> cir) {
         StepPlus step = Modules.get().get(StepPlus.class);
 
         Entity entity = (Entity)(Object)this;
@@ -61,25 +61,25 @@ public abstract class MixinEntity {
 
         active = active && System.currentTimeMillis() - step.lastStep > step.cooldown.get() * 1000;
 
-        Box box = this.getBoundingBox();
-        List<VoxelShape> list = this.getEntityWorld().getEntityCollisions(entity, box.stretch(movement));
-        Vec3d vec3d = movement.lengthSquared() == 0.0 ? movement : Entity.adjustMovementForCollisions(entity, movement, box, this.getEntityWorld(), list);
+        AABB box = this.getBoundingBox();
+        List<VoxelShape> list = this.level().getEntityCollisions(entity, box.expandTowards(movement));
+        Vec3 vec3d = movement.lengthSqr() == 0.0 ? movement : Entity.collideBoundingBox(entity, movement, box, this.level(), list);
         boolean bl = movement.x != vec3d.x;
         boolean bl2 = movement.y != vec3d.y;
         boolean bl3 = movement.z != vec3d.z;
-        boolean bl4 = this.isOnGround() || (!active && bl2 && movement.y < 0.0);
-        if ((active ? step.height.get() : this.getStepHeight()) > 0.0F && bl4 && (bl || bl3)) {
-            Vec3d vec3d2 = Entity.adjustMovementForCollisions(entity, new Vec3d(movement.x, active ? step.height.get() : this.getStepHeight(), movement.z), box, this.getEntityWorld(), list);
-            Vec3d vec3d3 = Entity.adjustMovementForCollisions(entity, new Vec3d(0.0, active ? step.height.get() : this.getStepHeight(), 0.0), box.stretch(movement.x, 0.0, movement.z), this.getEntityWorld(), list);
-            if (vec3d3.y < (active ? step.height.get() : this.getStepHeight())) {
-                Vec3d vec3d4 = Entity.adjustMovementForCollisions(entity, new Vec3d(movement.x, 0.0, movement.z), box.offset(vec3d3), this.getEntityWorld(), list).add(vec3d3);
-                if (vec3d4.horizontalLengthSquared() > vec3d2.horizontalLengthSquared()) {
+        boolean bl4 = this.onGround() || (!active && bl2 && movement.y < 0.0);
+        if ((active ? step.height.get() : this.maxUpStep()) > 0.0F && bl4 && (bl || bl3)) {
+            Vec3 vec3d2 = Entity.collideBoundingBox(entity, new Vec3(movement.x, active ? step.height.get() : this.maxUpStep(), movement.z), box, this.level(), list);
+            Vec3 vec3d3 = Entity.collideBoundingBox(entity, new Vec3(0.0, active ? step.height.get() : this.maxUpStep(), 0.0), box.expandTowards(movement.x, 0.0, movement.z), this.level(), list);
+            if (vec3d3.y < (active ? step.height.get() : this.maxUpStep())) {
+                Vec3 vec3d4 = Entity.collideBoundingBox(entity, new Vec3(movement.x, 0.0, movement.z), box.move(vec3d3), this.level(), list).add(vec3d3);
+                if (vec3d4.horizontalDistanceSqr() > vec3d2.horizontalDistanceSqr()) {
                     vec3d2 = vec3d4;
                 }
             }
 
-            if (vec3d2.horizontalLengthSquared() > vec3d.horizontalLengthSquared()) {
-                Vec3d v = vec3d2.add(Entity.adjustMovementForCollisions(entity, new Vec3d(0.0, -vec3d2.y + movement.y, 0.0), box.offset(vec3d2), entity.getEntityWorld(), list));
+            if (vec3d2.horizontalDistanceSqr() > vec3d.horizontalDistanceSqr()) {
+                Vec3 v = vec3d2.add(Entity.collideBoundingBox(entity, new Vec3(0.0, -vec3d2.y + movement.y, 0.0), box.move(vec3d2), entity.level(), list));
                 if (active) step.step(step.getOffsets(v.y));
                 cir.setReturnValue(v);
                 return;
@@ -89,15 +89,15 @@ public abstract class MixinEntity {
         cir.setReturnValue(vec3d);
     }
 
-    @Inject(method = "isInSneakingPose", at = @At(value = "RETURN"), cancellable = true)
+    @Inject(method = "isCrouching", at = @At(value = "RETURN"), cancellable = true)
     private void isSneaking(CallbackInfoReturnable<Boolean> cir) {
         if (mc.player == null || this.getName() != mc.player.getName()) {
-            cir.setReturnValue(Modules.get().get(ForceSneak.class).isActive() || this.isInPose(EntityPose.CROUCHING));
+            cir.setReturnValue(Modules.get().get(ForceSneak.class).isActive() || this.hasPose(Pose.CROUCHING));
         }
     }
 
-    @Inject(method = "doesNotCollide(Lnet/minecraft/util/math/Box;)Z", at = @At("RETURN"), cancellable = true)
-    private void poseNotCollide(Box box, CallbackInfoReturnable<Boolean> cir) {
+    @Inject(method = "isFree(Lnet/minecraft/world/phys/AABB;)Z", at = @At("RETURN"), cancellable = true)
+    private void poseNotCollide(AABB box, CallbackInfoReturnable<Boolean> cir) {
         if (Modules.get().isActive(AntiCrawl.class)) {
             cir.setReturnValue(true);
         }

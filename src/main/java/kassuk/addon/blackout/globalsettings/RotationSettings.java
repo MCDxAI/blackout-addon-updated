@@ -8,12 +8,12 @@ import kassuk.addon.blackout.utils.NCPRaytracer;
 import kassuk.addon.blackout.utils.OLEPOSSUtils;
 import kassuk.addon.blackout.utils.RotationUtils;
 import meteordevelopment.meteorclient.settings.*;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.FluidBlock;
-import net.minecraft.block.StairsBlock;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Box;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.LiquidBlock;
+import net.minecraft.world.level.block.StairBlock;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 
 import java.util.List;
 
@@ -145,9 +145,9 @@ public class RotationSettings extends BlackOutModule {
         return sg.add(new IntSetting.Builder().name(type + " Memory").description("Accepts rotation if looked at it x packets earlier.").defaultValue(1).range(1, 20).sliderRange(1, 20).build());
     }
 
-    public final Vec3d vec = new Vec3d(0, 0, 0);
+    public final Vec3 vec = new Vec3(0, 0, 0);
 
-    public boolean rotationCheck(Box box, RotationType type) {
+    public boolean rotationCheck(AABB box, RotationType type) {
         List<RotationManager.Rotation> history = RotationManager.history;
         if (box == null) return false;
 
@@ -169,7 +169,7 @@ public class RotationSettings extends BlackOutModule {
 
                     double range = 7;
 
-                    Vec3d end = new Vec3d(
+                    Vec3 end = new Vec3(
                         range * Math.cos(Math.toRadians(rot.yaw() + 90)) * Math.abs(Math.cos(Math.toRadians(rot.pitch()))),
                         range * -Math.sin(Math.toRadians(rot.pitch())),
                         range * Math.sin(Math.toRadians(rot.yaw() + 90)) * Math.abs(Math.cos(Math.toRadians(rot.pitch()))))
@@ -266,14 +266,14 @@ public class RotationSettings extends BlackOutModule {
         };
     }
 
-    public boolean angleCheck(Vec3d pos, double y, double p, Box box, RotationType type) {
+    public boolean angleCheck(Vec3 pos, double y, double p, AABB box, RotationType type) {
         return RotationUtils.yawAngle(y, RotationUtils.getYaw(pos, box.getCenter())) <= yawAngle(type) && Math.abs(p - RotationUtils.getPitch(pos, box.getCenter())) <= pitchAngle(type);
     }
 
-    public boolean raytraceCheck(Vec3d pos, double y, double p, Box box) {
+    public boolean raytraceCheck(Vec3 pos, double y, double p, AABB box) {
         double range = pos.distanceTo(OLEPOSSUtils.getMiddle(box)) + 3;
 
-        Vec3d end = new Vec3d(range * Math.cos(Math.toRadians(y + 90)) * Math.abs(Math.cos(Math.toRadians(p))),
+        Vec3 end = new Vec3(range * Math.cos(Math.toRadians(y + 90)) * Math.abs(Math.cos(Math.toRadians(p))),
             range * -Math.sin(Math.toRadians(p)),
             range * Math.sin(Math.toRadians(y + 90)) * Math.abs(Math.cos(Math.toRadians(p)))).add(pos);
 
@@ -289,11 +289,11 @@ public class RotationSettings extends BlackOutModule {
 
     public boolean validForCheck(BlockPos pos, BlockState state) {
         if (state.isSolid()) return true;
-        if (state.getBlock() instanceof FluidBlock) return false;
-        if (state.getBlock() instanceof StairsBlock) return false;
+        if (state.getBlock() instanceof LiquidBlock) return false;
+        if (state.getBlock() instanceof StairBlock) return false;
         if (state.hasBlockEntity()) return false;
 
-        return state.isFullCube(mc.world, pos);
+        return state.isCollisionShapeFullBlock(mc.level, pos);
     }
 
     public boolean endMineRot() {

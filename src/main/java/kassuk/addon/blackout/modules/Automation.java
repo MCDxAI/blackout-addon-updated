@@ -10,8 +10,8 @@ import meteordevelopment.meteorclient.settings.Setting;
 import meteordevelopment.meteorclient.settings.SettingGroup;
 import meteordevelopment.meteorclient.systems.modules.Modules;
 import meteordevelopment.orbit.EventHandler;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.core.BlockPos;
 
 /**
  * @author OLEPOSSU
@@ -37,44 +37,44 @@ public class Automation extends BlackOutModule {
     @EventHandler
     private void onRender(Render3DEvent event) {
 
-        if (mc.player == null || mc.world == null) {return;}
+        if (mc.player == null || mc.level == null) {return;}
 
         if (surround == null) {
             surround = Modules.get().get(SurroundPlus.class);
         }
 
-        if (!mc.player.getBlockPos().equals(lastPos) && inAHole(mc.player)) {
+        if (!mc.player.blockPosition().equals(lastPos) && inAHole(mc.player)) {
             if (holeSurround.get() && !surround.isActive()) {
                 surround.toggle();
                 surround.sendToggledMsg("enabled by Automation");
             }
         }
 
-        lastPos = mc.player.getBlockPos();
+        lastPos = mc.player.blockPosition();
     }
 
-    private boolean inAHole(PlayerEntity player) {
-        BlockPos pos = player.getBlockPos();
+    private boolean inAHole(Player player) {
+        BlockPos pos = player.blockPosition();
 
         if (HoleUtils.getHole(pos, 1).type == HoleType.Single) {
             return true;
         }
         // DoubleX
         if (HoleUtils.getHole(pos, 1).type == HoleType.DoubleX ||
-            HoleUtils.getHole(pos.add(-1, 0, 0), 1).type == HoleType.DoubleX) {
+            HoleUtils.getHole(pos.offset(-1, 0, 0), 1).type == HoleType.DoubleX) {
             return true;
         }
 
         // DoubleZ
         if (HoleUtils.getHole(pos, 1).type == HoleType.DoubleZ ||
-            HoleUtils.getHole(pos.add(0, 0, -1), 1).type == HoleType.DoubleZ) {
+            HoleUtils.getHole(pos.offset(0, 0, -1), 1).type == HoleType.DoubleZ) {
             return true;
         }
 
         // Quad
         return HoleUtils.getHole(pos, 1).type == HoleType.Quad ||
-            HoleUtils.getHole(pos.add(-1, 0, -1), 1).type == HoleType.Quad ||
-            HoleUtils.getHole(pos.add(-1, 0, 0), 1).type == HoleType.Quad ||
-            HoleUtils.getHole(pos.add(0, 0, -1), 1).type == HoleType.Quad;
+            HoleUtils.getHole(pos.offset(-1, 0, -1), 1).type == HoleType.Quad ||
+            HoleUtils.getHole(pos.offset(-1, 0, 0), 1).type == HoleType.Quad ||
+            HoleUtils.getHole(pos.offset(0, 0, -1), 1).type == HoleType.Quad;
     }
 }

@@ -6,9 +6,9 @@ import meteordevelopment.meteorclient.events.render.Render3DEvent;
 import meteordevelopment.meteorclient.systems.modules.Modules;
 import meteordevelopment.orbit.EventHandler;
 import meteordevelopment.orbit.EventPriority;
-import net.minecraft.network.packet.Packet;
-import net.minecraft.network.packet.c2s.common.CommonPongC2SPacket;
-import net.minecraft.network.packet.c2s.common.KeepAliveC2SPacket;
+import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.common.ServerboundPongPacket;
+import net.minecraft.network.protocol.common.ServerboundKeepAlivePacket;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -46,7 +46,7 @@ public class PingSpoofManager {
         }
 
         toSend.forEach(d -> {
-            mc.getNetworkHandler().sendPacket(d.packet);
+            mc.getConnection().send(d.packet);
             delayed.remove(d);
         });
 
@@ -54,11 +54,11 @@ public class PingSpoofManager {
     }
 
     public void addKeepAlive(long id) {
-        delayed1 = new DelayedPacket(new KeepAliveC2SPacket(id), System.currentTimeMillis() + Modules.get().get(PingSpoof.class).ping.get());
+        delayed1 = new DelayedPacket(new ServerboundKeepAlivePacket(id), System.currentTimeMillis() + Modules.get().get(PingSpoof.class).ping.get());
     }
 
     public void addPong(int id) {
-        delayed2 = new DelayedPacket(new CommonPongC2SPacket(id), System.currentTimeMillis() + Modules.get().get(PingSpoof.class).ping.get());
+        delayed2 = new DelayedPacket(new ServerboundPongPacket(id), System.currentTimeMillis() + Modules.get().get(PingSpoof.class).ping.get());
     }
 
     private record DelayedPacket(Packet<?> packet, long time) {}

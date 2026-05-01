@@ -9,7 +9,7 @@ import meteordevelopment.meteorclient.systems.modules.Module;
 import meteordevelopment.meteorclient.systems.modules.Modules;
 import meteordevelopment.meteorclient.utils.render.color.Color;
 import meteordevelopment.meteorclient.utils.render.color.SettingColor;
-import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.Mth;
 
 import java.util.Collections;
 import java.util.Comparator;
@@ -164,7 +164,7 @@ public class BlackoutArray extends HudElement {
     }
 
     private int colorVal(int original, int wave, double f) {
-        return MathHelper.clamp((int) Math.floor(wave + (original - wave) * f), 0, 255);
+        return Mth.clamp((int) Math.floor(wave + (original - wave) * f), 0, 255);
     }
 
     private record Line(String name, String info) {

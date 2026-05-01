@@ -9,9 +9,9 @@ import meteordevelopment.meteorclient.systems.friends.Friends;
 import meteordevelopment.meteorclient.utils.player.ChatUtils;
 import meteordevelopment.orbit.EventHandler;
 import meteordevelopment.orbit.EventPriority;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.network.packet.s2c.play.EntityStatusS2CPacket;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.network.protocol.game.ClientboundEntityEventPacket;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -293,7 +293,7 @@ public class AutoEz extends BlackOutModule {
     @EventHandler(priority = EventPriority.HIGHEST)
     private void onTick(TickEvent.Pre event) {
         timer++;
-        if (mc.player != null && mc.world != null) {
+        if (mc.player != null && mc.level != null) {
             if (anyDead(range.get()) && kill.get()) {
                 if (!lastState) {
                     lastState = true;
@@ -314,13 +314,13 @@ public class AutoEz extends BlackOutModule {
 
     @EventHandler
     private void onReceive(PacketEvent.Receive event) {
-        if (event.packet instanceof EntityStatusS2CPacket packet) {
+        if (event.packet instanceof ClientboundEntityEventPacket packet) {
             // Pop
-            if (packet.getStatus() == 35) {
-                Entity entity = packet.getEntity(mc.world);
-                if (pop.get() && mc.player != null && mc.world != null && entity instanceof PlayerEntity) {
-                    if (entity != mc.player && !Friends.get().isFriend((PlayerEntity) entity) &&
-                        mc.player.getEntityPos().distanceTo(entity.getEntityPos()) <= range.get()) {
+            if (packet.getEventId() == 35) {
+                Entity entity = packet.getEntity(mc.level);
+                if (pop.get() && mc.player != null && mc.level != null && entity instanceof Player) {
+                    if (entity != mc.player && !Friends.get().isFriend((Player) entity) &&
+                        mc.player.position().distanceTo(entity.position()) <= range.get()) {
                         sendPopMessage(entity.getName().getString());
                     }
                 }
@@ -330,8 +330,8 @@ public class AutoEz extends BlackOutModule {
 
     @SuppressWarnings("DataFlowIssue")
     private boolean anyDead(double range) {
-        for (PlayerEntity pl : mc.world.getPlayers()) {
-            if (pl != mc.player && !Friends.get().isFriend(pl) && pl.getEntityPos().distanceTo(mc.player.getEntityPos()) <= range
+        for (Player pl : mc.level.players()) {
+            if (pl != mc.player && !Friends.get().isFriend(pl) && pl.position().distanceTo(mc.player.position()) <= range
                 && pl.getHealth() <= 0) {
                 name = pl.getName().getString();
                 return true;

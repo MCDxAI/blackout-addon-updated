@@ -9,7 +9,7 @@ import meteordevelopment.meteorclient.systems.hud.HudElement;
 import meteordevelopment.meteorclient.systems.hud.HudElementInfo;
 import meteordevelopment.meteorclient.systems.hud.HudRenderer;
 import meteordevelopment.meteorclient.utils.render.color.Color;
-import net.minecraft.util.Identifier;
+import net.minecraft.resources.Identifier;
 
 public class CatGirl extends HudElement {
     private final SettingGroup sgGeneral = settings.getDefaultGroup();
@@ -27,7 +27,7 @@ public class CatGirl extends HudElement {
         .defaultValue(SideMode.Right)
         .build()
     );
-    private final Identifier catgirl = Identifier.of("blackout", "catgirl.png");
+    private final Identifier catgirl = Identifier.fromNamespaceAndPath("blackout", "catgirl.png");
 
     public static final HudElementInfo<CatGirl> INFO = new HudElementInfo<>(BlackOut.HUD_BLACKOUT, "catgirl", "It's a Cat girl what do you want", CatGirl::new);
 

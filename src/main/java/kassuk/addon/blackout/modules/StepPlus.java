@@ -7,11 +7,11 @@ import meteordevelopment.meteorclient.settings.BoolSetting;
 import meteordevelopment.meteorclient.settings.DoubleSetting;
 import meteordevelopment.meteorclient.settings.Setting;
 import meteordevelopment.meteorclient.settings.SettingGroup;
-import net.minecraft.entity.Entity;
-import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket;
-import net.minecraft.util.math.Box;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.util.shape.VoxelShape;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.network.protocol.game.ServerboundMovePlayerPacket;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.phys.shapes.VoxelShape;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.List;
@@ -72,24 +72,24 @@ public class StepPlus extends BlackOutModule {
         targetY = 0;
     }
 
-    public void slowStep(Entity entity, Vec3d movement, CallbackInfoReturnable<Vec3d> cir) {
-        Box box = entity.getBoundingBox();
-        List<VoxelShape> list = entity.getEntityWorld().getEntityCollisions(entity, box.stretch(movement));
-        Vec3d vec3d = movement.lengthSquared() == 0.0 ? movement : Entity.adjustMovementForCollisions(entity, movement, box, entity.getEntityWorld(), list);
+    public void slowStep(Entity entity, Vec3 movement, CallbackInfoReturnable<Vec3> cir) {
+        AABB box = entity.getBoundingBox();
+        List<VoxelShape> list = entity.level().getEntityCollisions(entity, box.expandTowards(movement));
+        Vec3 vec3d = movement.lengthSqr() == 0.0 ? movement : Entity.collideBoundingBox(entity, movement, box, entity.level(), list);
 
         if ((movement.x != vec3d.x || movement.z != vec3d.z) || stepping) {
-            if (entity.isOnGround() && !stepping && System.currentTimeMillis() - lastStep > cooldown.get() * 1000) {
-                Vec3d vec3d2 = Entity.adjustMovementForCollisions(entity, new Vec3d(movement.x, height.get(), movement.z), box, entity.getEntityWorld(), list);
-                Vec3d vec3d3 = Entity.adjustMovementForCollisions(entity, new Vec3d(0.0, height.get(), 0.0), box.stretch(movement.x, 0.0, movement.z), entity.getEntityWorld(), list);
+            if (entity.onGround() && !stepping && System.currentTimeMillis() - lastStep > cooldown.get() * 1000) {
+                Vec3 vec3d2 = Entity.collideBoundingBox(entity, new Vec3(movement.x, height.get(), movement.z), box, entity.level(), list);
+                Vec3 vec3d3 = Entity.collideBoundingBox(entity, new Vec3(0.0, height.get(), 0.0), box.expandTowards(movement.x, 0.0, movement.z), entity.level(), list);
                 if (vec3d3.y < height.get()) {
-                    Vec3d vec3d4 = Entity.adjustMovementForCollisions(entity, new Vec3d(movement.x, 0.0, movement.z), box.offset(vec3d3), entity.getEntityWorld(), list).add(vec3d3);
-                    if (vec3d4.horizontalLengthSquared() > vec3d2.horizontalLengthSquared()) {
+                    Vec3 vec3d4 = Entity.collideBoundingBox(entity, new Vec3(movement.x, 0.0, movement.z), box.move(vec3d3), entity.level(), list).add(vec3d3);
+                    if (vec3d4.horizontalDistanceSqr() > vec3d2.horizontalDistanceSqr()) {
                         vec3d2 = vec3d4;
                     }
                 }
 
-                if (vec3d2.horizontalLengthSquared() > vec3d.horizontalLengthSquared()) {
-                    Vec3d vec = vec3d2.add(Entity.adjustMovementForCollisions(entity, new Vec3d(0.0, -vec3d2.y + movement.y, 0.0), box.offset(vec3d2), entity.getEntityWorld(), list));
+                if (vec3d2.horizontalDistanceSqr() > vec3d.horizontalDistanceSqr()) {
+                    Vec3 vec = vec3d2.add(Entity.collideBoundingBox(entity, new Vec3(0.0, -vec3d2.y + movement.y, 0.0), box.move(vec3d2), entity.level(), list));
 
                     double[] o = getOffsets(vec.y);
 
@@ -117,12 +117,12 @@ public class StepPlus extends BlackOutModule {
                     stepping = false;
                 }
 
-                Vec3d vec3d4;
+                Vec3 vec3d4;
                 if (!strict.get() || index > 1) {
-                    Vec3d vec3d3 = Entity.adjustMovementForCollisions(entity, new Vec3d(0, offset, 0), box.stretch(0, 0.0, 0), entity.getEntityWorld(), list);
-                    vec3d4 = Entity.adjustMovementForCollisions(entity, new Vec3d(movement.x, 0.0, movement.z), box.offset(vec3d3), entity.getEntityWorld(), list).add(vec3d3);
+                    Vec3 vec3d3 = Entity.collideBoundingBox(entity, new Vec3(0, offset, 0), box.expandTowards(0, 0.0, 0), entity.level(), list);
+                    vec3d4 = Entity.collideBoundingBox(entity, new Vec3(movement.x, 0.0, movement.z), box.move(vec3d3), entity.level(), list).add(vec3d3);
                 } else {
-                    vec3d4 = Entity.adjustMovementForCollisions(entity, new Vec3d(0, offset, 0), box.stretch(0, 0.0, 0), entity.getEntityWorld(), list);
+                    vec3d4 = Entity.collideBoundingBox(entity, new Vec3(0, offset, 0), box.expandTowards(0, 0.0, 0), entity.level(), list);
                 }
 
                 cir.setReturnValue(vec3d4);
@@ -160,12 +160,12 @@ public class StepPlus extends BlackOutModule {
         double offset = 0;
         for (double v : offsets) {
             offset += v;
-            sendPacket(new PlayerMoveC2SPacket.PositionAndOnGround(mc.player.getX(), mc.player.getY() + offset, mc.player.getZ(), false, false));
+            sendPacket(new ServerboundMovePlayerPacket.Pos(mc.player.getX(), mc.player.getY() + offset, mc.player.getZ(), false, false));
         }
         lastStep = System.currentTimeMillis();
     }
 
-    private boolean i(Box b) {
+    private boolean i(AABB b) {
         return OLEPOSSUtils.inside(mc.player, b);
     }
 }

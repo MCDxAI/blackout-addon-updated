@@ -1,11 +1,11 @@
 plugins {
-    id("fabric-loom") version "1.14-SNAPSHOT"
+    alias(libs.plugins.fabric.loom)
 }
 
 base {
     archivesName = properties["archives_base_name"] as String
     group = properties["maven_group"] as String
-    version = properties["mod_version"] as String
+    version = libs.versions.mod.version.get() as String
 }
 
 repositories {
@@ -21,25 +21,34 @@ repositories {
 
 dependencies {
     // Fabric
-    minecraft("com.mojang:minecraft:${properties["minecraft_version"] as String}")
-    mappings("net.fabricmc:yarn:${properties["yarn_mappings"] as String}:v2")
-    modImplementation("net.fabricmc:fabric-loader:${properties["loader_version"] as String}")
+    minecraft(libs.minecraft)
+    implementation(libs.fabric.loader)
 
     // Meteor
-    modImplementation("meteordevelopment:meteor-client:${properties["meteor_version"] as String}-SNAPSHOT")
-    modCompileOnly("meteordevelopment:baritone:${properties["minecraft_version"] as String}-SNAPSHOT")
+    implementation(libs.meteor.client)
+    compileOnly(libs.baritone)
 }
 
 loom {
     accessWidenerPath = file("src/main/resources/blackout.accesswidener")
 }
 
+fun toMinecraftCompat(version: String): String {
+    val match = Regex("""^(\d{2})\.([1-9]\d*)(?:\.([1-9]\d*))?$""")
+        .matchEntire(version)
+        ?: error("Invalid Minecraft version format: $version. Expected YY.D or YY.D.H")
+
+    val (year, drop, _) = match.destructured
+    return "~$year.$drop"
+}
+
 tasks {
     processResources {
         val propertyMap = mapOf(
             "version" to project.version,
-            "mc_version" to project.property("minecraft_version")
-        )
+            "minecraft_version" to toMinecraftCompat(libs.versions.minecraft.get()),
+            "jdk_version" to libs.versions.jdk.get(),
+            )
 
         inputs.properties(propertyMap)
 
@@ -49,12 +58,12 @@ tasks {
     }
 
     withType<JavaCompile> {
-        options.release = 21
+        options.release = 25
         options.encoding = "UTF-8"
     }
 
     java {
-        sourceCompatibility = JavaVersion.VERSION_21
-        targetCompatibility = JavaVersion.VERSION_21
+        sourceCompatibility = JavaVersion.VERSION_25
+        targetCompatibility = JavaVersion.VERSION_25
     }
 }

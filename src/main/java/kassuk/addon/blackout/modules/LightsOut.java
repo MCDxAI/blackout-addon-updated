@@ -9,12 +9,12 @@ import meteordevelopment.meteorclient.events.render.Render3DEvent;
 import meteordevelopment.meteorclient.events.world.TickEvent;
 import meteordevelopment.meteorclient.settings.*;
 import meteordevelopment.orbit.EventHandler;
-import net.minecraft.block.TorchBlock;
-import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket;
-import net.minecraft.util.Hand;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.world.level.block.TorchBlock;
+import net.minecraft.network.protocol.game.ServerboundPlayerActionPacket;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.world.phys.Vec3;
 
 /**
  * @author KassuK
@@ -53,19 +53,19 @@ public class LightsOut extends BlackOutModule {
 
     @EventHandler
     private void onTick(TickEvent.Post event) {
-        BlockPos block = getLightSource(mc.player.getEyePos(), SettingUtils.getMineRange());
+        BlockPos block = getLightSource(mc.player.getEyePosition(), SettingUtils.getMineRange());
         if (block != null && timer >= delay.get()) {
             timer = 0;
 
             SettingUtils.mineSwing(SwingSettings.MiningSwingState.Start);
 
-            mc.getNetworkHandler().sendPacket(new PlayerActionC2SPacket(PlayerActionC2SPacket.Action.START_DESTROY_BLOCK,
+            mc.getConnection().send(new ServerboundPlayerActionPacket(ServerboundPlayerActionPacket.Action.START_DESTROY_BLOCK,
                 block, Direction.UP));
-            mc.getNetworkHandler().sendPacket(new PlayerActionC2SPacket(PlayerActionC2SPacket.Action.STOP_DESTROY_BLOCK,
+            mc.getConnection().send(new ServerboundPlayerActionPacket(ServerboundPlayerActionPacket.Action.STOP_DESTROY_BLOCK,
                 block, Direction.UP));
 
             SettingUtils.mineSwing(SwingSettings.MiningSwingState.End);
-            if (swing.get()) clientSwing(swingHand.get(), Hand.MAIN_HAND);
+            if (swing.get()) clientSwing(swingHand.get(), InteractionHand.MAIN_HAND);
         }
     }
 
@@ -74,17 +74,17 @@ public class LightsOut extends BlackOutModule {
         timer = Math.min(delay.get(), timer + event.frameTime);
     }
 
-    private BlockPos getLightSource(Vec3d vec, double r) {
+    private BlockPos getLightSource(Vec3 vec, double r) {
         int c = (int) (Math.ceil(r) + 1);
         BlockPos closest = null;
         float closestDist = -1;
         for (int x = -c; x <= c; x++) {
             for (int y = -c; y <= c; y++) {
                 for (int z = -c; z <= c; z++) {
-                    BlockPos pos = mc.player.getBlockPos().add(x, y, z);
+                    BlockPos pos = mc.player.blockPosition().offset(x, y, z);
                     //best code ever fr
-                    if (mc.world.getBlockState(pos).getBlock() instanceof TorchBlock) {
-                        float dist = (float) vec.distanceTo(pos.toCenterPos());
+                    if (mc.level.getBlockState(pos).getBlock() instanceof TorchBlock) {
+                        float dist = (float) vec.distanceTo(pos.getCenter());
                         if (dist <= r && (closest == null || dist < closestDist)) {
                             closest = pos;
                             closestDist = dist;

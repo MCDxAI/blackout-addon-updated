@@ -1,9 +1,9 @@
-accessWidener	v2	named
-accessible	method	net/minecraft/client/network/ClientPlayerInteractionManager	sendSequencedPacket	(Lnet/minecraft/client/world/ClientWorld;Lnet/minecraft/client/network/SequencedPacketCreator;)V
-accessible	method	net/minecraft/client/world/ClientWorld	getPendingUpdateManager	()Lnet/minecraft/client/network/PendingUpdateManager;
+accessWidener	v2	official
+accessible	method	net/minecraft/client/multiplayer/MultiPlayerGameMode	startPrediction	(Lnet/minecraft/client/multiplayer/ClientLevel;Lnet/minecraft/client/multiplayer/prediction/PredictiveAction;)V
+accessible	method	net/minecraft/client/multiplayer/ClientLevel	getBlockStatePredictionHandler	()Lnet/minecraft/client/multiplayer/prediction/BlockStatePredictionHandler;
 
-accessible	class	net/minecraft/network/packet/c2s/play/PlayerInteractEntityC2SPacket$InteractType
-accessible	class	net/minecraft/network/packet/c2s/play/PlayerInteractEntityC2SPacket$InteractTypeHandler
-accessible	method	net/minecraft/network/packet/c2s/play/PlayerInteractEntityC2SPacket$InteractTypeHandler	getType	()Lnet/minecraft/network/packet/c2s/play/PlayerInteractEntityC2SPacket$InteractType;
+accessible	class	net/minecraft/network/protocol/game/ServerboundInteractPacket$ActionType
+accessible	class	net/minecraft/network/protocol/game/ServerboundInteractPacket$Action
+accessible	method	net/minecraft/network/protocol/game/ServerboundInteractPacket$Action	getType	()Lnet/minecraft/network/protocol/game/ServerboundInteractPacket$ActionType;
 
-accessible	method	net/minecraft/registry/entry/RegistryEntry$Reference	setRegistryKey	(Lnet/minecraft/registry/RegistryKey;)V
+accessible	method	net/minecraft/core/Holder$Reference	bindKey	(Lnet/minecraft/resources/ResourceKey;)V

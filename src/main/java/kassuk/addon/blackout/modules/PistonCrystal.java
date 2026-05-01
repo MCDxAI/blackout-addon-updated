@@ -1,3 +1,4 @@
+// TODO(Ravel): Failed to fully resolve file: null cannot be cast to non-null type com.intellij.psi.PsiJavaCodeReferenceElement
 package kassuk.addon.blackout.modules;
 
 import kassuk.addon.blackout.BlackOut;
@@ -23,19 +24,26 @@ import meteordevelopment.meteorclient.utils.render.color.SettingColor;
 import meteordevelopment.orbit.EventHandler;
 import meteordevelopment.orbit.EventPriority;
 import net.minecraft.block.*;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.decoration.EndCrystalEntity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.Item;
-import net.minecraft.item.Items;
-import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket;
-import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket;
-import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket;
-import net.minecraft.util.Hand;
-import net.minecraft.util.math.BlockBox;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Box;
-import net.minecraft.util.math.Direction;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.boss.enderdragon.EndCrystal;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.Items;
+import net.minecraft.network.protocol.game.ServerboundPlayerActionPacket;
+import net.minecraft.network.protocol.game.ServerboundInteractPacket;
+import net.minecraft.network.protocol.game.ServerboundMovePlayerPacket;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.level.block.AirBlock;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.FireBlock;
+import net.minecraft.world.level.block.piston.MovingPistonBlock;
+import net.minecraft.world.level.block.piston.PistonBaseBlock;
+import net.minecraft.world.level.block.piston.PistonHeadBlock;
+import net.minecraft.world.level.levelgen.structure.BoundingBox;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.core.Direction;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -384,7 +392,7 @@ public class PistonCrystal extends BlackOutModule {
 
     @EventHandler(priority = EventPriority.HIGHEST)
     private void onRender(Render3DEvent event) {
-        if (mc.player == null || mc.world == null) {
+        if (mc.player == null || mc.level == null) {
             return;
         }
 
@@ -424,8 +432,8 @@ public class PistonCrystal extends BlackOutModule {
         mineUpdate();
     }
 
-    private Box getBox(BlockPos pos, double height) {
-        return new Box(pos.getX(), pos.getY(), pos.getZ(), pos.getX() + 1, pos.getY() + height, pos.getZ() + 1);
+    private AABB getBox(BlockPos pos, double height) {
+        return new AABB(pos.getX(), pos.getY(), pos.getZ(), pos.getX() + 1, pos.getY() + height, pos.getZ() + 1);
     }
 
     private void mineUpdate() {
@@ -443,8 +451,8 @@ public class PistonCrystal extends BlackOutModule {
             Direction mineDir = SettingUtils.getPlaceOnDirection(redstonePos);
 
             if (mineDir != null) {
-                sendPacket(new PlayerActionC2SPacket(PlayerActionC2SPacket.Action.START_DESTROY_BLOCK, redstonePos, mineDir));
-                sendPacket(new PlayerActionC2SPacket(PlayerActionC2SPacket.Action.STOP_DESTROY_BLOCK, redstonePos, mineDir));
+                sendPacket(new ServerboundPlayerActionPacket(ServerboundPlayerActionPacket.Action.START_DESTROY_BLOCK, redstonePos, mineDir));
+                sendPacket(new ServerboundPlayerActionPacket(ServerboundPlayerActionPacket.Action.STOP_DESTROY_BLOCK, redstonePos, mineDir));
             }
         }
 
@@ -457,18 +465,18 @@ public class PistonCrystal extends BlackOutModule {
     private void updateAttack() {
         if (!redstonePlaced) return;
 
-        EndCrystalEntity crystal = null;
+        EndCrystal crystal = null;
         double cd = 10000;
 
-        for (Entity entity : mc.world.getEntities()) {
-            if (!(entity instanceof EndCrystalEntity c)) continue;
+        for (Entity entity : mc.level.entitiesForRendering()) {
+            if (!(entity instanceof EndCrystal c)) continue;
             if (c.getX() == crystalPos.getX() + 0.5 && c.getZ() == crystalPos.getZ() + 0.5) continue;
 
-            if ((!alwaysAttack.get() && (c.getX() - c.getBlockX() == 0.5 && c.getZ() - c.getBlockZ() == 0.5)) || !c.getBoundingBox().intersects(Box.from(new BlockBox(crystalPos)).withMaxY(crystalPos.getY() + 1))) {
+            if ((!alwaysAttack.get() && (c.getX() - c.getBlockX() == 0.5 && c.getZ() - c.getBlockZ() == 0.5)) || !c.getBoundingBox().intersects(AABB.of(new BoundingBox(crystalPos)).setMaxY(crystalPos.getY() + 1))) {
                 continue;
             }
 
-            double d = mc.player.getEyePos().distanceTo(c.getEntityPos());
+            double d = mc.player.getEyePosition().distanceTo(c.position());
 
             if (d < cd) {
                 cd = d;
@@ -482,13 +490,13 @@ public class PistonCrystal extends BlackOutModule {
 
         if (System.currentTimeMillis() - lastAttack < 1000 / attackSpeed.get()) return;
 
-        SettingUtils.swing(SwingState.Pre, SwingType.Attacking, Hand.MAIN_HAND);
-        sendPacket(PlayerInteractEntityC2SPacket.attack(crystal, mc.player.isSneaking()));
-        SettingUtils.swing(SwingState.Post, SwingType.Attacking, Hand.MAIN_HAND);
+        SettingUtils.swing(SwingState.Pre, SwingType.Attacking, InteractionHand.MAIN_HAND);
+        sendPacket(ServerboundInteractPacket.createAttackPacket(crystal, mc.player.isShiftKeyDown()));
+        SettingUtils.swing(SwingState.Post, SwingType.Attacking, InteractionHand.MAIN_HAND);
 
         if (SettingUtils.shouldRotate(RotationType.Attacking)) Managers.ROTATION.end(Objects.hash(name + "attacking"));
 
-        if (attackSwing.get()) clientSwing(attackHand.get(), Hand.MAIN_HAND);
+        if (attackSwing.get()) clientSwing(attackHand.get(), InteractionHand.MAIN_HAND);
 
         lastAttack = System.currentTimeMillis();
     }
@@ -498,7 +506,7 @@ public class PistonCrystal extends BlackOutModule {
 
         if (pistonData == null) return;
 
-        Hand hand = getHand(Items.PISTON);
+        InteractionHand hand = getHand(Items.PISTON);
         boolean available = hand != null;
 
         if (!available) {
@@ -527,11 +535,11 @@ public class PistonCrystal extends BlackOutModule {
 
         if (hand == null && !switched) return;
 
-        sendPacket(new PlayerMoveC2SPacket.LookAndOnGround(pistonDir.getOpposite().getHorizontalQuarterTurns(), Managers.ROTATION.lastDir[1], Managers.ON_GROUND.isOnGround(), false));
+        sendPacket(new ServerboundMovePlayerPacket.Rot(pistonDir.getOpposite().get2DDataValue(), Managers.ROTATION.lastDir[1], Managers.ON_GROUND.isOnGround(), false));
 
-        hand = hand == null ? Hand.MAIN_HAND : hand;
+        hand = hand == null ? InteractionHand.MAIN_HAND : hand;
 
-        placeBlock(hand, pistonData.pos().toCenterPos(), pistonData.dir(), pistonData.pos());
+        placeBlock(hand, pistonData.pos().getCenter(), pistonData.dir(), pistonData.pos());
 
         if (SettingUtils.shouldRotate(RotationType.BlockPlace)) Managers.ROTATION.end(Objects.hash(name + "piston"));
         if (pistonSwing.get()) clientSwing(pistonHand.get(), hand);
@@ -555,9 +563,9 @@ public class PistonCrystal extends BlackOutModule {
 
         if (crystalPlaceDir == null) return;
 
-        if (EntityUtils.intersectsWithEntity(Box.from(new BlockBox(crystalPos)), entity -> !entity.isSpectator() && !(entity instanceof EndCrystalEntity))) return;
+        if (EntityUtils.intersectsWithEntity(AABB.of(new BoundingBox(crystalPos)), entity -> !entity.isSpectator() && !(entity instanceof EndCrystal))) return;
 
-        Hand hand = getHand(Items.END_CRYSTAL);
+        InteractionHand hand = getHand(Items.END_CRYSTAL);
         boolean available = hand != null;
 
         if (!available) {
@@ -569,7 +577,7 @@ public class PistonCrystal extends BlackOutModule {
 
         if (!available) return;
 
-        if (SettingUtils.shouldRotate(RotationType.Interact) && !Managers.ROTATION.start(crystalPos.down(), priority, RotationType.Interact, Objects.hash(name + "crystal"))) return;
+        if (SettingUtils.shouldRotate(RotationType.Interact) && !Managers.ROTATION.start(crystalPos.below(), priority, RotationType.Interact, Objects.hash(name + "crystal"))) return;
 
         boolean switched = false;
 
@@ -586,9 +594,9 @@ public class PistonCrystal extends BlackOutModule {
 
         if (hand == null && !switched) return;
 
-        hand = hand == null ? Hand.MAIN_HAND : hand;
+        hand = hand == null ? InteractionHand.MAIN_HAND : hand;
 
-        interactBlock(hand, crystalPos.down().toCenterPos(), crystalPlaceDir, crystalPos.down());
+        interactBlock(hand, crystalPos.below().getCenter(), crystalPlaceDir, crystalPos.below());
 
         if (SettingUtils.shouldRotate(RotationType.Interact)) Managers.ROTATION.end(Objects.hash(name + "crystal"));
         if (crystalSwing.get()) clientSwing(crystalHand.get(), hand);
@@ -611,7 +619,7 @@ public class PistonCrystal extends BlackOutModule {
 
         if (redstoneData == null) return;
 
-        Hand hand = getHand(redstone.get().i);
+        InteractionHand hand = getHand(redstone.get().i);
         boolean available = hand != null;
 
         if (!available) {
@@ -640,9 +648,9 @@ public class PistonCrystal extends BlackOutModule {
 
         if (hand == null && !switched) return;
 
-        hand = hand == null ? Hand.MAIN_HAND : hand;
+        hand = hand == null ? InteractionHand.MAIN_HAND : hand;
 
-        placeBlock(hand, redstoneData.pos().toCenterPos(), redstoneData.dir(), redstoneData.pos());
+        placeBlock(hand, redstoneData.pos().getCenter(), redstoneData.dir(), redstoneData.pos());
 
         if (SettingUtils.shouldRotate(RotationType.BlockPlace)) Managers.ROTATION.end(Objects.hash(name + "redstone"));
         if (redstoneSwing.get()) clientSwing(redstoneHand.get(), hand);
@@ -669,30 +677,30 @@ public class PistonCrystal extends BlackOutModule {
         PlaceData data = null;
         boolean found = false;
 
-        for (int x = (crystalDir.getOpposite().getOffsetX() == 0 ? -1 : Math.min(0, crystalDir.getOffsetX())); x <= (crystalDir.getOpposite().getOffsetX() == 0 ? 1 : Math.max(0, crystalDir.getOpposite().getOffsetX())); x++) {
+        for (int x = (crystalDir.getOpposite().getStepX() == 0 ? -1 : Math.min(0, crystalDir.getStepX())); x <= (crystalDir.getOpposite().getStepX() == 0 ? 1 : Math.max(0, crystalDir.getOpposite().getStepX())); x++) {
             for (int y = 0; y <= 1; y++) {
-                for (int z = (crystalDir.getOpposite().getOffsetZ() == 0 ? -1 : Math.min(0, crystalDir.getOffsetZ())); z <= (crystalDir.getOpposite().getOffsetZ() == 0 ? 1 : Math.max(0, crystalDir.getOpposite().getOffsetZ())); z++) {
+                for (int z = (crystalDir.getOpposite().getStepZ() == 0 ? -1 : Math.min(0, crystalDir.getStepZ())); z <= (crystalDir.getOpposite().getStepZ() == 0 ? 1 : Math.max(0, crystalDir.getOpposite().getStepZ())); z++) {
                     if (found) {
                         break;
                     }
 
-                    BlockPos pos = crystalPos.offset(crystalDir.getOpposite()).add(x, y, z);
+                    BlockPos pos = crystalPos.relative(crystalDir.getOpposite()).offset(x, y, z);
 
                     if (pos.equals(crystalPos)) continue;
                     if (pos.equals(pistonPos)) continue;
                     if (pos.equals(redstonePos)) continue;
-                    if (pos.equals(pistonPos.offset(pistonDir.getOpposite()))) continue;
+                    if (pos.equals(pistonPos.relative(pistonDir.getOpposite()))) continue;
 
-                    if (mc.world.getBlockState(pos).getBlock() instanceof FireBlock) {
+                    if (mc.level.getBlockState(pos).getBlock() instanceof FireBlock) {
                         found = true;
                         firePos = pos;
                         data = SettingUtils.getPlaceData(pos);
                     }
 
-                    if (!OLEPOSSUtils.solid(pos.down())) continue;
-                    if (!(mc.world.getBlockState(pos).getBlock() instanceof AirBlock)) continue;
+                    if (!OLEPOSSUtils.solid(pos.below())) continue;
+                    if (!(mc.level.getBlockState(pos).getBlock() instanceof AirBlock)) continue;
 
-                    double d = pos.toCenterPos().distanceTo(mc.player.getEyePos());
+                    double d = pos.getCenter().distanceTo(mc.player.getEyePosition());
                     if (d >= closesD) continue;
 
                     PlaceData da = SettingUtils.getPlaceData(pos);
@@ -714,7 +722,7 @@ public class PistonCrystal extends BlackOutModule {
 
         if (data == null || !data.valid()) return;
 
-        Hand hand = getHand(Items.FLINT_AND_STEEL);
+        InteractionHand hand = getHand(Items.FLINT_AND_STEEL);
         boolean available = hand != null;
 
         if (!available) {
@@ -743,9 +751,9 @@ public class PistonCrystal extends BlackOutModule {
 
         if (hand == null && !switched) return;
 
-        hand = hand == null ? Hand.MAIN_HAND : hand;
+        hand = hand == null ? InteractionHand.MAIN_HAND : hand;
 
-        interactBlock(hand, data.pos().toCenterPos(), data.dir(), data.pos());
+        interactBlock(hand, data.pos().getCenter(), data.dir(), data.pos());
 
         if (SettingUtils.shouldRotate(RotationType.BlockPlace)) Managers.ROTATION.end(Objects.hash(name + "fire"));
         if (fireSwing.get()) clientSwing(fireHand.get(), hand);
@@ -778,9 +786,9 @@ public class PistonCrystal extends BlackOutModule {
 
         resetPos();
 
-        mc.world.getPlayers().stream()
-            .filter(player -> player != mc.player && player.getEntityPos().distanceTo(mc.player.getEntityPos()) < 10 && player.getHealth() > 0 && !Friends.get().isFriend(player) && !player.isSpectator())
-            .sorted(Comparator.comparingDouble(i -> i.getEntityPos().distanceTo(mc.player.getEntityPos()))).forEach(player -> {
+        mc.level.players().stream()
+            .filter(player -> player != mc.player && player.position().distanceTo(mc.player.position()) < 10 && player.getHealth() > 0 && !Friends.get().isFriend(player) && !player.isSpectator())
+            .sorted(Comparator.comparingDouble(i -> i.position().distanceTo(mc.player.position()))).forEach(player -> {
 
                 if (crystalPos == null) {
                     update(player, true);
@@ -794,29 +802,29 @@ public class PistonCrystal extends BlackOutModule {
             });
     }
 
-    private void update(PlayerEntity player, boolean top) {
+    private void update(Player player, boolean top) {
         cd = 10000;
 
 
-        for (Direction dir : Direction.Type.HORIZONTAL) {
+        for (Direction dir : Direction.Plane.HORIZONTAL) {
             resetPos();
-            BlockPos cPos = top ? BlockPos.ofFloored(player.getEyePos()).offset(dir).up() : BlockPos.ofFloored(player.getEyePos()).offset(dir);
+            BlockPos cPos = top ? BlockPos.containing(player.getEyePosition()).relative(dir).above() : BlockPos.containing(player.getEyePosition()).relative(dir);
 
-            d = cPos.toCenterPos().distanceTo(mc.player.getEntityPos());
+            d = cPos.getCenter().distanceTo(mc.player.position());
             if (!cPos.equals(lastCrystalPos) && d > cd) continue;
 
-            Block b = mc.world.getBlockState(cPos).getBlock();
+            Block b = mc.level.getBlockState(cPos).getBlock();
             if (!(b instanceof AirBlock) && b != Blocks.PISTON_HEAD && b != Blocks.MOVING_PISTON) {
                 continue;
             }
-            b = mc.world.getBlockState(cPos.up()).getBlock();
+            b = mc.level.getBlockState(cPos.above()).getBlock();
             if (SettingUtils.oldCrystals() && !(b instanceof AirBlock) && b != Blocks.PISTON_HEAD && b != Blocks.MOVING_PISTON) {
                 continue;
             }
-            if (mc.world.getBlockState(cPos.down()).getBlock() != Blocks.OBSIDIAN && mc.world.getBlockState(cPos.down()).getBlock() != Blocks.BEDROCK) {
+            if (mc.level.getBlockState(cPos.below()).getBlock() != Blocks.OBSIDIAN && mc.level.getBlockState(cPos.below()).getBlock() != Blocks.BEDROCK) {
                 continue;
             }
-            if (EntityUtils.intersectsWithEntity(Box.from(new BlockBox(cPos)).withMaxY(cPos.getY() + (SettingUtils.cc() ? 1 : 2)), entity -> !entity.isSpectator() && entity instanceof PlayerEntity)) {
+            if (EntityUtils.intersectsWithEntity(AABB.of(new BoundingBox(cPos)).setMaxY(cPos.getY() + (SettingUtils.cc() ? 1 : 2)), entity -> !entity.isSpectator() && entity instanceof Player)) {
                 continue;
             }
             if (!SettingUtils.inPlaceRange(cPos)) {
@@ -874,15 +882,15 @@ public class PistonCrystal extends BlackOutModule {
 
         for (BlockPos position : pistonBlocks) {
 
-            d = mc.player.getEyePos().distanceTo(position.toCenterPos());
+            d = mc.player.getEyePosition().distanceTo(position.getCenter());
             if (!position.equals(lastPistonPos) && cd < d) continue;
 
             PlaceData placeData = SettingUtils.getPlaceDataAND(position, d -> true, b -> !isRedstone(b) &&
-                !(mc.world.getBlockState(b).getBlock() instanceof PistonBlock ||
-                    mc.world.getBlockState(b).getBlock() instanceof PistonHeadBlock ||
-                    mc.world.getBlockState(b).getBlock() instanceof PistonExtensionBlock ||
-                    mc.world.getBlockState(b).getBlock() == Blocks.MOVING_PISTON ||
-                    mc.world.getBlockState(b).getBlock() instanceof FireBlock));
+                !(mc.level.getBlockState(b).getBlock() instanceof PistonBaseBlock ||
+                    mc.level.getBlockState(b).getBlock() instanceof PistonHeadBlock ||
+                    mc.level.getBlockState(b).getBlock() instanceof MovingPistonBlock ||
+                    mc.level.getBlockState(b).getBlock() == Blocks.MOVING_PISTON ||
+                    mc.level.getBlockState(b).getBlock() instanceof FireBlock));
 
             if (!placeData.valid()) {
                 continue;
@@ -917,33 +925,33 @@ public class PistonCrystal extends BlackOutModule {
     private List<BlockPos> pistonBlocks(BlockPos pos, Direction dir) {
         List<BlockPos> blocks = new ArrayList<>();
 
-        for (int x = dir.getOffsetX() == 0 ? -1 : dir.getOffsetX(); x <= (dir.getOffsetX() == 0 ? 1 : dir.getOffsetX()); x++) {
-            for (int z = dir.getOffsetZ() == 0 ? -1 : dir.getOffsetZ(); z <= (dir.getOffsetZ() == 0 ? 1 : dir.getOffsetZ()); z++) {
+        for (int x = dir.getStepX() == 0 ? -1 : dir.getStepX(); x <= (dir.getStepX() == 0 ? 1 : dir.getStepX()); x++) {
+            for (int z = dir.getStepZ() == 0 ? -1 : dir.getStepZ(); z <= (dir.getStepZ() == 0 ? 1 : dir.getStepZ()); z++) {
                 for (int y = 0; y <= 1; y++) {
                     if (x == 0 && y == 0 && z == 0 || (SettingUtils.oldCrystals() && x == 0 && y == 1 && z == 0)) {
                         continue;
                     }
 
-                    if (!upCheck(pos.add(x, y, z))) {
+                    if (!upCheck(pos.offset(x, y, z))) {
                         continue;
                     }
 
-                    blocks.add(pos.add(x, y, z));
+                    blocks.add(pos.offset(x, y, z));
                 }
             }
         }
 
         return blocks.stream().filter(b -> {
-            if (blocked(b.offset(dir.getOpposite()))) {
+            if (blocked(b.relative(dir.getOpposite()))) {
                 return false;
             }
-            if (EntityUtils.intersectsWithEntity(Box.from(new BlockBox(b)), entity -> !entity.isSpectator() && entity instanceof PlayerEntity)) {
+            if (EntityUtils.intersectsWithEntity(AABB.of(new BoundingBox(b)), entity -> !entity.isSpectator() && entity instanceof Player)) {
                 return false;
             }
 
-            if (mc.world.getBlockState(b).getBlock() instanceof PistonBlock ||
-                mc.world.getBlockState(b).getBlock() == Blocks.MOVING_PISTON ||
-                mc.world.getBlockState(b).getBlock() instanceof FireBlock) {
+            if (mc.level.getBlockState(b).getBlock() instanceof PistonBaseBlock ||
+                mc.level.getBlockState(b).getBlock() == Blocks.MOVING_PISTON ||
+                mc.level.getBlockState(b).getBlock() instanceof FireBlock) {
                 return true;
             }
 

@@ -1,11 +1,11 @@
 package kassuk.addon.blackout.mixins;
 
-import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket;
+import net.minecraft.network.protocol.game.ServerboundMovePlayerPacket;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
-@Mixin(PlayerMoveC2SPacket.class)
-public interface IPlayerMoveC2SPacket {
+@Mixin(ServerboundMovePlayerPacket.class)
+public interface IServerboundMovePlayerPacket {
     @Accessor("x")
     double blackout$getX();
 

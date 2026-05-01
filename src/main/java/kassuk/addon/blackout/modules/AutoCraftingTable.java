@@ -1,3 +1,4 @@
+// TODO(Ravel): Failed to fully resolve file: null cannot be cast to non-null type com.intellij.psi.PsiJavaCodeReferenceElement
 package kassuk.addon.blackout.modules;
 
 import kassuk.addon.blackout.BlackOut;
@@ -16,18 +17,18 @@ import meteordevelopment.meteorclient.utils.entity.EntityUtils;
 import meteordevelopment.meteorclient.utils.player.InvUtils;
 import meteordevelopment.meteorclient.utils.render.color.SettingColor;
 import meteordevelopment.orbit.EventHandler;
-import net.minecraft.block.Block;
-import net.minecraft.block.Blocks;
-import net.minecraft.entity.ItemEntity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.Items;
-import net.minecraft.screen.CraftingScreenHandler;
-import net.minecraft.screen.ScreenHandler;
-import net.minecraft.util.Hand;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Box;
-import net.minecraft.util.math.Direction;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.inventory.CraftingMenu;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.core.Direction;
+import net.minecraft.world.phys.Vec3;
 
 import java.util.Objects;
 
@@ -141,9 +142,9 @@ public class AutoCraftingTable extends BlackOutModule {
     }
 
     private boolean screenUpdate() {
-        ScreenHandler screenHandler = mc.player.currentScreenHandler;
+        AbstractContainerMenu screenHandler = mc.player.containerMenu;
 
-        if (screenHandler instanceof CraftingScreenHandler) {
+        if (screenHandler instanceof CraftingMenu) {
             toggle();
             sendDisableMsg("opened crafting table");
             return true;
@@ -187,17 +188,17 @@ public class AutoCraftingTable extends BlackOutModule {
             return false;
         }
 
-        interactBlock(Hand.MAIN_HAND, tablePos.toCenterPos(), tableDir, tablePos);
+        interactBlock(InteractionHand.MAIN_HAND, tablePos.getCenter(), tableDir, tablePos);
 
         if (SettingUtils.shouldRotate(RotationType.Interact)) Managers.ROTATION.end(Objects.hash(name + "interact"));
-        if (interactSwing.get()) clientSwing(interactHand.get(), Hand.MAIN_HAND);
+        if (interactSwing.get()) clientSwing(interactHand.get(), InteractionHand.MAIN_HAND);
 
         return true;
     }
 
     private boolean place() {
-        Hand hand = Managers.HOLDING.isHolding(Items.CRAFTING_TABLE) ? Hand.MAIN_HAND :
-            mc.player.getOffHandStack().getItem() == Items.CRAFTING_TABLE ? Hand.OFF_HAND : null;
+        InteractionHand hand = Managers.HOLDING.isHolding(Items.CRAFTING_TABLE) ? InteractionHand.MAIN_HAND :
+            mc.player.getOffhandItem().getItem() == Items.CRAFTING_TABLE ? InteractionHand.OFF_HAND : null;
 
         boolean canSwitch = switch (switchMode.get()) {
             case Disabled -> hand != null;
@@ -233,9 +234,9 @@ public class AutoCraftingTable extends BlackOutModule {
             return false;
         }
 
-        Hand rHand = hand != null ? hand : Hand.MAIN_HAND;
+        InteractionHand rHand = hand != null ? hand : InteractionHand.MAIN_HAND;
 
-        placeBlock(rHand, placeData.pos().toCenterPos(), placeData.dir(), placeData.pos());
+        placeBlock(rHand, placeData.pos().getCenter(), placeData.dir(), placeData.pos());
 
         if (SettingUtils.shouldRotate(RotationType.BlockPlace)) Managers.ROTATION.end(Objects.hash(name + "placing"));
         if (placeSwing.get()) clientSwing(placeHand.get(), rHand);
@@ -261,7 +262,7 @@ public class AutoCraftingTable extends BlackOutModule {
         for (int x = -i; x <= i; x++) {
             for (int y = -i; y <= i; y++) {
                 for (int z = -i; z <= i; z++) {
-                    BlockPos pos = BlockPos.ofFloored(mc.player.getEyePos()).add(x, y, z);
+                    BlockPos pos = BlockPos.containing(mc.player.getEyePosition()).offset(x, y, z);
 
                     if (!replaceable(pos)) continue;
 
@@ -286,7 +287,7 @@ public class AutoCraftingTable extends BlackOutModule {
                     if (val == closestVal && eDist < closestEnemyDist) continue;
 
 
-                    if (EntityUtils.intersectsWithEntity(new Box(pos), entity -> !(entity instanceof ItemEntity) && !entity.isSpectator()))
+                    if (EntityUtils.intersectsWithEntity(new AABB(pos), entity -> !(entity instanceof ItemEntity) && !entity.isSpectator()))
                         continue;
 
 

@@ -15,12 +15,12 @@ import meteordevelopment.meteorclient.utils.player.FindItemResult;
 import meteordevelopment.meteorclient.utils.player.InvUtils;
 import meteordevelopment.orbit.EventHandler;
 import meteordevelopment.orbit.EventPriority;
-import net.minecraft.client.network.AbstractClientPlayerEntity;
-import net.minecraft.entity.EquipmentSlot;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.util.Hand;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.client.player.AbstractClientPlayer;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.core.BlockPos;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -200,7 +200,7 @@ public class AutoMend extends BlackOutModule {
 
     @EventHandler(priority = EventPriority.HIGHEST)
     private void onRender(Render3DEvent event) {
-        if (mc.player == null || mc.world == null) return;
+        if (mc.player == null || mc.level == null) return;
 
         if (AutoCrystalPlus.placing) acTimer = autoCrystalTicks.get();
 
@@ -208,25 +208,25 @@ public class AutoMend extends BlackOutModule {
 
         if (SelfTrapPlus.placing) selfTrapTimer = selfTrapTicks.get();
 
-        if (!mc.player.getBlockPos().equals(lastPos)) {
-            lastPos = mc.player.getBlockPos();
+        if (!mc.player.blockPosition().equals(lastPos)) {
+            lastPos = mc.player.blockPosition();
             moveTimer = moveTicks.get();
         }
 
-        if (!mc.player.isOnGround()) offGroundTimer = offGroundTicks.get();
+        if (!mc.player.onGround()) offGroundTimer = offGroundTicks.get();
     }
 
 
     @EventHandler(priority = EventPriority.HIGHEST)
     private void onTick(TickEvent.Pre event) {
-        if (mc.player == null || mc.world == null || Modules.get().isActive(Suicide.class)) return;
+        if (mc.player == null || mc.level == null || Modules.get().isActive(Suicide.class)) return;
 
         timer += speed.get() / 20D;
 
         updateTimers();
 
         if (timer >= 1) {
-            Hand hand = Managers.HOLDING.isHolding(Items.EXPERIENCE_BOTTLE) ? Hand.MAIN_HAND : mc.player.getOffHandStack().getItem() == Items.EXPERIENCE_BOTTLE ? Hand.OFF_HAND : null;
+            InteractionHand hand = Managers.HOLDING.isHolding(Items.EXPERIENCE_BOTTLE) ? InteractionHand.MAIN_HAND : mc.player.getOffhandItem().getItem() == Items.EXPERIENCE_BOTTLE ? InteractionHand.OFF_HAND : null;
 
             int bottleSlot;
             int bottleAmount;
@@ -236,8 +236,8 @@ public class AutoMend extends BlackOutModule {
                 bottleSlot = result.slot();
                 bottleAmount = result.count();
             } else {
-                bottleSlot = hand == Hand.MAIN_HAND ? Managers.HOLDING.slot : -1;
-                bottleAmount = hand == Hand.MAIN_HAND ? Managers.HOLDING.getStack().getCount() : mc.player.getOffHandStack().getCount();
+                bottleSlot = hand == InteractionHand.MAIN_HAND ? Managers.HOLDING.slot : -1;
+                bottleAmount = hand == InteractionHand.MAIN_HAND ? Managers.HOLDING.getStack().getCount() : mc.player.getOffhandItem().getCount();
             }
 
 
@@ -262,7 +262,7 @@ public class AutoMend extends BlackOutModule {
                     if (switched) {
                         started = true;
                         for (int i = Math.min(bottleAmount, bottles.get()); i > 0; i--) {
-                            throwBottle(hand == null ? Hand.MAIN_HAND : hand);
+                            throwBottle(hand == null ? InteractionHand.MAIN_HAND : hand);
                             bottleAmount--;
                         }
                         timer--;
@@ -310,14 +310,14 @@ public class AutoMend extends BlackOutModule {
         List<ItemStack> armors = new ArrayList<>();
         EquipmentSlot[] armorSlots = {EquipmentSlot.FEET, EquipmentSlot.LEGS, EquipmentSlot.CHEST, EquipmentSlot.HEAD};
 
-        for (int i = 0; i < 4; i++) armors.add(mc.player.getEquippedStack(armorSlots[i]));
+        for (int i = 0; i < 4; i++) armors.add(mc.player.getItemBySlot(armorSlots[i]));
 
         float max = -1;
         float lowest = 500;
         float dur;
 
         for (ItemStack stack : armors) {
-            dur = (stack.getMaxDamage() - stack.getDamage()) / (float) stack.getMaxDamage() * 100;
+            dur = (stack.getMaxDamage() - stack.getDamageValue()) / (float) stack.getMaxDamage() * 100;
 
             if (dur > max) {
                 max = dur;
@@ -336,15 +336,15 @@ public class AutoMend extends BlackOutModule {
     }
 
     private boolean playerAtPos() {
-        for (AbstractClientPlayerEntity player : mc.world.getPlayers()) {
+        for (AbstractClientPlayer player : mc.level.players()) {
             if (player == mc.player) continue;
             if (Friends.get().isFriend(player)) continue;
-            if (player.getBlockPos().equals(mc.player.getBlockPos())) return true;
+            if (player.blockPosition().equals(mc.player.blockPosition())) return true;
         }
         return false;
     }
 
-    private void throwBottle(Hand hand) {
+    private void throwBottle(InteractionHand hand) {
         useItem(hand);
 
         if (swing.get()) clientSwing(swingHand.get(), hand);

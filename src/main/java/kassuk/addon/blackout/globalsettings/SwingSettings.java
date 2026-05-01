@@ -8,8 +8,8 @@ import meteordevelopment.meteorclient.settings.BoolSetting;
 import meteordevelopment.meteorclient.settings.EnumSetting;
 import meteordevelopment.meteorclient.settings.Setting;
 import meteordevelopment.meteorclient.settings.SettingGroup;
-import net.minecraft.network.packet.c2s.play.HandSwingC2SPacket;
-import net.minecraft.util.Hand;
+import net.minecraft.network.protocol.game.ServerboundSwingPacket;
+import net.minecraft.world.InteractionHand;
 
 /**
  * @author OLEPOSSU
@@ -85,7 +85,7 @@ public class SwingSettings extends BlackOutModule {
         .build()
     );
 
-    public void swing(SwingState state, SwingType type, Hand hand) {
+    public void swing(SwingState state, SwingType type, InteractionHand hand) {
         if (mc.player == null) {
             return;
         }
@@ -121,7 +121,7 @@ public class SwingSettings extends BlackOutModule {
             return;
         }
 
-        swing(true, Hand.MAIN_HAND);
+        swing(true, InteractionHand.MAIN_HAND);
     }
 
     private SwingState getState(SwingType type) {
@@ -134,12 +134,12 @@ public class SwingSettings extends BlackOutModule {
         };
     }
 
-    private void swing(boolean shouldSwing, Hand hand) {
+    private void swing(boolean shouldSwing, InteractionHand hand) {
         if (mc.player == null) {
             return;
         }
 
-        if (shouldSwing) mc.player.networkHandler.sendPacket(new HandSwingC2SPacket(hand));
+        if (shouldSwing) mc.player.connection.send(new ServerboundSwingPacket(hand));
     }
 
     public enum MiningSwingState {

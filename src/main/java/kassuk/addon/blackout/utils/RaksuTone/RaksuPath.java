@@ -2,8 +2,8 @@ package kassuk.addon.blackout.utils.RaksuTone;
 
 import kassuk.addon.blackout.utils.OLEPOSSUtils;
 import meteordevelopment.meteorclient.mixin.AbstractBlockAccessor;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -23,13 +23,13 @@ public class RaksuPath {
     private List<Direction> dirs = null;
 
     public void calculate(int blocks, BlockPos target, boolean opposite) {
-        BlockPos pos = mc.player.getBlockPos().toImmutable();
+        BlockPos pos = mc.player.blockPosition().immutable();
 
-        if (!is(pos.down()) && !OLEPOSSUtils.inside(mc.player, mc.player.getBoundingBox().offset(0, -0.2, 0))) {
+        if (!is(pos.below()) && !OLEPOSSUtils.inside(mc.player, mc.player.getBoundingBox().move(0, -0.2, 0))) {
             for (int i = 0; i < fallDist; i++) {
 
-                if (is(pos.down(i + 1))) {
-                    path.add(new Movement(true, pos.down(i), MovementType.Fall));
+                if (is(pos.below(i + 1))) {
+                    path.add(new Movement(true, pos.below(i), MovementType.Fall));
                     break;
                 }
             }
@@ -75,8 +75,8 @@ public class RaksuPath {
     private Movement getMovement(BlockPos pos, Direction dir) {
         if (canWalkTrough(pos, dir)) {
 
-            if (is(pos.offset(dir).down())) {
-                return new Movement(true, pos.offset(dir), MovementType.Move);
+            if (is(pos.relative(dir).below())) {
+                return new Movement(true, pos.relative(dir), MovementType.Move);
             } else {
                 Movement m = getFall(pos, dir);
 
@@ -97,38 +97,38 @@ public class RaksuPath {
 
     private Movement getStep(BlockPos pos, Direction dir) {
         for (int i = 1; i <= step; i++) {
-            if (is(pos.up(i + 1))) {
+            if (is(pos.above(i + 1))) {
                 return new Movement(false, null, null);
             }
-            if (!is(pos.offset(dir).up(i - 1))) {
+            if (!is(pos.relative(dir).above(i - 1))) {
                 continue;
             }
-            if (is(pos.offset(dir).up(i)) || is(pos.offset(dir).up(i + 1))) {
+            if (is(pos.relative(dir).above(i)) || is(pos.relative(dir).above(i + 1))) {
                 continue;
             }
 
-            return new Movement(true, pos.offset(dir).up(i), MovementType.Step);
+            return new Movement(true, pos.relative(dir).above(i), MovementType.Step);
         }
         return new Movement(false, null, null);
     }
 
     private Movement getFall(BlockPos pos, Direction dir) {
         for (int i = 0; i < fallDist; i++) {
-            if (is(pos.offset(dir).down(i + 1))) {
-                if (i < reverseStep) return new Movement(true, pos.offset(dir).down(i), MovementType.Reverse);
-                else return new Movement(true, pos.offset(dir).down(i), MovementType.Fall);
+            if (is(pos.relative(dir).below(i + 1))) {
+                if (i < reverseStep) return new Movement(true, pos.relative(dir).below(i), MovementType.Reverse);
+                else return new Movement(true, pos.relative(dir).below(i), MovementType.Fall);
             }
         }
         return new Movement(false, null, null);
     }
 
     private boolean canWalkTrough(BlockPos pos, Direction dir) {
-        return !is(pos.offset(dir)) && !is(pos.offset(dir).up());
+        return !is(pos.relative(dir)) && !is(pos.relative(dir).above());
     }
 
     private void closestDir(BlockPos from, BlockPos target, boolean reversed) {
         if (reversed) {
-            Comparator<Direction> c = Comparator.comparingDouble(i -> from.offset(i).toCenterPos().distanceTo(target.toCenterPos()));
+            Comparator<Direction> c = Comparator.comparingDouble(i -> from.relative(i).getCenter().distanceTo(target.getCenter()));
             dirs = Arrays.stream(new Direction[]{
                 Direction.EAST,
                 Direction.WEST,
@@ -141,12 +141,12 @@ public class RaksuPath {
                 Direction.WEST,
                 Direction.NORTH,
                 Direction.SOUTH
-            }).sorted(Comparator.comparingDouble(i -> from.offset(i).toCenterPos().distanceTo(target.toCenterPos()))).toList();
+            }).sorted(Comparator.comparingDouble(i -> from.relative(i).getCenter().distanceTo(target.getCenter()))).toList();
         }
     }
 
     private boolean is(BlockPos pos) {
-        return ((AbstractBlockAccessor) mc.world.getBlockState(pos).getBlock()).meteor$isCollidable();
+        return ((AbstractBlockAccessor) mc.level.getBlockState(pos).getBlock()).meteor$isCollidable();
     }
 
     public record Movement(boolean valid, BlockPos pos, MovementType type) {

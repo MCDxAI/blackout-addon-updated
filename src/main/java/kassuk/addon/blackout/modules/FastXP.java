@@ -2,13 +2,13 @@ package kassuk.addon.blackout.modules;
 
 import kassuk.addon.blackout.BlackOut;
 import kassuk.addon.blackout.BlackOutModule;
-import kassuk.addon.blackout.mixins.AccessorMinecraftClient;
+import kassuk.addon.blackout.mixins.AccessorMinecraft;
 import meteordevelopment.meteorclient.events.world.TickEvent;
 import meteordevelopment.meteorclient.settings.*;
 import meteordevelopment.meteorclient.utils.player.Rotations;
 import meteordevelopment.orbit.EventHandler;
 import meteordevelopment.orbit.EventPriority;
-import net.minecraft.item.Items;
+import net.minecraft.world.item.Items;
 
 /**
  * @author KassuK
@@ -55,16 +55,16 @@ public class FastXP extends BlackOutModule {
 
     @EventHandler(priority = EventPriority.HIGHEST)
     private void onTick(TickEvent.Pre event) {
-        if (mc.player == null || mc.world == null) return;
+        if (mc.player == null || mc.level == null) return;
 
-        if (mc.player.getMainHandStack().getItem() == Items.EXPERIENCE_BOTTLE  && mc.options.useKey.isPressed()){
-            ((AccessorMinecraftClient) mc).blackout$setItemUseCooldown(yeetDelay.get());
+        if (mc.player.getMainHandItem().getItem() == Items.EXPERIENCE_BOTTLE  && mc.options.keyUse.isDown()){
+            ((AccessorMinecraft) mc).blackout$setRightClickDelay(yeetDelay.get());
 
             if (rotMode.get() == RotationMode.Silent && rotate.get())
-                Rotations.rotate(mc.player.getYaw(), pitch.get());
+                Rotations.rotate(mc.player.getYRot(), pitch.get());
 
             if (rotMode.get() == RotationMode.Vanilla && rotate.get())
-                mc.player.setPitch(pitch.get());
+                mc.player.setXRot(pitch.get());
         }
     }
 

@@ -1,12 +1,12 @@
 package kassuk.addon.blackout.mixins;
 
-import net.minecraft.client.network.ClientPlayNetworkHandler;
-import net.minecraft.screen.sync.ComponentChangesHash;
+import net.minecraft.client.multiplayer.ClientPacketListener;
+import net.minecraft.network.HashedPatchMap;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
-@Mixin(ClientPlayNetworkHandler.class)
+@Mixin(ClientPacketListener.class)
 public interface ComponentHasherNetworkHandlerAccessor {
-    @Accessor("componentHasher")
-    ComponentChangesHash.ComponentHasher getComponentHasher();
+    @Accessor("decoratedHashOpsGenerator")
+    HashedPatchMap.HashGenerator getDecoratedHashOpsGenerator();
 }

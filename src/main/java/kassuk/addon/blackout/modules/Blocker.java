@@ -1,3 +1,4 @@
+// TODO(Ravel): Failed to fully resolve file: null cannot be cast to non-null type com.intellij.psi.PsiJavaCodeReferenceElement
 package kassuk.addon.blackout.modules;
 
 import kassuk.addon.blackout.BlackOut;
@@ -23,21 +24,25 @@ import meteordevelopment.meteorclient.utils.render.color.Color;
 import meteordevelopment.meteorclient.utils.render.color.SettingColor;
 import meteordevelopment.orbit.EventHandler;
 import meteordevelopment.orbit.EventPriority;
-import net.minecraft.block.AirBlock;
-import net.minecraft.block.Block;
-import net.minecraft.block.Blocks;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.ItemEntity;
-import net.minecraft.entity.decoration.EndCrystalEntity;
-import net.minecraft.item.BlockItem;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket;
-import net.minecraft.network.packet.s2c.play.BlockBreakingProgressS2CPacket;
-import net.minecraft.sound.SoundCategory;
-import net.minecraft.sound.SoundEvents;
-import net.minecraft.util.Hand;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.world.level.block.AirBlock;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.boss.enderdragon.EndCrystal;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.network.protocol.game.ServerboundInteractPacket;
+import net.minecraft.network.protocol.game.ClientboundBlockDestructionPacket;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.util.math.*;
+import net.minecraft.world.level.levelgen.structure.BoundingBox;
+import net.minecraft.world.phys.AABB;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -288,7 +293,7 @@ public class Blocker extends BlackOutModule {
     private int placesLeft = 0;
     private FindItemResult result = null;
     private boolean switched = false;
-    private Hand hand = null;
+    private InteractionHand hand = null;
     private int tickTimer = 0;
     private double timer = 0;
     private long lastTime = 0;
@@ -310,7 +315,7 @@ public class Blocker extends BlackOutModule {
     private void onRender(Render3DEvent event) {
         placed.update();
 
-        if (mc.player == null || mc.world == null) return;
+        if (mc.player == null || mc.level == null) return;
 
         timer += (System.currentTimeMillis() - lastTime) / 1000d;
         lastTime = System.currentTimeMillis();
@@ -340,8 +345,8 @@ public class Blocker extends BlackOutModule {
 
     @EventHandler(priority = EventPriority.HIGHEST)
     private void onReceive(PacketEvent.Receive event) {
-        if (event.packet instanceof BlockBreakingProgressS2CPacket p) {
-            mineStart = new MineStart(p.getPos(), p.getEntityId(), System.currentTimeMillis());
+        if (event.packet instanceof ClientboundBlockDestructionPacket p) {
+            mineStart = new MineStart(p.getPos(), p.getId(), System.currentTimeMillis());
         }
     }
 
@@ -363,7 +368,7 @@ public class Blocker extends BlackOutModule {
 
         updateAttack();
 
-        placePositions.stream().filter(pos -> !EntityUtils.intersectsWithEntity(Box.from(new BlockBox(pos)), entity -> entity instanceof EndCrystalEntity && System.currentTimeMillis() - lastAttack > 100)).forEach(this::place);
+        placePositions.stream().filter(pos -> !EntityUtils.intersectsWithEntity(AABB.of(new BoundingBox(pos)), entity -> entity instanceof EndCrystal && System.currentTimeMillis() - lastAttack > 100)).forEach(this::place);
 
         if (switched && hand == null) {
             switch (switchMode.get()) {

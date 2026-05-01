@@ -40,16 +40,16 @@ public class SprintPlus extends BlackOutModule {
     private void onTick(TickEvent.Pre event) {
         if (ScaffoldPlus.shouldStopSprinting && Modules.get().isActive(ScaffoldPlus.class)) {return;}
 
-        if (mc.player != null && mc.world != null) {
+        if (mc.player != null && mc.level != null) {
             if (hungerCheck.get()) {
-                if (mc.player.getHungerManager().getFoodLevel() < 6) {
+                if (mc.player.getFoodData().getFoodLevel() < 6) {
                     mc.player.setSprinting(false);
                     return;
                 }
             }
             switch (sprintMode.get()) {
                 case Vanilla -> {
-                    if (mc.options.forwardKey.isPressed()) mc.player.setSprinting(true);
+                    if (mc.options.keyUp.isDown()) mc.player.setSprinting(true);
                 }
                 case Omni -> {
                     if (PlayerUtils.isMoving()) {
@@ -63,7 +63,7 @@ public class SprintPlus extends BlackOutModule {
 
     @Override
     public void onDeactivate() {
-        if (mc.player != null && mc.world != null)
+        if (mc.player != null && mc.level != null)
             mc.player.setSprinting(false);
     }
 

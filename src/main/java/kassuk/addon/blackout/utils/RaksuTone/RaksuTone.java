@@ -1,6 +1,6 @@
 package kassuk.addon.blackout.utils.RaksuTone;
 
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.core.BlockPos;
 
 public class RaksuTone {
     public static RaksuPath getPath(int length, BlockPos target) {

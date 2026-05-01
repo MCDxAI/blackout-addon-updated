@@ -14,13 +14,13 @@ import meteordevelopment.meteorclient.utils.player.InvUtils;
 import meteordevelopment.meteorclient.utils.player.Rotations;
 import meteordevelopment.orbit.EventHandler;
 import meteordevelopment.orbit.EventPriority;
-import net.minecraft.item.BlockItem;
-import net.minecraft.item.Items;
-import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket;
-import net.minecraft.util.Hand;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.Items;
+import net.minecraft.network.protocol.game.ServerboundMovePlayerPacket;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.world.phys.Vec3;
 
 import java.util.Objects;
 
@@ -92,9 +92,9 @@ public class AutoPearl extends BlackOutModule {
 
     @EventHandler(priority = EventPriority.HIGHEST)
     private void onRender(Render3DEvent event) {
-        if (mc.player == null || mc.world == null) return;
+        if (mc.player == null || mc.level == null) return;
 
-        Hand hand = getHand();
+        InteractionHand hand = getHand();
 
         if (switch (switchMode.get()) {
             case Normal, Silent -> !InvUtils.findInHotbar(Items.ENDER_PEARL).found();
@@ -108,7 +108,7 @@ public class AutoPearl extends BlackOutModule {
 
 
         if (instaRot.get()) {
-            sendPacket(new PlayerMoveC2SPacket.LookAndOnGround(getYaw(), pitch.get(), Managers.ON_GROUND.isOnGround(), false));
+            sendPacket(new ServerboundMovePlayerPacket.Rot(getYaw(), pitch.get(), Managers.ON_GROUND.isOnGround(), false));
         }
 
         boolean switched = hand != null;
@@ -128,10 +128,10 @@ public class AutoPearl extends BlackOutModule {
             return;
         }
 
-        useItem(hand == null ? Hand.MAIN_HAND : hand);
+        useItem(hand == null ? InteractionHand.MAIN_HAND : hand);
 
         Managers.ROTATION.end(Objects.hash(name + "look"));
-        if (swing.get()) clientSwing(swingHand.get(), hand == null ? Hand.MAIN_HAND : hand);
+        if (swing.get()) clientSwing(swingHand.get(), hand == null ? InteractionHand.MAIN_HAND : hand);
 
         toggle();
         sendToggledMsg("success");
@@ -155,16 +155,16 @@ public class AutoPearl extends BlackOutModule {
             return false;
         }
 
-        BlockPos pos = mc.player.getBlockPos();
+        BlockPos pos = mc.player.blockPosition();
 
-        boolean rotated = instaRot.get() || !SettingUtils.shouldRotate(RotationType.BlockPlace) || Managers.ROTATION.start(pos.down(), priority, RotationType.BlockPlace, Objects.hash(name + "placing"));
+        boolean rotated = instaRot.get() || !SettingUtils.shouldRotate(RotationType.BlockPlace) || Managers.ROTATION.start(pos.below(), priority, RotationType.BlockPlace, Objects.hash(name + "placing"));
         if (!rotated) return false;
 
         if (instaRot.get())
-            sendPacket(new PlayerMoveC2SPacket.LookAndOnGround((float) RotationUtils.getYaw(mc.player.getEyePos(), pos.toCenterPos()), (float) RotationUtils.getPitch(mc.player.getEyePos(), pos.toCenterPos()), Managers.ON_GROUND.isOnGround(), false));
+            sendPacket(new ServerboundMovePlayerPacket.Rot((float) RotationUtils.getYaw(mc.player.getEyePosition(), pos.getCenter()), (float) RotationUtils.getPitch(mc.player.getEyePosition(), pos.getCenter()), Managers.ON_GROUND.isOnGround(), false));
 
-        Hand hand = mc.player.getOffHandStack().getItem() instanceof BlockItem ? Hand.OFF_HAND :
-            Managers.HOLDING.getStack().getItem() instanceof BlockItem ? Hand.MAIN_HAND : null;
+        InteractionHand hand = mc.player.getOffhandItem().getItem() instanceof BlockItem ? InteractionHand.OFF_HAND :
+            Managers.HOLDING.getStack().getItem() instanceof BlockItem ? InteractionHand.MAIN_HAND : null;
 
         boolean switched = false;
 
@@ -183,7 +183,7 @@ public class AutoPearl extends BlackOutModule {
 
         if (hand == null && !switched) return false;
 
-        placeBlock(hand == null ? Hand.MAIN_HAND : hand, pos.down().toCenterPos(), Direction.UP, pos.down());
+        placeBlock(hand == null ? InteractionHand.MAIN_HAND : hand, pos.below().getCenter(), Direction.UP, pos.below());
 
         if (!instaRot.get() && SettingUtils.shouldRotate(RotationType.BlockPlace)) Managers.ROTATION.end(Objects.hash(name + "placing"));
         placed = true;
@@ -200,15 +200,15 @@ public class AutoPearl extends BlackOutModule {
     }
 
     private int getYaw() {
-        return (int) Math.round(Rotations.getYaw(new Vec3d(Math.floor(mc.player.getX()) + 0.5, 0, Math.floor(mc.player.getZ()) + 0.5))) + 180;
+        return (int) Math.round(Rotations.getYaw(new Vec3(Math.floor(mc.player.getX()) + 0.5, 0, Math.floor(mc.player.getZ()) + 0.5))) + 180;
     }
 
-    private Hand getHand() {
+    private InteractionHand getHand() {
         if (Managers.HOLDING.isHolding(Items.ENDER_PEARL)) {
-            return Hand.MAIN_HAND;
+            return InteractionHand.MAIN_HAND;
         }
-        if (mc.player.getOffHandStack().getItem() == Items.ENDER_PEARL) {
-            return Hand.OFF_HAND;
+        if (mc.player.getOffhandItem().getItem() == Items.ENDER_PEARL) {
+            return InteractionHand.OFF_HAND;
         }
         return null;
     }

@@ -8,7 +8,7 @@ import meteordevelopment.meteorclient.settings.DoubleSetting;
 import meteordevelopment.meteorclient.settings.Setting;
 import meteordevelopment.meteorclient.settings.SettingGroup;
 import meteordevelopment.orbit.EventHandler;
-import net.minecraft.util.Hand;
+import net.minecraft.world.InteractionHand;
 
 /**
  * @author OLEPOSSU
@@ -116,8 +116,8 @@ public class SwingModifier extends BlackOutModule {
     private boolean offSwinging = false;
     private float offProgress = 0;
 
-    public void startSwing(Hand hand) {
-        if (hand == Hand.MAIN_HAND) {
+    public void startSwing(InteractionHand hand) {
+        if (hand == InteractionHand.MAIN_HAND) {
             if (mReset.get() || !mainSwinging) {
                 mainProgress = 0;
                 mainSwinging = true;
@@ -151,15 +151,15 @@ public class SwingModifier extends BlackOutModule {
         }
     }
 
-    public float getSwing(Hand hand) {
-        if (hand == Hand.MAIN_HAND) {
+    public float getSwing(InteractionHand hand) {
+        if (hand == InteractionHand.MAIN_HAND) {
             return (float) (mStart.get() + (mEnd.get() - mStart.get()) * mainProgress);
         }
         return (float) (oStart.get() + (oEnd.get() - oStart.get()) * offProgress);
     }
 
-    public float getY(Hand hand) {
-        if (hand == Hand.MAIN_HAND) {
+    public float getY(InteractionHand hand) {
+        if (hand == InteractionHand.MAIN_HAND) {
             return (float) (myStart.get() + (myEnd.get() - myStart.get()) * mainProgress) / -10f;
         }
         return (float) (oyStart.get() + (oyEnd.get() - oyStart.get()) * offProgress) / -10f;

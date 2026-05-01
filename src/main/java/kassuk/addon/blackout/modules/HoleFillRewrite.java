@@ -19,14 +19,19 @@ import meteordevelopment.meteorclient.utils.render.color.Color;
 import meteordevelopment.meteorclient.utils.render.color.SettingColor;
 import meteordevelopment.orbit.EventHandler;
 import meteordevelopment.orbit.EventPriority;
-import net.minecraft.block.Block;
-import net.minecraft.block.Blocks;
-import net.minecraft.entity.ItemEntity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.BlockItem;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.Hand;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.util.math.*;
+import net.minecraft.world.level.levelgen.structure.BoundingBox;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 
 import java.util.*;
 
@@ -195,7 +200,7 @@ public class HoleFillRewrite extends BlackOutModule {
         timers.update();
 
         double d = event.frameTime;
-        if (mc.player != null && mc.world != null) {
+        if (mc.player != null && mc.level != null) {
             placeTimer = Math.min(placeTimer + event.frameTime, placeDelay.get());
             update();
 
@@ -206,7 +211,7 @@ public class HoleFillRewrite extends BlackOutModule {
                 if (alpha[0] <= d) {
                     toRemove.add(pos);
                 } else {
-                    event.renderer.box(Box.from(new BlockBox(pos)),
+                    event.renderer.box(AABB.of(new BoundingBox(pos)),
                         new Color(color.get().r, color.get().g, color.get().b, (int) Math.round(color.get().a * Math.min(1, alpha[0] / alpha[1]))),
                         new Color(lineColor.get().r, lineColor.get().g, lineColor.get().b, (int) Math.round(lineColor.get().a * Math.min(1, alpha[0] / alpha[1]))), shapeMode.get(), 0);
                     entry.setValue(new Double[]{alpha[0] - d, alpha[1]});
@@ -222,7 +227,7 @@ public class HoleFillRewrite extends BlackOutModule {
 
         FindItemResult result = InvUtils.findInHotbar(itemStack -> itemStack.getItem() instanceof BlockItem && blocks.get().contains(((BlockItem) itemStack.getItem()).getBlock()));
         FindItemResult invResult = InvUtils.find(itemStack -> itemStack.getItem() instanceof BlockItem && blocks.get().contains(((BlockItem) itemStack.getItem()).getBlock()));
-        Hand hand = isValid(Managers.HOLDING.getStack()) ? Hand.MAIN_HAND : isValid(mc.player.getOffHandStack()) ? Hand.OFF_HAND : null;
+        InteractionHand hand = isValid(Managers.HOLDING.getStack()) ? InteractionHand.MAIN_HAND : isValid(mc.player.getOffhandItem()) ? InteractionHand.OFF_HAND : null;
 
         if (!placements.isEmpty() && (!pauseEat.get() || !mc.player.isUsingItem()) && placeTimer >= placeDelay.get()) {
             if (hand != null || (switchMode.get() == SwitchMode.Silent && result.slot() >= 0) || ((switchMode.get() == SwitchMode.PickSilent || switchMode.get() == SwitchMode.InvSwitch) && invResult.slot() >= 0)) {
@@ -235,8 +240,8 @@ public class HoleFillRewrite extends BlackOutModule {
                 }
 
                 if (!toPlace.isEmpty()) {
-                    int obsidian = hand == Hand.MAIN_HAND ? Managers.HOLDING.getStack().getCount() :
-                        hand == Hand.OFF_HAND ? mc.player.getOffHandStack().getCount() : -1;
+                    int obsidian = hand == InteractionHand.MAIN_HAND ? Managers.HOLDING.getStack().getCount() :
+                        hand == InteractionHand.OFF_HAND ? mc.player.getOffhandItem().getCount() : -1;
 
                     if (hand == null) {
                         switch (switchMode.get()) {
@@ -269,7 +274,7 @@ public class HoleFillRewrite extends BlackOutModule {
                                 if (!rotated) {
                                     break;
                                 }
-                                place(placeData, toPlace.get(i), hand == null ? Hand.MAIN_HAND : hand);
+                                place(placeData, toPlace.get(i), hand == null ? InteractionHand.MAIN_HAND : hand);
                             }
                         }
 
@@ -306,7 +311,7 @@ public class HoleFillRewrite extends BlackOutModule {
         for (int x = (int) -Math.ceil(range); x <= Math.ceil(range); x++) {
             for (int y = (int) -Math.ceil(range); y <= Math.ceil(range); y++) {
                 for (int z = (int) -Math.ceil(range); z <= Math.ceil(range); z++) {
-                    BlockPos pos = mc.player.getBlockPos().add(x, y, z);
+                    BlockPos pos = mc.player.blockPosition().offset(x, y, z);
 
                     Hole h = HoleUtils.getHole(pos, single.get(), doubleHole.get(), quad.get(), 3, true);
 
@@ -318,14 +323,14 @@ public class HoleFillRewrite extends BlackOutModule {
                         if (!OLEPOSSUtils.replaceable(p)) {
                             continue;
                         }
-                        if (EntityUtils.intersectsWithEntity(Box.from(new BlockBox(p)), entity -> !entity.isSpectator() && !(entity instanceof ItemEntity))) {
+                        if (EntityUtils.intersectsWithEntity(AABB.of(new BoundingBox(p)), entity -> !entity.isSpectator() && !(entity instanceof ItemEntity))) {
                             continue;
                         }
 
                         double closest = closestDist(p);
 
                         PlaceData d = SettingUtils.getPlaceData(p);
-                        if (d.valid() && closest >= 0 && closest <= holeRange.get() && (!efficient.get() || mc.player.getEntityPos().distanceTo(Vec3d.ofCenter(p)) > closest)) {
+                        if (d.valid() && closest >= 0 && closest <= holeRange.get() && (!efficient.get() || mc.player.position().distanceTo(Vec3.atCenterOf(p)) > closest)) {
                             if (SettingUtils.inPlaceRange(d.pos())) {
                                 holes.add(p);
                             }
@@ -338,8 +343,8 @@ public class HoleFillRewrite extends BlackOutModule {
 
     private double closestDist(BlockPos pos) {
         double closest = -1;
-        for (PlayerEntity pl : mc.world.getPlayers()) {
-            double dist = pl.getEntityPos().distanceTo(Vec3d.ofCenter(pos));
+        for (Player pl : mc.level.players()) {
+            double dist = pl.position().distanceTo(Vec3.atCenterOf(pos));
 
             if (/* In hole check */ (!iHole.get() || !inHole(pl)) &&
                 /* Above Check */ (!above.get() || pl.getY() > pos.getY()) &&
@@ -350,9 +355,9 @@ public class HoleFillRewrite extends BlackOutModule {
         return closest;
     }
 
-    private boolean inHole(PlayerEntity pl) {
-        for (Direction dir : Direction.Type.HORIZONTAL) {
-            if (mc.world.getBlockState(pl.getBlockPos().offset(dir)).getBlock() == Blocks.AIR)
+    private boolean inHole(Player pl) {
+        for (Direction dir : Direction.Plane.HORIZONTAL) {
+            if (mc.level.getBlockState(pl.blockPosition().relative(dir)).getBlock() == Blocks.AIR)
                 return false;
         }
         return true;
@@ -362,10 +367,10 @@ public class HoleFillRewrite extends BlackOutModule {
         return SettingUtils.getPlaceData(pos).valid();
     }
 
-    private void place(PlaceData d, BlockPos ogPos, Hand hand) {
+    private void place(PlaceData d, BlockPos ogPos, InteractionHand hand) {
         timers.add(ogPos, delay.get());
 
-        placeBlock(hand, d.pos().toCenterPos(), d.dir(), d.pos());
+        placeBlock(hand, d.pos().getCenter(), d.dir(), d.pos());
 
         if (placeSwing.get()) clientSwing(placeHand.get(), hand);
 

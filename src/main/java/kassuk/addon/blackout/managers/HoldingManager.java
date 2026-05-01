@@ -4,9 +4,9 @@ import meteordevelopment.meteorclient.MeteorClient;
 import meteordevelopment.meteorclient.events.packets.PacketEvent;
 import meteordevelopment.orbit.EventHandler;
 import meteordevelopment.orbit.EventPriority;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.network.packet.c2s.play.UpdateSelectedSlotC2SPacket;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.network.protocol.game.ServerboundSetCarriedItemPacket;
 
 import static meteordevelopment.meteorclient.MeteorClient.mc;
 
@@ -26,9 +26,9 @@ public class HoldingManager {
 
     @EventHandler(priority = EventPriority.HIGHEST)
     private void onSend(PacketEvent.Send event) {
-        if (event.packet instanceof UpdateSelectedSlotC2SPacket packet) {
-            if (packet.getSelectedSlot() >= 0 && packet.getSelectedSlot() <= 8) {
-                slot = packet.getSelectedSlot();
+        if (event.packet instanceof ServerboundSetCarriedItemPacket packet) {
+            if (packet.getSlot() >= 0 && packet.getSlot() <= 8) {
+                slot = packet.getSlot();
             }
         }
     }
@@ -37,7 +37,7 @@ public class HoldingManager {
         if (mc.player == null) {
             return null;
         }
-        return mc.player.getInventory().getStack(slot);
+        return mc.player.getInventory().getItem(slot);
     }
 
     public int getSlot() {

@@ -13,14 +13,14 @@ import meteordevelopment.meteorclient.systems.modules.Modules;
 import meteordevelopment.meteorclient.utils.player.InvUtils;
 import meteordevelopment.orbit.EventHandler;
 import meteordevelopment.orbit.EventPriority;
-import net.minecraft.block.Block;
-import net.minecraft.block.Blocks;
-import net.minecraft.item.BlockItem;
-import net.minecraft.item.ItemStack;
-import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket;
-import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket;
-import net.minecraft.util.Hand;
-import net.minecraft.util.math.Direction;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.network.protocol.game.ServerboundMovePlayerPacket;
+import net.minecraft.network.protocol.game.ClientboundPlayerPositionPacket;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.core.Direction;
 
 import java.util.List;
 import java.util.Objects;
@@ -117,10 +117,10 @@ public class BurrowPlus extends BlackOutModule {
         enabledPFly = false;
         enabledScaffold = false;
 
-        if (mc.player == null || mc.world == null) {return;}
+        if (mc.player == null || mc.level == null) {return;}
 
-        Hand hand = predicate.test(Managers.HOLDING.getStack()) ? Hand.MAIN_HAND :
-            predicate.test(mc.player.getOffHandStack()) ? Hand.OFF_HAND : null;
+        InteractionHand hand = predicate.test(Managers.HOLDING.getStack()) ? InteractionHand.MAIN_HAND :
+            predicate.test(mc.player.getOffhandItem()) ? InteractionHand.OFF_HAND : null;
 
         boolean blocksPresent = hand != null;
 
@@ -153,7 +153,7 @@ public class BurrowPlus extends BlackOutModule {
         }
 
         if (instaRot.get() && SettingUtils.shouldRotate(RotationType.BlockPlace)) {
-            sendPacket(new PlayerMoveC2SPacket.LookAndOnGround(Managers.ROTATION.lastDir[0], 90, Managers.ON_GROUND.isOnGround(), false));
+            sendPacket(new ServerboundMovePlayerPacket.Rot(Managers.ROTATION.lastDir[0], 90, Managers.ON_GROUND.isOnGround(), false));
         }
 
         double y = 0;
@@ -163,16 +163,16 @@ public class BurrowPlus extends BlackOutModule {
             y += velocity;
             velocity = (velocity - 0.08) * 0.98;
 
-            sendPacket(new PlayerMoveC2SPacket.PositionAndOnGround(mc.player.getX(), mc.player.getY() + y, mc.player.getZ(), false, false));
+            sendPacket(new ServerboundMovePlayerPacket.Pos(mc.player.getX(), mc.player.getY() + y, mc.player.getZ(), false, false));
         }
 
-        placeBlock(Hand.MAIN_HAND, mc.player.getBlockPos().down().toCenterPos(), Direction.UP, mc.player.getBlockPos().down());
+        placeBlock(InteractionHand.MAIN_HAND, mc.player.blockPosition().below().getCenter(), Direction.UP, mc.player.blockPosition().below());
         if (!instaRot.get() && SettingUtils.shouldRotate(RotationType.BlockPlace)) Managers.ROTATION.end(Objects.hash(name + "placing"));
 
-        if (placeSwing.get()) clientSwing(placeHand.get(), Hand.MAIN_HAND);
+        if (placeSwing.get()) clientSwing(placeHand.get(), InteractionHand.MAIN_HAND);
 
         for (int i = 0; i < rubberbandPackets.get(); i++) {
-            sendPacket(new PlayerMoveC2SPacket.PositionAndOnGround(mc.player.getX(), mc.player.getY() + y + rubberbandOffset.get(), mc.player.getZ(), false, false));
+            sendPacket(new ServerboundMovePlayerPacket.Pos(mc.player.getX(), mc.player.getY() + y + rubberbandOffset.get(), mc.player.getZ(), false, false));
         }
 
         success = true;
@@ -205,7 +205,7 @@ public class BurrowPlus extends BlackOutModule {
 
     @EventHandler(priority = EventPriority.HIGHEST)
     private void onPacket(PacketEvent.Receive event) {
-        if (pFly.get() && success && event.packet instanceof PlayerPositionLookS2CPacket) {
+        if (pFly.get() && success && event.packet instanceof ClientboundPlayerPositionPacket) {
 
             if (!Modules.get().isActive(PacketFly.class)) {
                 Modules.get().get(PacketFly.class).toggle();

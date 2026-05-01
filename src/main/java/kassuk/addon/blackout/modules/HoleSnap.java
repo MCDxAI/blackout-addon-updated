@@ -8,16 +8,16 @@ import kassuk.addon.blackout.utils.HoleUtils;
 import kassuk.addon.blackout.utils.OLEPOSSUtils;
 import meteordevelopment.meteorclient.events.entity.player.PlayerMoveEvent;
 import meteordevelopment.meteorclient.events.packets.PacketEvent;
-import meteordevelopment.meteorclient.mixininterface.IVec3d;
+import meteordevelopment.meteorclient.mixininterface.IVec3;
 import meteordevelopment.meteorclient.settings.*;
 import meteordevelopment.meteorclient.systems.modules.Modules;
 import meteordevelopment.meteorclient.systems.modules.world.Timer;
 import meteordevelopment.meteorclient.utils.player.Rotations;
 import meteordevelopment.orbit.EventHandler;
 import meteordevelopment.orbit.EventPriority;
-import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.network.protocol.game.ClientboundPlayerPositionPacket;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.phys.Vec3;
 
 /**
  * @author OLEPOSSU
@@ -180,7 +180,7 @@ public class HoleSnap extends BlackOutModule {
 
     @EventHandler
     private void onPacket(PacketEvent.Receive event) {
-        if (event.packet instanceof PlayerPositionLookS2CPacket && rDisable.get() > 0) {
+        if (event.packet instanceof ClientboundPlayerPositionPacket && rDisable.get() > 0) {
             rubberbands++;
             if (rubberbands >= rDisable.get() && rDisable.get() > 0) {
                 this.toggle();
@@ -191,7 +191,7 @@ public class HoleSnap extends BlackOutModule {
 
     @EventHandler(priority = EventPriority.HIGHEST)
     private void onMove(PlayerMoveEvent event) {
-        if (mc.player != null && mc.world != null) {
+        if (mc.player != null && mc.level != null) {
             Hole hole = singleTarget.get() ? singleHole : findHole();
 
             if (hole != null && !singleBlocked()) {
@@ -203,12 +203,12 @@ public class HoleSnap extends BlackOutModule {
                     if (mc.player.getY() == hole.middle.y) {
                         this.toggle();
                         sendDisableMsg("in hole");
-                        ((IVec3d) event.movement).meteor$setXZ(0, 0);
-                    } else if (OLEPOSSUtils.inside(mc.player, mc.player.getBoundingBox().offset(0, -0.05, 0))) {
+                        ((IVec3) event.movement).meteor$setXZ(0, 0);
+                    } else if (OLEPOSSUtils.inside(mc.player, mc.player.getBoundingBox().move(0, -0.05, 0))) {
                         this.toggle();
                         sendDisableMsg("hole unreachable");
                     } else {
-                        ((IVec3d) event.movement).meteor$setXZ(0, 0);
+                        ((IVec3) event.movement).meteor$setXZ(0, 0);
                     }
                 } else {
                     double x = getSpeed() * yaw;
@@ -216,7 +216,7 @@ public class HoleSnap extends BlackOutModule {
                     double z = getSpeed() * pit;
                     double dZ = hole.middle.z - mc.player.getZ();
 
-                    if (OLEPOSSUtils.inside(mc.player, mc.player.getBoundingBox().offset(x, 0, z))) {
+                    if (OLEPOSSUtils.inside(mc.player, mc.player.getBoundingBox().move(x, 0, z))) {
                         collisions++;
                         if (collisions >= coll.get() && coll.get() > 0) {
                             this.toggle();
@@ -227,12 +227,12 @@ public class HoleSnap extends BlackOutModule {
                     }
                     if (ticks > 0) {
                         ticks--;
-                    } else if (OLEPOSSUtils.inside(mc.player, mc.player.getBoundingBox().offset(0, -0.05, 0)) && jump.get()) {
+                    } else if (OLEPOSSUtils.inside(mc.player, mc.player.getBoundingBox().move(0, -0.05, 0)) && jump.get()) {
                         ticks = jumpCoolDown.get();
-                        ((IVec3d) event.movement).meteor$setY(0.42);
+                        ((IVec3) event.movement).meteor$setY(0.42);
                     }
                     boostLeft--;
-                    ((IVec3d) event.movement).meteor$setXZ(Math.abs(x) < Math.abs(dX) ? x : dX, Math.abs(z) < Math.abs(dZ) ? z : dZ);
+                    ((IVec3) event.movement).meteor$setXZ(Math.abs(x) < Math.abs(dX) ? x : dX, Math.abs(z) < Math.abs(dZ) ? z : dZ);
                 }
             } else {
                 this.toggle();
@@ -260,7 +260,7 @@ public class HoleSnap extends BlackOutModule {
         for (int x = -range.get(); x <= range.get(); x++) {
             for (int y = -downRange.get(); y < 1; y++) {
                 for (int z = -range.get(); z < range.get(); z++) {
-                    BlockPos pos = mc.player.getBlockPos().add(x, y, z);
+                    BlockPos pos = mc.player.blockPosition().offset(x, y, z);
 
                     Hole hole = HoleUtils.getHole(pos, singleHoles.get(), doubleHoles.get(), quadHoles.get(), depth.get(), true);
 
@@ -272,8 +272,8 @@ public class HoleSnap extends BlackOutModule {
                         return hole;
                     }
                     if (closest == null ||
-                        hole.middle.distanceTo(mc.player.getEntityPos()) <
-                            closest.middle.distanceTo(mc.player.getEntityPos())) {
+                        hole.middle.distanceTo(mc.player.position()) <
+                            closest.middle.distanceTo(mc.player.position())) {
                         closest = hole;
                     }
                 }
@@ -285,14 +285,14 @@ public class HoleSnap extends BlackOutModule {
 
     private boolean inHole(Hole hole) {
         for (BlockPos pos : hole.positions) {
-            if (mc.player.getBlockPos().equals(pos)) {
+            if (mc.player.blockPosition().equals(pos)) {
                 return true;
             }
         }
         return false;
     }
 
-    private float getAngle(Vec3d pos) {
+    private float getAngle(Vec3 pos) {
         return (float) Rotations.getYaw(pos);
     }
 

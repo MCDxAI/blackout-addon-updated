@@ -20,14 +20,19 @@ import meteordevelopment.meteorclient.utils.render.color.Color;
 import meteordevelopment.meteorclient.utils.render.color.SettingColor;
 import meteordevelopment.orbit.EventHandler;
 import meteordevelopment.orbit.EventPriority;
-import net.minecraft.block.Block;
-import net.minecraft.block.Blocks;
-import net.minecraft.client.network.AbstractClientPlayerEntity;
-import net.minecraft.entity.ItemEntity;
-import net.minecraft.item.BlockItem;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.Hand;
+import net.minecraft.core.BlockPos;
+import net.minecraft.util.Mth;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.client.player.AbstractClientPlayer;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.util.math.*;
+import net.minecraft.world.level.levelgen.structure.BoundingBox;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 
 import java.util.*;
 
@@ -341,15 +346,15 @@ public class HoleFillPlus extends BlackOutModule {
     private final TimerList<BlockPos> timers = new TimerList<>();
     private final List<Render> render = new ArrayList<>();
 
-    private final Map<AbstractClientPlayerEntity, List<Movement>> walkAngles = new HashMap<>();
-    private final Map<AbstractClientPlayerEntity, List<Look>> lookAngles = new HashMap<>();
+    private final Map<AbstractClientPlayer, List<Movement>> walkAngles = new HashMap<>();
+    private final Map<AbstractClientPlayer, List<Look>> lookAngles = new HashMap<>();
 
-    private final Map<AbstractClientPlayerEntity, Box> nearPosition = new HashMap<>();
-    private final Map<AbstractClientPlayerEntity, Box> boxes = new HashMap<>();
+    private final Map<AbstractClientPlayer, AABB> nearPosition = new HashMap<>();
+    private final Map<AbstractClientPlayer, AABB> boxes = new HashMap<>();
 
     private boolean shouldUpdate = false;
 
-    private Hand hand = null;
+    private InteractionHand hand = null;
     private int blocksLeft = 0;
     private int placesLeft = 0;
     private FindItemResult result = null;
@@ -368,7 +373,7 @@ public class HoleFillPlus extends BlackOutModule {
     private void onRender(Render3DEvent event) {
         timers.update();
 
-        if (mc.player == null || mc.world == null) return;
+        if (mc.player == null || mc.level == null) return;
 
         if (shouldUpdate) {
             update();
@@ -399,7 +404,7 @@ public class HoleFillPlus extends BlackOutModule {
         hand = getHand();
         switched = false;
 
-        holes.stream().sorted(Comparator.comparingDouble(pos -> pos.toCenterPos().distanceTo(mc.player.getEyePos()))).forEach(this::place);
+        holes.stream().sorted(Comparator.comparingDouble(pos -> pos.getCenter().distanceTo(mc.player.getEyePosition()))).forEach(this::place);
 
         if (switched && hand == null) {
             switch (switchMode.get()) {
@@ -418,12 +423,12 @@ public class HoleFillPlus extends BlackOutModule {
         };
     }
 
-    private Hand getHand() {
+    private InteractionHand getHand() {
         if (valid(Managers.HOLDING.getStack())) {
-            return Hand.MAIN_HAND;
+            return InteractionHand.MAIN_HAND;
         }
-        if (valid(mc.player.getOffHandStack())) {
-            return Hand.OFF_HAND;
+        if (valid(mc.player.getOffhandItem())) {
+            return InteractionHand.OFF_HAND;
         }
         return null;
     }
@@ -441,12 +446,12 @@ public class HoleFillPlus extends BlackOutModule {
     }
 
     private void updateWalk() {
-        Map<AbstractClientPlayerEntity, List<Movement>> newMap = new HashMap<>();
+        Map<AbstractClientPlayer, List<Movement>> newMap = new HashMap<>();
 
-        for (AbstractClientPlayerEntity player : mc.world.getPlayers()) {
+        for (AbstractClientPlayer player : mc.level.players()) {
             Movement m = new Movement(
-                MathHelper.wrapDegrees((float)Math.toDegrees(Math.atan2(player.getZ() - player.lastZ, player.getX() - player.lastX)) - 90f),
-                player.getEntityPos()
+                Mth.wrapDegrees((float)Math.toDegrees(Math.atan2(player.getZ() - player.zo, player.getX() - player.xo)) - 90f),
+                player.position()
             );
             if (!walkAngles.containsKey(player)) {
                 List<Movement> l = new ArrayList<>();
@@ -470,10 +475,10 @@ public class HoleFillPlus extends BlackOutModule {
     }
 
     private void updateLook() {
-        Map<AbstractClientPlayerEntity, List<Look>> newMap = new HashMap<>();
+        Map<AbstractClientPlayer, List<Look>> newMap = new HashMap<>();
 
-        for (AbstractClientPlayerEntity player : mc.world.getPlayers()) {
-            Look e = new Look(MathHelper.wrapDegrees(player.getYaw()), player.getPitch(), player.getEyePos());
+        for (AbstractClientPlayer player : mc.level.players()) {
+            Look e = new Look(Mth.wrapDegrees(player.getYRot()), player.getXRot(), player.getEyePosition());
 
             if (!lookAngles.containsKey(player)) {
                 List<Look> l = new ArrayList<>();
@@ -500,14 +505,14 @@ public class HoleFillPlus extends BlackOutModule {
         holes.clear();
 
         int range = (int) Math.ceil(Math.max(SettingUtils.getPlaceRange(), SettingUtils.getPlaceWallsRange()) + 1);
-        BlockPos p = BlockPos.ofFloored(mc.player.getEyePos());
+        BlockPos p = BlockPos.containing(mc.player.getEyePosition());
 
         List<Hole> holeList = new ArrayList<>();
 
         for (int x = -range; x <= range; x++) {
             for (int y = -range; y <= range; y++) {
                 for (int z = -range; z <= range; z++) {
-                    Hole hole = HoleUtils.getHole(p.add(x, y, z));
+                    Hole hole = HoleUtils.getHole(p.offset(x, y, z));
 
                     if (hole.type == HoleType.NotHole) continue;
                     if (!single.get() && hole.type == HoleType.Single) continue;
@@ -533,15 +538,15 @@ public class HoleFillPlus extends BlackOutModule {
         PlaceData data = SettingUtils.getPlaceData(pos);
         if (!data.valid()) return false;
         if (!SettingUtils.inPlaceRange(data.pos())) return false;
-        return !BOEntityUtils.intersectsWithEntity(Box.from(new BlockBox(pos)), entity -> !entity.isSpectator() && !(entity instanceof ItemEntity), boxes);
+        return !BOEntityUtils.intersectsWithEntity(AABB.of(new BoundingBox(pos)), entity -> !entity.isSpectator() && !(entity instanceof ItemEntity), boxes);
     }
 
     private boolean validHole(Hole hole) {
-        double pDist = (nearPosition.containsKey(mc.player) ? feet(nearPosition.get(mc.player)) : mc.player.getEntityPos()).distanceTo(hole.middle);
+        double pDist = (nearPosition.containsKey(mc.player) ? feet(nearPosition.get(mc.player)) : mc.player.position()).distanceTo(hole.middle);
 
         if (selfCheck(hole)) return false;
 
-        for (AbstractClientPlayerEntity player : mc.world.getPlayers()) {
+        for (AbstractClientPlayer player : mc.level.players()) {
             if (player.isSpectator() || player == mc.player || player.getHealth() <= 0 || Friends.get().isFriend(player)) continue;
 
             if (nearCheck(player, hole, pDist)) return true;
@@ -563,10 +568,10 @@ public class HoleFillPlus extends BlackOutModule {
         if (iSelfHole.get() && (HoleUtils.inHole(mc.player) || OLEPOSSUtils.collidable(pos))) return false;
         if (selfAbove.get() && mc.player.getY() <= hole.middle.y) return false;
 
-        return mc.player.getEntityPos().distanceTo(hole.middle) <= selfDistance.get();
+        return mc.player.position().distanceTo(hole.middle) <= selfDistance.get();
     }
 
-    private boolean nearCheck(AbstractClientPlayerEntity player, Hole hole, double pDist) {
+    private boolean nearCheck(AbstractClientPlayer player, Hole hole, double pDist) {
         if (!near.get()) return false;
 
         BlockPos pos = new BlockPos(player.getBlockX(), (int) Math.round(player.getY()), player.getBlockZ());
@@ -574,19 +579,19 @@ public class HoleFillPlus extends BlackOutModule {
 
         if (above.get() && player.getY() <= hole.middle.y) return false;
 
-        double eDist = (nearPosition.containsKey(player) ? feet(nearPosition.get(player)) : player.getEntityPos()).distanceTo(hole.middle);
+        double eDist = (nearPosition.containsKey(player) ? feet(nearPosition.get(player)) : player.position()).distanceTo(hole.middle);
         if (eDist > nearDistance.get()) return false;
 
         return !efficient.get() || pDist >= eDist;
     }
 
-    private boolean walkingCheck(AbstractClientPlayerEntity player, Hole hole) {
+    private boolean walkingCheck(AbstractClientPlayer player, Hole hole) {
         if (!walking.get()) return false;
 
         return walkCheck(player, hole, walkMemory.get(), walkingDist.get());
     }
 
-    private boolean walkCheck(AbstractClientPlayerEntity player, Hole hole, int ticks, double dist) {
+    private boolean walkCheck(AbstractClientPlayer player, Hole hole, int ticks, double dist) {
         if (walkAngles.get(player) == null) return false;
 
         int i = 0;
@@ -597,13 +602,13 @@ public class HoleFillPlus extends BlackOutModule {
             if (m.vec().distanceTo(hole.middle) > dist) continue;
 
             double yawToHole = RotationUtils.getYaw(m.vec(), hole.middle);
-            double highestAngle = MathHelper.lerp(Math.min(player.getEntityPos().distanceTo(hole.middle) / 8, 1), 90, 0);
+            double highestAngle = Mth.lerp(Math.min(player.position().distanceTo(hole.middle) / 8, 1), 90, 0);
             if (Math.abs(RotationUtils.yawAngle(yawToHole, m.movementAngle)) < highestAngle) return true;
         }
         return false;
     }
 
-    private boolean lookCheck(AbstractClientPlayerEntity player, Hole hole) {
+    private boolean lookCheck(AbstractClientPlayer player, Hole hole) {
         if (!look.get()) return false;
         if (lookAngles.get(player) == null) return false;
 
@@ -614,7 +619,7 @@ public class HoleFillPlus extends BlackOutModule {
             if (l.vec().distanceTo(hole.middle) > lookDist.get()) continue;
 
             double yawToHole = RotationUtils.getYaw(l.vec(), hole.middle);
-            double highestAngle = MathHelper.lerp(Math.min(player.getEntityPos().distanceTo(hole.middle) / 20, 1), 35, 5);
+            double highestAngle = Mth.lerp(Math.min(player.position().distanceTo(hole.middle) / 20, 1), 35, 5);
             if (Math.abs(RotationUtils.yawAngle(yawToHole, l.yaw)) < highestAngle &&
                 Math.abs(RotationUtils.getPitch(l.vec, hole.middle) - l.pitch()) < highestAngle) return true;
         }
@@ -671,9 +676,9 @@ public class HoleFillPlus extends BlackOutModule {
         render.add(new Render(pos, System.currentTimeMillis()));
         timers.add(pos, delay.get());
 
-        placeBlock(hand == null ? Hand.MAIN_HAND : hand, data.pos().toCenterPos(), data.dir(), data.pos());
+        placeBlock(hand == null ? InteractionHand.MAIN_HAND : hand, data.pos().getCenter(), data.dir(), data.pos());
 
-        if (placeSwing.get()) clientSwing(placeHand.get(), hand == null ? Hand.MAIN_HAND : hand);
+        if (placeSwing.get()) clientSwing(placeHand.get(), hand == null ? InteractionHand.MAIN_HAND : hand);
 
         blocksLeft--;
         placesLeft--;
@@ -683,12 +688,12 @@ public class HoleFillPlus extends BlackOutModule {
         }
     }
 
-    private Vec3d feet(Box box) {
-        return new Vec3d((box.minX + box.maxX) / 2d, box.minY, (box.minZ + box.maxZ) / 2d);
+    private Vec3 feet(AABB box) {
+        return new Vec3((box.minX + box.maxX) / 2d, box.minY, (box.minZ + box.maxZ) / 2d);
     }
 
-    private record Movement(Float movementAngle, Vec3d vec) {}
-    private record Look(float yaw, float pitch, Vec3d vec) {}
+    private record Movement(Float movementAngle, Vec3 vec) {}
+    private record Look(float yaw, float pitch, Vec3 vec) {}
 
     private record Render(BlockPos pos, Long time) {}
 

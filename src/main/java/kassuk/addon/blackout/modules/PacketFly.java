@@ -6,13 +6,13 @@ import kassuk.addon.blackout.utils.OLEPOSSUtils;
 import meteordevelopment.meteorclient.events.entity.player.PlayerMoveEvent;
 import meteordevelopment.meteorclient.events.packets.PacketEvent;
 import meteordevelopment.meteorclient.events.world.TickEvent;
-import meteordevelopment.meteorclient.mixininterface.IVec3d;
+import meteordevelopment.meteorclient.mixininterface.IVec3;
 import meteordevelopment.meteorclient.settings.*;
 import meteordevelopment.orbit.EventHandler;
-import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket;
-import net.minecraft.network.packet.c2s.play.TeleportConfirmC2SPacket;
-import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.network.protocol.game.ServerboundMovePlayerPacket;
+import net.minecraft.network.protocol.game.ServerboundAcceptTeleportationPacket;
+import net.minecraft.network.protocol.game.ClientboundPlayerPositionPacket;
+import net.minecraft.world.phys.Vec3;
 
 import java.util.*;
 
@@ -184,8 +184,8 @@ public class PacketFly extends BlackOutModule {
     private double packetsToSend = 0;
     private final Random random = new Random();
     private String info = null;
-    private final Map<Integer, Vec3d> validPos = new HashMap<>();
-    private final List<PlayerMoveC2SPacket> validPackets = new ArrayList<>();
+    private final Map<Integer, Vec3> validPos = new HashMap<>();
+    private final List<ServerboundMovePlayerPacket> validPackets = new ArrayList<>();
 
     public boolean moving = false;
 
@@ -212,14 +212,14 @@ public class PacketFly extends BlackOutModule {
 
     @EventHandler
     private void onMove(PlayerMoveEvent e) {
-        if (mc.player == null || mc.world == null) {
+        if (mc.player == null || mc.level == null) {
             return;
         }
 
         boolean phasing = isPhasing();
         boolean semiPhasing = isSemiPhase();
 
-        mc.player.noClip = semiPhasing;
+        mc.player.noPhysics = semiPhasing;
         packetsToSend += packets(semiPhasing);
 
         boolean shouldAntiKick = antiKick.get() && ticks % antiKickDelay.get() == 0 && !phasing && !onGround();
@@ -251,7 +251,7 @@ public class PacketFly extends BlackOutModule {
             }
         }
 
-        Vec3d offset = new Vec3d(0, 0, 0);
+        Vec3 offset = new Vec3(0, 0, 0);
         boolean antiKickSent = false;
         for (; packetsToSend >= 1; packetsToSend -= 1) {
             double yOffset;
@@ -264,22 +264,22 @@ public class PacketFly extends BlackOutModule {
 
             offset = offset.add(strictVertical.get() && yOffset != 0 ? 0 : x, yOffset, strictVertical.get() && yOffset != 0 ? 0 : z);
 
-            send(offset.add(mc.player.getEntityPos()), getBounds(), getOnGround());
+            send(offset.add(mc.player.position()), getBounds(), getOnGround());
 
             if (x == 0 && z == 0 && y == 0) {
                 break;
             }
         }
 
-        ((IVec3d) e.movement).meteor$set(offset.x, offset.y, offset.z);
+        ((IVec3) e.movement).meteor$set(offset.x, offset.y, offset.z);
 
         packetsToSend = Math.min(packetsToSend, 1);
     }
 
     @EventHandler
     public void onSend(PacketEvent.Send event) {
-        if (event.packet instanceof PlayerMoveC2SPacket) {
-            if (!validPackets.contains((PlayerMoveC2SPacket) event.packet)) {
+        if (event.packet instanceof ServerboundMovePlayerPacket) {
+            if (!validPackets.contains((ServerboundMovePlayerPacket) event.packet)) {
                 event.cancel();
             } else {
                 sent++;
@@ -291,28 +291,28 @@ public class PacketFly extends BlackOutModule {
 
     @EventHandler
     private void onReceive(PacketEvent.Receive e) {
-        if (e.packet instanceof PlayerPositionLookS2CPacket packet) {
+        if (e.packet instanceof ClientboundPlayerPositionPacket packet) {
             if (debugID.get()) {
-                debug("id: " + packet.teleportId());
+                debug("id: " + packet.id());
             }
-            Vec3d vec = new Vec3d(packet.change().position().getX(), packet.change().position().getX(), packet.change().position().getX());
+            Vec3 vec = new Vec3(packet.change().position().x(), packet.change().position().x(), packet.change().position().x());
 
-            if (validPos.containsKey(packet.teleportId()) && validPos.get(packet.teleportId()).equals(vec)) {
+            if (validPos.containsKey(packet.id()) && validPos.get(packet.id()).equals(vec)) {
                 if (debugID.get()) {
                     debug("true");
                 }
                 e.cancel();
                 if (!predictID.get()) {
-                    sendPacket(new TeleportConfirmC2SPacket(packet.teleportId()));
+                    sendPacket(new ServerboundAcceptTeleportationPacket(packet.id()));
                 }
-                validPos.remove(packet.teleportId());
+                validPos.remove(packet.id());
                 return;
             }
             if (debugID.get()) {
                 debug("false");
             }
 
-            id = packet.teleportId();
+            id = packet.id();
         }
     }
 
@@ -322,41 +322,41 @@ public class PacketFly extends BlackOutModule {
     }
 
     private boolean onGround() {
-        return mc.player.isOnGround() || (mc.player.getBlockY() - mc.player.getY() == 0 && OLEPOSSUtils.collidable(mc.player.getBlockPos().down()));
+        return mc.player.onGround() || (mc.player.getBlockY() - mc.player.getY() == 0 && OLEPOSSUtils.collidable(mc.player.blockPosition().below()));
     }
 
     private double packets(boolean semiPhasing) {
         return semiPhasing ? phasePackets.get() : packets.get();
     }
 
-    private Vec3d getBounds() {
+    private Vec3 getBounds() {
         int yaw = random.nextInt(0, 360);
-        return new Vec3d(Math.cos(Math.toRadians(yaw)) * xzBound.get(), yBound.get(), Math.sin(Math.toRadians(yaw)) * xzBound.get());
+        return new Vec3(Math.cos(Math.toRadians(yaw)) * xzBound.get(), yBound.get(), Math.sin(Math.toRadians(yaw)) * xzBound.get());
     }
 
     private boolean getOnGround() {
-        return onGroundSpoof.get() ? onGround.get() : mc.player.isOnGround();
+        return onGroundSpoof.get() ? onGround.get() : mc.player.onGround();
     }
 
     private boolean isPhasing() {
-        return OLEPOSSUtils.inside(mc.player, mc.player.getBoundingBox().shrink(0.0625, 0, 0.0625));
+        return OLEPOSSUtils.inside(mc.player, mc.player.getBoundingBox().contract(0.0625, 0, 0.0625));
     }
 
     private boolean isSemiPhase() {
-        return OLEPOSSUtils.inside(mc.player, mc.player.getBoundingBox().expand(0.01, 0, 0.01));
+        return OLEPOSSUtils.inside(mc.player, mc.player.getBoundingBox().inflate(0.01, 0, 0.01));
     }
 
     private boolean jumping() {
-        return mc.options.jumpKey.isPressed();
+        return mc.options.keyJump.isDown();
     }
 
     private boolean sneaking() {
-        return mc.options.sneakKey.isPressed();
+        return mc.options.keyShift.isDown();
     }
 
-    private void send(Vec3d pos, Vec3d bounds, boolean onGround) {
-        PlayerMoveC2SPacket.PositionAndOnGround normal = new PlayerMoveC2SPacket.PositionAndOnGround(pos.x, pos.y, pos.y, onGround, false);
-        PlayerMoveC2SPacket.PositionAndOnGround bound = new PlayerMoveC2SPacket.PositionAndOnGround(pos.x + bounds.y, pos.y + bounds.y, pos.z + bounds.z, onGround, false);
+    private void send(Vec3 pos, Vec3 bounds, boolean onGround) {
+        ServerboundMovePlayerPacket.Pos normal = new ServerboundMovePlayerPacket.Pos(pos.x, pos.y, pos.y, onGround, false);
+        ServerboundMovePlayerPacket.Pos bound = new ServerboundMovePlayerPacket.Pos(pos.x + bounds.y, pos.y + bounds.y, pos.z + bounds.z, onGround, false);
 
         validPackets.add(normal);
         sendPacket(normal);
@@ -370,14 +370,14 @@ public class PacketFly extends BlackOutModule {
 
         id++;
         if (predictID.get()) {
-            sendPacket(new TeleportConfirmC2SPacket(id));
+            sendPacket(new ServerboundAcceptTeleportationPacket(id));
         }
     }
 
     private double getYaw() {
-        double f = mc.player.input.getMovementInput().y, s = mc.player.input.getMovementInput().x;
+        double f = mc.player.input.getMoveVector().y, s = mc.player.input.getMoveVector().x;
 
-        double yaw = mc.player.getYaw();
+        double yaw = mc.player.getYRot();
         if (f > 0) {
             moving = true;
             yaw += s > 0 ? -45 : s < 0 ? 45 : 0;

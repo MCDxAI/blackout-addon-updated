@@ -7,8 +7,8 @@ import meteordevelopment.meteorclient.systems.hud.HudElementInfo;
 import meteordevelopment.meteorclient.systems.hud.HudRenderer;
 import meteordevelopment.meteorclient.utils.render.color.Color;
 import meteordevelopment.meteorclient.utils.render.color.SettingColor;
-import net.minecraft.client.option.KeyBinding;
-import net.minecraft.util.math.MathHelper;
+import net.minecraft.client.KeyMapping;
+import net.minecraft.util.Mth;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -99,11 +99,11 @@ public class Keys extends HudElement {
     public void render(HudRenderer renderer) {
         if (keys == null) {
             keys = new ArrayList<>();
-            KeyBinding[] binds = new KeyBinding[]{mc.options.forwardKey, mc.options.leftKey, mc.options.backKey, mc.options.rightKey};
+            KeyMapping[] binds = new KeyMapping[]{mc.options.keyUp, mc.options.keyLeft, mc.options.keyDown, mc.options.keyRight};
             for (int i = 0; i < 4; i++) {
-                KeyBinding bind = binds[i];
+                KeyMapping bind = binds[i];
 
-                String key = bind.getBoundKeyLocalizedText().getString().toUpperCase();
+                String key = bind.getTranslatedKeyMessage().getString().toUpperCase();
 
                 keys.add(new Key(key, bind, i));
             }
@@ -130,15 +130,15 @@ public class Keys extends HudElement {
     }
 
     private Color getBGColor(Key k) {
-        return lerpColor(MathHelper.clamp((k.sinceClick() - renderTime.get() * 1000) / fadeTime.get() / 1000, 0, 1), cbgColor.get(), bgColor.get());
+        return lerpColor(Mth.clamp((k.sinceClick() - renderTime.get() * 1000) / fadeTime.get() / 1000, 0, 1), cbgColor.get(), bgColor.get());
     }
 
     private Color getTextColor(Key k) {
-        return lerpColor(MathHelper.clamp((k.sinceClick() - renderTime.get() * 1000) / fadeTime.get() / 1000, 0, 1), cTextColor.get(), textColor.get());
+        return lerpColor(Mth.clamp((k.sinceClick() - renderTime.get() * 1000) / fadeTime.get() / 1000, 0, 1), cTextColor.get(), textColor.get());
     }
 
     private Color lerpColor(double delta, Color s, Color e) {
-        return new Color((int) Math.round(MathHelper.lerp(delta, s.r, e.r)), (int) Math.round(MathHelper.lerp(delta, s.g, e.g)), (int) Math.round(MathHelper.lerp(delta, s.b, e.b)), (int) Math.round(MathHelper.lerp(delta, s.a, e.a)));
+        return new Color((int) Math.round(Mth.lerp(delta, s.r, e.r)), (int) Math.round(Mth.lerp(delta, s.g, e.g)), (int) Math.round(Mth.lerp(delta, s.b, e.b)), (int) Math.round(Mth.lerp(delta, s.a, e.a)));
     }
 
     private double xOffset(String string, HudRenderer renderer) {
@@ -167,13 +167,13 @@ public class Keys extends HudElement {
 
     private class Key {
         public final String key;
-        public final KeyBinding bind;
+        public final KeyMapping bind;
         public final int i;
         public double posX = 0;
         public double posY = 0;
         public long lastClicked = 0;
 
-        public Key(String key, KeyBinding bind, int i) {
+        public Key(String key, KeyMapping bind, int i) {
             this.key = key;
             this.bind = bind;
             this.i = i;
@@ -185,7 +185,7 @@ public class Keys extends HudElement {
         }
 
         public void checkClick() {
-            if (bind.isPressed()) {
+            if (bind.isDown()) {
                 lastClicked = System.currentTimeMillis();
             }
         }

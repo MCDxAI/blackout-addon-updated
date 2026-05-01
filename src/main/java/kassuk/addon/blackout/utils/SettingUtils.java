@@ -6,11 +6,11 @@ import kassuk.addon.blackout.enums.SwingType;
 import kassuk.addon.blackout.globalsettings.*;
 import meteordevelopment.meteorclient.systems.modules.Modules;
 import meteordevelopment.meteorclient.utils.Utils;
-import net.minecraft.util.Hand;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Box;
-import net.minecraft.util.math.Direction;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.core.Direction;
+import net.minecraft.world.phys.Vec3;
 
 import java.util.function.Predicate;
 
@@ -27,7 +27,7 @@ public class SettingUtils {
     private static final SwingSettings swing = Modules.get().get(SwingSettings.class);
 
     //  Range
-    public static void registerAttack(Box bb) {range.registerAttack(bb);}
+    public static void registerAttack(AABB bb) {range.registerAttack(bb);}
     public static double getPlaceRange() {
         return range.placeRange.get();
     }
@@ -48,19 +48,19 @@ public class SettingUtils {
     }
     public static double placeRangeTo(BlockPos pos) {return range.placeRangeTo(pos, null);}
     public static boolean inPlaceRange(BlockPos pos) {return range.inPlaceRange(pos, null);}
-    public static boolean inPlaceRange(BlockPos pos, Vec3d from) {
+    public static boolean inPlaceRange(BlockPos pos, Vec3 from) {
         return range.inPlaceRange(pos, from);
     }
     public static boolean inPlaceRangeNoTrace(BlockPos pos) {
         return range.inPlaceRangeNoTrace(pos, null);
     }
-    public static boolean inPlaceRangeNoTrace(BlockPos pos, Vec3d from) {
+    public static boolean inPlaceRangeNoTrace(BlockPos pos, Vec3 from) {
         return range.inPlaceRangeNoTrace(pos, from);
     }
-    public static boolean inAttackRange(Box bb) {
+    public static boolean inAttackRange(AABB bb) {
         return range.inAttackRange(bb, null);
     }
-    public static boolean inAttackRange(Box bb, Vec3d from) {
+    public static boolean inAttackRange(AABB bb, Vec3 from) {
         return range.inAttackRange(bb, from);
     }
     public static double mineRangeTo(BlockPos pos) {return range.miningRangeTo(pos, null);}
@@ -70,9 +70,9 @@ public class SettingUtils {
     public static boolean inMineRangeNoTrace(BlockPos pos) {
         return range.inMineRangeNoTrace(pos);
     }
-    public static boolean inAttackRangeNoTrace(Box bb, double eyeHeight, Vec3d feet) {return range.inAttackRangeNoTrace(bb, feet, null);}
-    public static boolean inAttackRangeNoTrace(Box bb, double eyeHeight, Vec3d feet, Vec3d from) {return range.inAttackRangeNoTrace(bb, feet, from);}
-    public static double attackRangeTo(Box bb, Vec3d feet) {return range.attackRangeTo(bb, feet, null, true);}
+    public static boolean inAttackRangeNoTrace(AABB bb, double eyeHeight, Vec3 feet) {return range.inAttackRangeNoTrace(bb, feet, null);}
+    public static boolean inAttackRangeNoTrace(AABB bb, double eyeHeight, Vec3 feet, Vec3 from) {return range.inAttackRangeNoTrace(bb, feet, from);}
+    public static double attackRangeTo(AABB bb, Vec3 feet) {return range.attackRangeTo(bb, feet, null, true);}
 
 
     //  Rotate
@@ -86,10 +86,10 @@ public class SettingUtils {
     public static boolean shouldRotate(RotationType type) {
         return rotation.shouldRotate(type);
     }
-    public static boolean rotationCheck(Box box, RotationType type) {return rotation.rotationCheck(box, type);}
+    public static boolean rotationCheck(AABB box, RotationType type) {return rotation.rotationCheck(box, type);}
 
     //  Swing
-    public static void swing(SwingState state, SwingType type, Hand hand) {
+    public static void swing(SwingState state, SwingType type, InteractionHand hand) {
         swing.swing(state, type, hand);
     }
     public static void mineSwing(SwingSettings.MiningSwingState state) {
@@ -119,7 +119,7 @@ public class SettingUtils {
     public static boolean placeTrace(BlockPos pos) {
         return !shouldPlaceTrace() || raytrace.placeTrace(pos);
     }
-    public static boolean attackTrace(Box bb) {
+    public static boolean attackTrace(AABB bb) {
         return !shouldAttackTrace() || raytrace.attackTrace(bb);
     }
 

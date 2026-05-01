@@ -203,7 +203,7 @@ public class RPC extends BlackOutModule {
     private void updatePresence() {
         ticks = refreshDelay.get();
 
-        boolean inGame = mc.player != null && mc.world != null;
+        boolean inGame = mc.player != null && mc.level != null;
 
         presence.setStart(showTimestamp.get() ? startSeconds : 0);
 

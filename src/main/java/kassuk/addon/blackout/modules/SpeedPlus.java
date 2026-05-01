@@ -4,18 +4,18 @@ import kassuk.addon.blackout.BlackOut;
 import kassuk.addon.blackout.BlackOutModule;
 import meteordevelopment.meteorclient.events.entity.player.PlayerMoveEvent;
 import meteordevelopment.meteorclient.events.packets.PacketEvent;
-import meteordevelopment.meteorclient.mixininterface.IVec3d;
+import meteordevelopment.meteorclient.mixininterface.IVec3;
 import meteordevelopment.meteorclient.settings.*;
 import meteordevelopment.meteorclient.systems.modules.Modules;
 import meteordevelopment.meteorclient.systems.modules.world.Timer;
 import meteordevelopment.meteorclient.utils.misc.Keybind;
 import meteordevelopment.orbit.EventHandler;
 import meteordevelopment.orbit.EventPriority;
-import net.minecraft.entity.effect.StatusEffects;
-import net.minecraft.network.packet.s2c.play.EntityVelocityUpdateS2CPacket;
-import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket;
-import net.minecraft.registry.tag.FluidTags;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.effect.MobEffects;
+import net.minecraft.network.protocol.game.ClientboundSetEntityMotionPacket;
+import net.minecraft.network.protocol.game.ClientboundPlayerPositionPacket;
+import net.minecraft.tags.FluidTags;
+import net.minecraft.core.BlockPos;
 
 /**
  * @author OLEPOSSU
@@ -145,13 +145,13 @@ public class SpeedPlus extends BlackOutModule {
 
     @EventHandler
     private void onKB(PacketEvent.Receive event) {
-        if (mc.player != null && mc.world != null) {
-            if (knockBack.get() && event.packet instanceof EntityVelocityUpdateS2CPacket packet && packet.getEntityId() == mc.player.getId()) {
-                double x = packet.getVelocity().getX() / 8000f;
-                double z = packet.getVelocity().getZ() / 8000f;
+        if (mc.player != null && mc.level != null) {
+            if (knockBack.get() && event.packet instanceof ClientboundSetEntityMotionPacket packet && packet.getId() == mc.player.getId()) {
+                double x = packet.getMovement().x() / 8000f;
+                double z = packet.getMovement().z() / 8000f;
                 velocity = Math.max(velocity, Math.sqrt(x * x + z * z) * kbFactor.get());
             }
-            if (rbReset.get() && event.packet instanceof PlayerPositionLookS2CPacket) {
+            if (rbReset.get() && event.packet instanceof ClientboundPlayerPositionPacket) {
                 acceleration = 0;
             }
         }
@@ -159,14 +159,14 @@ public class SpeedPlus extends BlackOutModule {
 
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onMove(PlayerMoveEvent event) {
-        if (mc.player != null && mc.world != null) {
+        if (mc.player != null && mc.level != null) {
             if (Modules.get().get(HoleSnap.class).isActive()) {
                 return;
             }
-            if (pauseSneak.get() && mc.player.isSneaking()) {
+            if (pauseSneak.get() && mc.player.isShiftKeyDown()) {
                 return;
             }
-            if (pauseElytra.get() && mc.player.isGliding()) {
+            if (pauseElytra.get() && mc.player.isFallFlying()) {
                 return;
             }
             if (pauseFly.get() && mc.player.getAbilities().flying) {
@@ -175,13 +175,13 @@ public class SpeedPlus extends BlackOutModule {
 
             switch (pauseWater.get()) {
                 case Touching -> {
-                    if (mc.player.isTouchingWater()) return;
+                    if (mc.player.isInWater()) return;
                 }
                 case Submerged -> {
-                    if (mc.player.isSubmergedIn(FluidTags.WATER)) return;
+                    if (mc.player.isEyeInFluid(FluidTags.WATER)) return;
                 }
                 case Both -> {
-                    if (mc.player.isTouchingWater() || mc.player.isSubmergedIn(FluidTags.WATER)) return;
+                    if (mc.player.isInWater() || mc.player.isEyeInFluid(FluidTags.WATER)) return;
                 }
             }
 
@@ -190,15 +190,15 @@ public class SpeedPlus extends BlackOutModule {
                     if (mc.player.isInLava()) return;
                 }
                 case Submerged -> {
-                    if (mc.player.isSubmergedIn(FluidTags.LAVA)) return;
+                    if (mc.player.isEyeInFluid(FluidTags.LAVA)) return;
                 }
                 case Both -> {
-                    if (mc.player.isInLava() || mc.player.isSubmergedIn(FluidTags.LAVA)) return;
+                    if (mc.player.isInLava() || mc.player.isEyeInFluid(FluidTags.LAVA)) return;
                 }
             }
 
-            double forward = mc.player.input.getMovementInput().y;
-            double sideways = mc.player.input.getMovementInput().x;
+            double forward = mc.player.input.getMoveVector().y;
+            double sideways = mc.player.input.getMoveVector().x;
 
             double yaw = getYaw(forward, sideways);
 
@@ -206,7 +206,7 @@ public class SpeedPlus extends BlackOutModule {
                 if (jumpPhase == 4) {
                     velocity *= 0.9888888889;
 
-                    if (mc.player.isOnGround()) {
+                    if (mc.player.onGround()) {
                         jumpPhase = 1;
                     }
                 }
@@ -215,12 +215,12 @@ public class SpeedPlus extends BlackOutModule {
                     jumpPhase = 4;
                 }
                 if (jumpPhase == 2) {
-                    ((IVec3d) event.movement).meteor$setY(0.4);
+                    ((IVec3) event.movement).meteor$setY(0.4);
                     velocity *= 1.85;
                     jumpPhase = 3;
                 }
                 if (jumpPhase == 1) {
-                    if (mc.player.isOnGround() && move) {
+                    if (mc.player.onGround() && move) {
                         velocity = 0.2873;
                         jumpPhase = 2;
                     }
@@ -234,34 +234,34 @@ public class SpeedPlus extends BlackOutModule {
             if (velocity < 0.01) {
                 motion = 0;
             }
-            if (mc.player.hasStatusEffect(StatusEffects.SPEED)) {
-                motion *= 1.2 + mc.player.getStatusEffect(StatusEffects.SPEED).getAmplifier() * 0.2;
+            if (mc.player.hasEffect(MobEffects.SPEED)) {
+                motion *= 1.2 + mc.player.getEffect(MobEffects.SPEED).getAmplifier() * 0.2;
             }
-            if (mc.player.hasStatusEffect(StatusEffects.SLOWNESS)) {
-                motion /= 1.2 + mc.player.getStatusEffect(StatusEffects.SLOWNESS).getAmplifier() * 0.2;
+            if (mc.player.hasEffect(MobEffects.SLOWNESS)) {
+                motion /= 1.2 + mc.player.getEffect(MobEffects.SLOWNESS).getAmplifier() * 0.2;
             }
 
             double x = Math.cos(Math.toRadians(yaw + 90.0f));
-            double y = mc.player.getVelocity().getY();
+            double y = mc.player.getDeltaMovement().y();
             double z = Math.sin(Math.toRadians(yaw + 90.0f));
 
             switch (mode.get()) {
                 case CCStrafe, Instant -> {
                     if (move) {
-                        ((IVec3d) event.movement).meteor$set(motion * x, y, motion * z);
+                        ((IVec3) event.movement).meteor$set(motion * x, y, motion * z);
                     } else {
-                        ((IVec3d) event.movement).meteor$set(0, y, 0);
+                        ((IVec3) event.movement).meteor$set(0, y, 0);
                     }
                 }
                 case Accelerate -> {
-                    acceleration = Math.min(1, (move ? acceleration + (mc.player.isOnGround() || airStrafe.get() ? accelerationAmount.get() / 10 : 0.02) : acceleration) * slipperiness(move));
+                    acceleration = Math.min(1, (move ? acceleration + (mc.player.onGround() || airStrafe.get() ? accelerationAmount.get() / 10 : 0.02) : acceleration) * slipperiness(move));
 
-                    if ((move && mc.player.isOnGround()) || airStrafe.get()) {
+                    if ((move && mc.player.onGround()) || airStrafe.get()) {
                         ax = x;
                         az = z;
                     }
 
-                    ((IVec3d) event.movement).meteor$setXZ(speed.get() * ax * acceleration, speed.get() * az * acceleration);
+                    ((IVec3) event.movement).meteor$setXZ(speed.get() * ax * acceleration, speed.get() * az * acceleration);
                 }
             }
         }
@@ -271,11 +271,11 @@ public class SpeedPlus extends BlackOutModule {
         if (moving) {
             return 1;
         }
-        return mc.player.isOnGround() ? mc.world.getBlockState(new BlockPos((int) mc.player.getX(), (int) Math.ceil(mc.player.getY() - 1), (int) mc.player.getZ())).getBlock().getSlipperiness() : 0.98;
+        return mc.player.onGround() ? mc.level.getBlockState(new BlockPos((int) mc.player.getX(), (int) Math.ceil(mc.player.getY() - 1), (int) mc.player.getZ())).getBlock().getFriction() : 0.98;
     }
 
     private double getYaw(double f, double s) {
-        double yaw = mc.player.getYaw();
+        double yaw = mc.player.getYRot();
         if (f > 0) {
             move = true;
             yaw += s > 0 ? -45 : s < 0 ? 45 : 0;

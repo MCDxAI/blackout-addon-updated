@@ -1,8 +1,8 @@
 package kassuk.addon.blackout.utils;
 
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.Vec2f;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.Mth;
+import net.minecraft.world.phys.Vec2;
+import net.minecraft.world.phys.Vec3;
 
 import static meteordevelopment.meteorclient.MeteorClient.mc;
 
@@ -22,7 +22,7 @@ public class RotationUtils {
     }
 
     public static double yawAngle(double current, double target) {
-        double c = MathHelper.wrapDegrees(current) + 180, t = MathHelper.wrapDegrees(target) + 180;
+        double c = Mth.wrapDegrees(current) + 180, t = Mth.wrapDegrees(target) + 180;
         if (c > t) {
             return t + 360 - c < Math.abs(c - t) ? 360 - c + t : t - c;
         } else {
@@ -36,7 +36,7 @@ public class RotationUtils {
         return (float) (Math.abs(i) <= step ? target : i >= 0 ? current + step : current - step);
     }
 
-    public static double radAngle(Vec2f vec1, Vec2f vec2) {
+    public static double radAngle(Vec2 vec1, Vec2 vec2) {
         double p = vec1.x * vec2.x + vec1.y * vec2.y;
         p /= Math.sqrt(vec1.x * vec1.x + vec1.y * vec1.y);
         p /= Math.sqrt(vec2.x * vec2.x + vec2.y * vec2.y);
@@ -44,17 +44,17 @@ public class RotationUtils {
     }
 
     // These 2 are from meteor rotation utils
-    public static double getYaw(Vec3d start, Vec3d target) {
-        return mc.player.getYaw() + MathHelper.wrapDegrees((float) Math.toDegrees(Math.atan2(target.getZ() - start.getZ(), target.getX() - start.getX())) - 90f - mc.player.getYaw());
+    public static double getYaw(Vec3 start, Vec3 target) {
+        return mc.player.getYRot() + Mth.wrapDegrees((float) Math.toDegrees(Math.atan2(target.z() - start.z(), target.x() - start.x())) - 90f - mc.player.getYRot());
     }
 
-    public static double getPitch(Vec3d start, Vec3d target) {
-        double diffX = target.getX() - start.getX();
-        double diffY = target.getY() - start.getY();
-        double diffZ = target.getZ() - start.getZ();
+    public static double getPitch(Vec3 start, Vec3 target) {
+        double diffX = target.x() - start.x();
+        double diffY = target.y() - start.y();
+        double diffZ = target.z() - start.z();
 
         double diffXZ = Math.sqrt(diffX * diffX + diffZ * diffZ);
 
-        return mc.player.getPitch() + MathHelper.wrapDegrees((float) -Math.toDegrees(Math.atan2(diffY, diffXZ)) - mc.player.getPitch());
+        return mc.player.getXRot() + Mth.wrapDegrees((float) -Math.toDegrees(Math.atan2(diffY, diffXZ)) - mc.player.getXRot());
     }
 }

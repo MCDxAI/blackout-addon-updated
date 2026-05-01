@@ -10,7 +10,7 @@ import meteordevelopment.meteorclient.settings.SettingGroup;
 import meteordevelopment.meteorclient.systems.friends.Friends;
 import meteordevelopment.meteorclient.utils.player.ChatUtils;
 import meteordevelopment.orbit.EventHandler;
-import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.world.entity.player.Player;
 
 import java.util.Random;
 
@@ -70,8 +70,8 @@ public class AnteroTaateli extends BlackOutModule {
     @EventHandler
     private void onTick(TickEvent.Pre event) {
         timer++;
-        if (mc.player != null && mc.world != null) {
-            PlayerEntity bugatti = getClosest();
+        if (mc.player != null && mc.level != null) {
+            Player bugatti = getClosest();
             if (timer >= delay.get() && bugatti != null) {
                 timer = 0;
                 ChatUtils.sendPlayerMsg(getMessage(bugatti));
@@ -79,7 +79,7 @@ public class AnteroTaateli extends BlackOutModule {
         }
     }
 
-    private String getMessage(PlayerEntity pl) {
+    private String getMessage(Player pl) {
         int index = r.nextInt(0, messages.length);
         String msg = messages[index];
         if (index == lastIndex) {
@@ -92,16 +92,16 @@ public class AnteroTaateli extends BlackOutModule {
         return msg.replace("<NAME>", pl.getName().getString());
     }
 
-    private PlayerEntity getClosest() {
-        PlayerEntity closest = null;
+    private Player getClosest() {
+        Player closest = null;
         float distance = -1;
-        if (!mc.world.getPlayers().isEmpty()) {
-            for (PlayerEntity player : mc.world.getPlayers()) {
+        if (!mc.level.players().isEmpty()) {
+            for (Player player : mc.level.players()) {
                 if (player != mc.player && (!iFriends.get() || !Friends.get().isFriend(player))) {
-                    if (closest == null || mc.player.getEntityPos().distanceTo(player.getEntityPos()) < distance) {
+                    if (closest == null || mc.player.position().distanceTo(player.position()) < distance) {
                         closest = player;
                         assert mc.player != null;
-                        distance = (float) mc.player.getEntityPos().distanceTo(player.getEntityPos());
+                        distance = (float) mc.player.position().distanceTo(player.position());
                     }
                 }
             }

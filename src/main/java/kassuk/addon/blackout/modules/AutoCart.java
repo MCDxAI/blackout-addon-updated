@@ -15,14 +15,17 @@ import meteordevelopment.meteorclient.utils.player.InvUtils;
 import meteordevelopment.meteorclient.utils.render.color.SettingColor;
 import meteordevelopment.orbit.EventHandler;
 import meteordevelopment.orbit.EventPriority;
-import net.minecraft.block.Blocks;
-import net.minecraft.client.network.AbstractClientPlayerEntity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.entity.vehicle.TntMinecartEntity;
-import net.minecraft.item.Items;
-import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket;
-import net.minecraft.util.Hand;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.client.player.AbstractClientPlayer;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.vehicle.minecart.MinecartTNT;
+import net.minecraft.world.item.Items;
+import net.minecraft.network.protocol.game.ServerboundPlayerActionPacket;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.util.math.*;
+import net.minecraft.world.phys.AABB;
 
 import java.util.Objects;
 
@@ -187,7 +190,7 @@ public class AutoCart extends BlackOutModule {
 
     // State
     private int placeCounter = 0;
-    private PlayerEntity currentTarget = null;
+    private Player currentTarget = null;
     private int igniteWait = 0;
     private boolean isPlacing = true;
     private long lastPlaceTime = 0;
@@ -218,7 +221,7 @@ public class AutoCart extends BlackOutModule {
 
     @Override
     public String getInfoString() {
-        if (mc.player == null || mc.world == null) return null;
+        if (mc.player == null || mc.level == null) return null;
 
         if (autoIgnite.get()) {
             String status = isPlacing ? "Placing" : "Breaking";
@@ -236,7 +239,7 @@ public class AutoCart extends BlackOutModule {
 
     @EventHandler(priority = EventPriority.HIGH)
     private void onTick(TickEvent.Post event) {
-        if (mc.player == null || mc.world == null) return;
+        if (mc.player == null || mc.level == null) return;
 
         if (autoIgnite.get()) {
             runIgnitePlacement();
@@ -255,7 +258,7 @@ public class AutoCart extends BlackOutModule {
             case IGNITE -> igniteStageColor.get();
         };
 
-        Box box = new Box(
+        AABB box = new AABB(
             renderPos.getX(), renderPos.getY(), renderPos.getZ(),
             renderPos.getX() + 1.0, renderPos.getY() + 0.125, renderPos.getZ() + 1.0
         );
@@ -264,7 +267,7 @@ public class AutoCart extends BlackOutModule {
     }
 
     private void runIgnitePlacement() {
-        PlayerEntity target = findTarget();
+        Player target = findTarget();
         if (target == null) {
             currentTarget = null;
             renderPos = null;
@@ -279,7 +282,7 @@ public class AutoCart extends BlackOutModule {
         }
 
         BlockPos targetPos = getPredictedPosition(currentTarget);
-        if (mc.world.getBlockState(targetPos.down()).isReplaceable()) {
+        if (mc.level.getBlockState(targetPos.below()).canBeReplaced()) {
             renderPos = null;
             return;
         }
@@ -289,7 +292,7 @@ public class AutoCart extends BlackOutModule {
         if (isPlacing) {
             // Stage 1: Place rail if needed
             if (!isRailAt(targetPos) && cartCount == 0) {
-                if (!mc.world.getBlockState(targetPos).isReplaceable()) {
+                if (!mc.level.getBlockState(targetPos).canBeReplaced()) {
                     renderPos = null;
                     return;
                 }
@@ -350,7 +353,7 @@ public class AutoCart extends BlackOutModule {
             return;
         }
 
-        PlayerEntity target = findTarget();
+        Player target = findTarget();
         if (target == null) {
             currentTarget = null;
             renderPos = null;
@@ -363,7 +366,7 @@ public class AutoCart extends BlackOutModule {
         }
 
         BlockPos targetPos = getPredictedPosition(currentTarget);
-        if (mc.world.getBlockState(targetPos.down()).isReplaceable()) {
+        if (mc.level.getBlockState(targetPos.below()).canBeReplaced()) {
             renderPos = null;
             return;
         }
@@ -371,7 +374,7 @@ public class AutoCart extends BlackOutModule {
         int cartCount = countMinecartsAt(targetPos);
 
         if (!isRailAt(targetPos)) {
-            if (!mc.world.getBlockState(targetPos).isReplaceable()) {
+            if (!mc.level.getBlockState(targetPos).canBeReplaced()) {
                 renderPos = null;
                 return;
             }
@@ -390,11 +393,11 @@ public class AutoCart extends BlackOutModule {
         }
     }
 
-    private PlayerEntity findTarget() {
-        PlayerEntity closest = null;
+    private Player findTarget() {
+        Player closest = null;
         double closestDist = range.get();
 
-        for (PlayerEntity player : mc.world.getPlayers()) {
+        for (Player player : mc.level.players()) {
             if (player == mc.player) continue;
             if (player.isSpectator()) continue;
             if (player.getHealth() <= 0) continue;
@@ -415,52 +418,52 @@ public class AutoCart extends BlackOutModule {
         return closest;
     }
 
-    private boolean isInHole(PlayerEntity player) {
-        BlockPos pos = player.getBlockPos();
-        if (!mc.world.getBlockState(pos).isReplaceable()) return false;
+    private boolean isInHole(Player player) {
+        BlockPos pos = player.blockPosition();
+        if (!mc.level.getBlockState(pos).canBeReplaced()) return false;
 
         int solid = 0;
-        for (Direction dir : Direction.Type.HORIZONTAL) {
-            if (!mc.world.getBlockState(pos.offset(dir)).isReplaceable()) {
+        for (Direction dir : Direction.Plane.HORIZONTAL) {
+            if (!mc.level.getBlockState(pos.relative(dir)).canBeReplaced()) {
                 solid++;
             }
         }
         return solid >= 4;
     }
 
-    private BlockPos getPredictedPosition(PlayerEntity target) {
+    private BlockPos getPredictedPosition(Player target) {
         if (extrapolation.get() <= 0) {
-            return target.getBlockPos();
+            return target.blockPosition();
         }
 
-        Box extrapolatedBox = ExtrapolationUtils.extrapolate(
-            (AbstractClientPlayerEntity) target,
+        AABB extrapolatedBox = ExtrapolationUtils.extrapolate(
+            (AbstractClientPlayer) target,
             extrapolation.get(),
             extSmoothness.get()
         );
 
         if (extrapolatedBox == null) {
-            return target.getBlockPos();
+            return target.blockPosition();
         }
 
         double centerX = (extrapolatedBox.minX + extrapolatedBox.maxX) / 2.0;
         double centerZ = (extrapolatedBox.minZ + extrapolatedBox.maxZ) / 2.0;
         double footY = extrapolatedBox.minY;
 
-        return BlockPos.ofFloored(centerX, footY, centerZ);
+        return BlockPos.containing(centerX, footY, centerZ);
     }
 
     private boolean isRailAt(BlockPos pos) {
-        return mc.world.getBlockState(pos).getBlock() == Blocks.RAIL ||
-               mc.world.getBlockState(pos).getBlock() == Blocks.ACTIVATOR_RAIL ||
-               mc.world.getBlockState(pos).getBlock() == Blocks.DETECTOR_RAIL ||
-               mc.world.getBlockState(pos).getBlock() == Blocks.POWERED_RAIL;
+        return mc.level.getBlockState(pos).getBlock() == Blocks.RAIL ||
+               mc.level.getBlockState(pos).getBlock() == Blocks.ACTIVATOR_RAIL ||
+               mc.level.getBlockState(pos).getBlock() == Blocks.DETECTOR_RAIL ||
+               mc.level.getBlockState(pos).getBlock() == Blocks.POWERED_RAIL;
     }
 
     private int countMinecartsAt(BlockPos pos) {
-        Box box = new Box(pos).expand(0.5);
-        return (int) mc.world.getOtherEntities(null, box,
-            entity -> entity instanceof TntMinecartEntity && entity.isAlive()
+        AABB box = new AABB(pos).inflate(0.5);
+        return (int) mc.level.getEntities(null, box,
+            entity -> entity instanceof MinecartTNT && entity.isAlive()
         ).size();
     }
 
@@ -471,12 +474,12 @@ public class AutoCart extends BlackOutModule {
         if (!rail.found()) return;
 
         boolean switched = false;
-        Hand hand = null;
+        InteractionHand hand = null;
 
-        if (mc.player.getMainHandStack().isOf(Items.RAIL)) {
-            hand = Hand.MAIN_HAND;
-        } else if (mc.player.getOffHandStack().isOf(Items.RAIL)) {
-            hand = Hand.OFF_HAND;
+        if (mc.player.getMainHandItem().is(Items.RAIL)) {
+            hand = InteractionHand.MAIN_HAND;
+        } else if (mc.player.getOffhandItem().is(Items.RAIL)) {
+            hand = InteractionHand.OFF_HAND;
         } else {
             switched = true;
             switch (switchMode.get()) {
@@ -484,18 +487,18 @@ public class AutoCart extends BlackOutModule {
                 case PickSilent -> BOInvUtils.pickSwitch(rail.slot());
                 case InvSwitch -> BOInvUtils.invSwitch(rail.slot());
             }
-            hand = Hand.MAIN_HAND;
+            hand = InteractionHand.MAIN_HAND;
         }
 
-        BlockPos placeOn = pos.down();
+        BlockPos placeOn = pos.below();
         Direction placeDir = Direction.UP;
 
         boolean rotated = !SettingUtils.shouldRotate(RotationType.BlockPlace) ||
-            Managers.ROTATION.start(placeOn.offset(placeDir), priority, RotationType.BlockPlace,
+            Managers.ROTATION.start(placeOn.relative(placeDir), priority, RotationType.BlockPlace,
                 Objects.hash(name + "rail"));
 
         if (rotated) {
-            placeBlock(hand, placeOn.toCenterPos(), placeDir, placeOn);
+            placeBlock(hand, placeOn.getCenter(), placeDir, placeOn);
 
             if (swing.get()) clientSwing(swingHand.get(), hand);
             if (SettingUtils.shouldRotate(RotationType.BlockPlace)) {
@@ -519,12 +522,12 @@ public class AutoCart extends BlackOutModule {
         if (!cart.found()) return;
 
         boolean switched = false;
-        Hand hand = null;
+        InteractionHand hand = null;
 
-        if (mc.player.getMainHandStack().isOf(Items.TNT_MINECART)) {
-            hand = Hand.MAIN_HAND;
-        } else if (mc.player.getOffHandStack().isOf(Items.TNT_MINECART)) {
-            hand = Hand.OFF_HAND;
+        if (mc.player.getMainHandItem().is(Items.TNT_MINECART)) {
+            hand = InteractionHand.MAIN_HAND;
+        } else if (mc.player.getOffhandItem().is(Items.TNT_MINECART)) {
+            hand = InteractionHand.OFF_HAND;
         } else {
             switched = true;
             switch (switchMode.get()) {
@@ -532,7 +535,7 @@ public class AutoCart extends BlackOutModule {
                 case PickSilent -> BOInvUtils.pickSwitch(cart.slot());
                 case InvSwitch -> BOInvUtils.invSwitch(cart.slot());
             }
-            hand = Hand.MAIN_HAND;
+            hand = InteractionHand.MAIN_HAND;
         }
 
         boolean rotated = !SettingUtils.shouldRotate(RotationType.Interact) ||
@@ -540,7 +543,7 @@ public class AutoCart extends BlackOutModule {
                 Objects.hash(name + "cart"));
 
         if (rotated) {
-            interactBlock(hand, pos.toCenterPos(), Direction.DOWN, pos);
+            interactBlock(hand, pos.getCenter(), Direction.DOWN, pos);
             lastPlaceTime = System.currentTimeMillis();
             placeCounter++;
 
@@ -561,18 +564,18 @@ public class AutoCart extends BlackOutModule {
 
     private void breakRail(BlockPos pos) {
         FindItemResult pickaxe = InvUtils.find(itemStack ->
-            itemStack.isOf(Items.DIAMOND_PICKAXE) || itemStack.isOf(Items.NETHERITE_PICKAXE)
+            itemStack.is(Items.DIAMOND_PICKAXE) || itemStack.is(Items.NETHERITE_PICKAXE)
         );
 
-        Hand hand = null;
+        InteractionHand hand = null;
         boolean switched = false;
 
-        if (mc.player.getMainHandStack().isOf(Items.DIAMOND_PICKAXE) ||
-            mc.player.getMainHandStack().isOf(Items.NETHERITE_PICKAXE)) {
-            hand = Hand.MAIN_HAND;
-        } else if (mc.player.getOffHandStack().isOf(Items.DIAMOND_PICKAXE) ||
-                   mc.player.getOffHandStack().isOf(Items.NETHERITE_PICKAXE)) {
-            hand = Hand.OFF_HAND;
+        if (mc.player.getMainHandItem().is(Items.DIAMOND_PICKAXE) ||
+            mc.player.getMainHandItem().is(Items.NETHERITE_PICKAXE)) {
+            hand = InteractionHand.MAIN_HAND;
+        } else if (mc.player.getOffhandItem().is(Items.DIAMOND_PICKAXE) ||
+                   mc.player.getOffhandItem().is(Items.NETHERITE_PICKAXE)) {
+            hand = InteractionHand.OFF_HAND;
         } else if (pickaxe.found()) {
             switched = true;
             switch (switchMode.get()) {
@@ -580,7 +583,7 @@ public class AutoCart extends BlackOutModule {
                 case PickSilent -> BOInvUtils.pickSwitch(pickaxe.slot());
                 case InvSwitch -> BOInvUtils.invSwitch(pickaxe.slot());
             }
-            hand = Hand.MAIN_HAND;
+            hand = InteractionHand.MAIN_HAND;
         }
 
         if (hand == null) return;
@@ -590,8 +593,8 @@ public class AutoCart extends BlackOutModule {
                 Objects.hash(name + "break"));
 
         if (rotated) {
-            sendSequenced(s -> new PlayerActionC2SPacket(PlayerActionC2SPacket.Action.START_DESTROY_BLOCK, pos, Direction.UP, s));
-            sendSequenced(s -> new PlayerActionC2SPacket(PlayerActionC2SPacket.Action.STOP_DESTROY_BLOCK, pos, Direction.UP, s));
+            sendSequenced(s -> new ServerboundPlayerActionPacket(ServerboundPlayerActionPacket.Action.START_DESTROY_BLOCK, pos, Direction.UP, s));
+            sendSequenced(s -> new ServerboundPlayerActionPacket(ServerboundPlayerActionPacket.Action.STOP_DESTROY_BLOCK, pos, Direction.UP, s));
 
             if (swing.get()) clientSwing(swingHand.get(), hand);
             if (SettingUtils.shouldRotate(RotationType.Mining)) {
@@ -612,13 +615,13 @@ public class AutoCart extends BlackOutModule {
         FindItemResult flintAndSteel = InvUtils.find(Items.FLINT_AND_STEEL);
         if (!flintAndSteel.found()) return;
 
-        Hand hand = null;
+        InteractionHand hand = null;
         boolean switched = false;
 
-        if (mc.player.getMainHandStack().isOf(Items.FLINT_AND_STEEL)) {
-            hand = Hand.MAIN_HAND;
-        } else if (mc.player.getOffHandStack().isOf(Items.FLINT_AND_STEEL)) {
-            hand = Hand.OFF_HAND;
+        if (mc.player.getMainHandItem().is(Items.FLINT_AND_STEEL)) {
+            hand = InteractionHand.MAIN_HAND;
+        } else if (mc.player.getOffhandItem().is(Items.FLINT_AND_STEEL)) {
+            hand = InteractionHand.OFF_HAND;
         } else {
             switched = true;
             switch (switchMode.get()) {
@@ -626,7 +629,7 @@ public class AutoCart extends BlackOutModule {
                 case PickSilent -> BOInvUtils.pickSwitch(flintAndSteel.slot());
                 case InvSwitch -> BOInvUtils.invSwitch(flintAndSteel.slot());
             }
-            hand = Hand.MAIN_HAND;
+            hand = InteractionHand.MAIN_HAND;
         }
 
         boolean rotated = !SettingUtils.shouldRotate(RotationType.Interact) ||
@@ -634,7 +637,7 @@ public class AutoCart extends BlackOutModule {
                 Objects.hash(name + "ignite"));
 
         if (rotated) {
-            interactBlock(hand, pos.down().toCenterPos(), Direction.UP, pos.down());
+            interactBlock(hand, pos.below().getCenter(), Direction.UP, pos.below());
 
             if (swing.get()) clientSwing(swingHand.get(), hand);
             if (SettingUtils.shouldRotate(RotationType.Interact)) {

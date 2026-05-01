@@ -6,9 +6,9 @@ import meteordevelopment.meteorclient.systems.hud.HudElement;
 import meteordevelopment.meteorclient.systems.hud.HudElementInfo;
 import meteordevelopment.meteorclient.systems.hud.HudRenderer;
 import meteordevelopment.meteorclient.utils.render.color.SettingColor;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.entity.EquipmentSlot;
-import net.minecraft.item.ItemStack;
+import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.item.ItemStack;
 import org.joml.Matrix3x2fStack;
 
 import static meteordevelopment.meteorclient.MeteorClient.mc;
@@ -74,7 +74,7 @@ public class ArmorHudPlus extends HudElement {
         if (mc.player == null) {return;}
 
         setSize(100 * scale.get() * 2, 28 * scale.get() * 2);
-        MatrixStack stack = new MatrixStack();
+        PoseStack stack = new PoseStack();
 
         stack.translate(x, y, 0);
         stack.scale((float)(scale.get() * 2), (float)(scale.get() * 2), 1);
@@ -90,24 +90,24 @@ public class ArmorHudPlus extends HudElement {
         }
 
         for (EquipmentSlot slot : new EquipmentSlot[]{EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET}) {
-            ItemStack itemStack = mc.player.getEquippedStack(slot);
+            ItemStack itemStack = mc.player.getItemBySlot(slot);
 
             if (itemStack.isEmpty()) continue;
 
-            String text = String.valueOf(Math.round(100 - (float) itemStack.getDamage() / itemStack.getMaxDamage() * 100f));
-            renderer.text(text, x + (slot.getIndex() * 40) * scale.get(), y + (durMode.get() == DurMode.Top ? 6 : 34) * scale.get(), durColor.get(), false, scale.get());
+            String text = String.valueOf(Math.round(100 - (float) itemStack.getDamageValue() / itemStack.getMaxDamage() * 100f));
+            renderer.text(text, x + (slot.getId() * 40) * scale.get(), y + (durMode.get() == DurMode.Top ? 6 : 34) * scale.get(), durColor.get(), false, scale.get());
         }
 
         renderer.post(() -> {
-            Matrix3x2fStack drawStack = renderer.drawContext.getMatrices();
+            Matrix3x2fStack drawStack = renderer.graphics.pose();
             drawStack.pushMatrix();
 
             drawStack.translate((float) (x / 2), (float) (y / 2));
             drawStack.scale((float)(scale.get() * 2), (float)(scale.get() * 2));
 
             for (EquipmentSlot slot : new EquipmentSlot[]{EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET}) {
-                ItemStack itemStack = mc.player.getEquippedStack(slot);
-                renderer.item(itemStack, slot.getIndex() * 20, durMode.get() == DurMode.Top ? 10 : 0, scale.get().floatValue(), false);
+                ItemStack itemStack = mc.player.getItemBySlot(slot);
+                renderer.item(itemStack, slot.getId() * 20, durMode.get() == DurMode.Top ? 10 : 0, scale.get().floatValue(), false);
             }
 
             drawStack.popMatrix();

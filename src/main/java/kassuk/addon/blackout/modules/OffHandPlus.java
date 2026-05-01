@@ -13,12 +13,16 @@ import meteordevelopment.meteorclient.utils.player.InvUtils;
 import meteordevelopment.meteorclient.utils.player.PlayerUtils;
 import meteordevelopment.orbit.EventHandler;
 import meteordevelopment.orbit.EventPriority;
-import net.minecraft.client.gui.screen.ingame.InventoryScreen;
+import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.item.*;
-import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket;
-import net.minecraft.registry.tag.ItemTags;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
+import net.minecraft.network.protocol.game.ServerboundPlayerActionPacket;
+import net.minecraft.tags.ItemTags;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.world.item.BedItem;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 
 import java.util.function.Predicate;
 
@@ -117,7 +121,7 @@ public class OffHandPlus extends BlackOutModule {
 
     @EventHandler(priority = EventPriority.HIGHEST)
     private void onRender(Render3DEvent event) {
-        if (mc.player == null || mc.world == null) return;
+        if (mc.player == null || mc.level == null) return;
         timer -= (System.currentTimeMillis() - lastTime) / 1000d;
         lastTime = System.currentTimeMillis();
 
@@ -132,8 +136,8 @@ public class OffHandPlus extends BlackOutModule {
 
     private void update() {
         if (timer > 0) return;
-        if (getPredicate(item).test(mc.player.getOffHandStack().getItem())) return;
-        if (onlyInInv.get() && !(mc.currentScreen instanceof InventoryScreen)) return;
+        if (getPredicate(item).test(mc.player.getOffhandItem().getItem())) return;
+        if (onlyInInv.get() && !(mc.screen instanceof InventoryScreen)) return;
 
         int slot = getSlot(getPredicate(item));
 
@@ -145,7 +149,7 @@ public class OffHandPlus extends BlackOutModule {
     private void move(int slot) {
         if (strict.get()) {
             BOInvUtils.pickSwitch(slot);
-            sendPacket(new PlayerActionC2SPacket(PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND, new BlockPos(0, 0, 0), Direction.DOWN, 0));
+            sendPacket(new ServerboundPlayerActionPacket(ServerboundPlayerActionPacket.Action.SWAP_ITEM_WITH_OFFHAND, new BlockPos(0, 0, 0), Direction.DOWN, 0));
             BOInvUtils.pickSwapBack();
             InvUtils.swap(Managers.HOLDING.slot, false);
             return;
@@ -160,14 +164,14 @@ public class OffHandPlus extends BlackOutModule {
     }
 
     private Item getItem() {
-        if (mc.player.getMainHandStack().isIn(ItemTags.SWORDS) && (!safeSword.get() || !inDanger())) {
+        if (mc.player.getMainHandItem().is(ItemTags.SWORDS) && (!safeSword.get() || !inDanger())) {
             if (gapMode.get().sword) {
                 switch (swordMode.get()) {
                     case Always -> {
                         return Items.GOLDEN_APPLE;
                     }
                     case Pressed -> {
-                        if (mc.options.useKey.isPressed())
+                        if (mc.options.keyUse.isDown())
                             return Items.GOLDEN_APPLE;
                     }
                 }
@@ -214,8 +218,8 @@ public class OffHandPlus extends BlackOutModule {
         int slot = -1;
 
         ItemStack s;
-        for (int i = 9; i < mc.player.getInventory().size() + 1; i++) {
-            s = mc.player.getInventory().getStack(i);
+        for (int i = 9; i < mc.player.getInventory().getContainerSize() + 1; i++) {
+            s = mc.player.getInventory().getItem(i);
 
             if (!predicate.test(s.getItem())) continue;
 
@@ -227,7 +231,7 @@ public class OffHandPlus extends BlackOutModule {
         if (slot >= 0) return slot;
 
         for (int i = 0; i < 9; i++) {
-            s = mc.player.getInventory().getStack(i);
+            s = mc.player.getInventory().getItem(i);
 
             if (!predicate.test(s.getItem())) continue;
 

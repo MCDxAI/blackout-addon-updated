@@ -10,9 +10,9 @@ import meteordevelopment.meteorclient.systems.friends.Friends;
 import meteordevelopment.meteorclient.utils.player.Rotations;
 import meteordevelopment.orbit.EventHandler;
 import meteordevelopment.orbit.EventPriority;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.Item;
-import net.minecraft.item.Items;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.Items;
 
 import java.util.List;
 import java.util.Objects;
@@ -164,22 +164,22 @@ public class AntiAim extends BlackOutModule {
 
     @EventHandler(priority = EventPriority.HIGHEST)
     private void onTick(TickEvent.Pre event) {
-        if (mc.player != null && mc.world != null) {
+        if (mc.player != null && mc.level != null) {
             if (mode.get() == Modes.CSGO) {
                 if (csTick <= 0) {
                     csTick += csDelay.get();
-                    csYaw = rYaw.get() ? r.nextInt(-180, 180) : mc.player.getYaw();
+                    csYaw = rYaw.get() ? r.nextInt(-180, 180) : mc.player.getYRot();
                     csPitch = rPitch.get() ? r.nextInt(-90, 90) : csgoPitch.get();
                 } else {
                     csTick--;
                 }
             }
 
-            Item item = mc.player.getMainHandStack().getItem();
+            Item item = mc.player.getMainHandItem().getItem();
             boolean ignoreYaw = yItems.get().contains(item) && iYaw.get();
             boolean ignorePitch = pItems.get().contains(item) && iPitch.get();
 
-            double y = ignoreYaw ? mc.player.getYaw() :
+            double y = ignoreYaw ? mc.player.getYRot() :
                 switch (mode.get()) {
                     case Enemy -> closestYaw();
                     case Spin -> getSpinYaw();
@@ -189,7 +189,7 @@ public class AntiAim extends BlackOutModule {
 
             double p = item == Items.EXPERIENCE_BOTTLE && encMode.get() ? 90 :
                 item == Items.BOW && bowMode.get() ? -90 :
-                    ignorePitch ? mc.player.getPitch() :
+                    ignorePitch ? mc.player.getXRot() :
                         switch (mode.get()) {
                             case Enemy -> closestPitch();
                             case Spin -> 0.0;
@@ -207,21 +207,21 @@ public class AntiAim extends BlackOutModule {
     }
 
     private double closestYaw() {
-        PlayerEntity closest = getClosest();
+        Player closest = getClosest();
 
         if (closest != null) {
             return Rotations.getYaw(closest);
         }
-        return mc.player.getYaw();
+        return mc.player.getYRot();
     }
 
     private double closestPitch() {
-        PlayerEntity closest = getClosest();
+        Player closest = getClosest();
 
         if (closest != null) {
             return Rotations.getPitch(closest);
         }
-        return mc.player.getPitch();
+        return mc.player.getXRot();
     }
 
     private double getSpinYaw() {
@@ -230,20 +230,20 @@ public class AntiAim extends BlackOutModule {
         return spinYaw;
     }
 
-    private PlayerEntity getClosest() {
-        PlayerEntity closest = null;
-        for (PlayerEntity pl : mc.world.getPlayers()) {
+    private Player getClosest() {
+        Player closest = null;
+        for (Player pl : mc.level.players()) {
             if (pl == mc.player) continue;
 
             if (Friends.get().isFriend(pl)) continue;
 
             if (closest == null) closest = pl;
 
-            double distance = mc.player.getEntityPos().distanceTo(pl.getEntityPos());
+            double distance = mc.player.position().distanceTo(pl.position());
 
             if (distance > enemyRange.get()) continue;
 
-            if (distance < closest.getEntityPos().distanceTo(mc.player.getEntityPos())) {
+            if (distance < closest.position().distanceTo(mc.player.position())) {
                 closest = pl;
             }
         }

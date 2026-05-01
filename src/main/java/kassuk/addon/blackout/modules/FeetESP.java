@@ -9,8 +9,8 @@ import meteordevelopment.meteorclient.systems.friends.Friends;
 import meteordevelopment.meteorclient.utils.render.color.SettingColor;
 import meteordevelopment.orbit.EventHandler;
 import meteordevelopment.orbit.EventPriority;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.Mth;
+import net.minecraft.world.phys.Vec3;
 
 /**
  * @author OLEPOSSU
@@ -70,25 +70,25 @@ public class FeetESP extends BlackOutModule {
 
     @EventHandler(priority = EventPriority.HIGHEST)
     private void onRender(Render3DEvent event) {
-        if (mc.player == null || mc.world == null) return;
+        if (mc.player == null || mc.level == null) return;
 
-        mc.world.getPlayers().forEach(player -> {
+        mc.level.players().forEach(player -> {
             if (player.distanceTo(mc.player) > range.get()) return;
 
             if (!friend.get() && Friends.get().isFriend(player)) return;
             if (!other.get() && player != mc.player && !Friends.get().isFriend(player)) return;
             if (!self.get() && mc.player == player) return;
 
-            float tickDelta = mc.getRenderTickCounter().getTickProgress(true);
-            render(event, new Vec3d(
-                MathHelper.lerp(tickDelta, player.lastX, player.getX()),
-                MathHelper.lerp(tickDelta, player.lastY, player.getY()),
-                MathHelper.lerp(tickDelta, player.lastZ, player.getZ())
+            float tickDelta = mc.getDeltaTracker().getGameTimeDeltaPartialTick(true);
+            render(event, new Vec3(
+                Mth.lerp(tickDelta, player.xo, player.getX()),
+                Mth.lerp(tickDelta, player.yo, player.getY()),
+                Mth.lerp(tickDelta, player.zo, player.getZ())
             ));
         });
     }
 
-    private void render(Render3DEvent event, Vec3d vec) {
+    private void render(Render3DEvent event, Vec3 vec) {
         event.renderer.sideHorizontal(vec.x - 0.3, vec.y, vec.z - 0.3, vec.x + 0.3, vec.z + 0.3, sideColor.get(), lineColor.get(), shapeMode.get());
     }
 }

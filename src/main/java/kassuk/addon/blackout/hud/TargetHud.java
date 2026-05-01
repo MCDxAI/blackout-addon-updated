@@ -12,16 +12,15 @@ import meteordevelopment.meteorclient.systems.hud.HudRenderer;
 import meteordevelopment.meteorclient.utils.render.color.Color;
 import meteordevelopment.meteorclient.utils.render.color.SettingColor;
 import meteordevelopment.orbit.EventHandler;
-import net.minecraft.client.gui.PlayerSkinDrawer;
-import net.minecraft.client.network.AbstractClientPlayerEntity;
-import net.minecraft.client.network.PlayerListEntry;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EquipmentSlot;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.entity.player.SkinTextures;
-import net.minecraft.item.ItemStack;
-import net.minecraft.network.packet.s2c.play.EntityStatusS2CPacket;
-import net.minecraft.util.math.MathHelper;
+import net.minecraft.client.player.AbstractClientPlayer;
+import net.minecraft.client.multiplayer.PlayerInfo;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.player.PlayerSkin;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.network.protocol.game.ClientboundEntityEventPacket;
+import net.minecraft.util.Mth;
 import org.joml.Matrix3x2fStack;
 
 import java.util.*;
@@ -92,9 +91,9 @@ public class TargetHud extends HudElement {
         MeteorClient.EVENT_BUS.subscribe(this);
     }
 
-    private AbstractClientPlayerEntity target;
+    private AbstractClientPlayer target;
     private String renderName = null;
-    private SkinTextures renderSkinTextures = null;
+    private PlayerSkin renderSkinTextures = null;
     private float renderHealth;
     private float renderPing;
 
@@ -105,18 +104,18 @@ public class TargetHud extends HudElement {
     private float lastHp = 0;
     private boolean popped = false;
 
-    private final Map<AbstractClientPlayerEntity, Integer> tog = new HashMap<>();
+    private final Map<AbstractClientPlayer, Integer> tog = new HashMap<>();
 
     @EventHandler(priority = 10000)
     private void onTick(TickEvent.Pre event) {
-        if (mc.world == null || mc.player == null) {
+        if (mc.level == null || mc.player == null) {
             return;
         }
 
-        List<AbstractClientPlayerEntity> toRemove = new ArrayList<>();
+        List<AbstractClientPlayer> toRemove = new ArrayList<>();
 
-        for (Map.Entry<AbstractClientPlayerEntity, Integer> entry : tog.entrySet()) {
-            if (mc.world.getPlayers().contains(entry.getKey()) && !entry.getKey().isSpectator() && entry.getKey().getHealth() > 0) {
+        for (Map.Entry<AbstractClientPlayer, Integer> entry : tog.entrySet()) {
+            if (mc.level.players().contains(entry.getKey()) && !entry.getKey().isSpectator() && entry.getKey().getHealth() > 0) {
                 continue;
             }
 
@@ -125,8 +124,8 @@ public class TargetHud extends HudElement {
 
         toRemove.forEach(tog::remove);
 
-        mc.world.getPlayers().forEach(player -> {
-            if (player.isOnGround()) {
+        mc.level.players().forEach(player -> {
+            if (player.onGround()) {
                 if (tog.containsKey(player)) {
                     tog.replace(player, tog.get(player) + 1);
                 } else {
@@ -136,14 +135,14 @@ public class TargetHud extends HudElement {
         });
 
         if (target != null) {
-            if (target.getUuid().equals(lastTarget)) {
+            if (target.getUUID().equals(lastTarget)) {
                 float diff = Math.max(lastHp - target.getHealth() - target.getAbsorptionAmount(), 0);
 
                 if (diff > 1) {
                     damageTime = System.currentTimeMillis();
                 }
             }
-            lastTarget = target.getUuid();
+            lastTarget = target.getUUID();
             lastHp = popped ? 0 : target.getHealth() + target.getAbsorptionAmount();
             popped = false;
         } else {
@@ -155,13 +154,13 @@ public class TargetHud extends HudElement {
 
     @EventHandler(priority = 10000)
     private void onReceive(PacketEvent.Receive event) {
-        if (!(event.packet instanceof EntityStatusS2CPacket packet)) {return;}
+        if (!(event.packet instanceof ClientboundEntityEventPacket packet)) {return;}
 
-        if (packet.getStatus() != 35) {return;}
+        if (packet.getEventId() != 35) {return;}
 
-        Entity entity = packet.getEntity(mc.world);
+        Entity entity = packet.getEntity(mc.level);
 
-        if (entity instanceof PlayerEntity player && player == target) {
+        if (entity instanceof Player player && player == target) {
             popped = true;
         }
     }
@@ -179,7 +178,7 @@ public class TargetHud extends HudElement {
                 return;
             }
 
-            scaleProgress = MathHelper.clamp(scaleProgress + (target == null ? -renderer.delta : renderer.delta), 0, 1);
+            scaleProgress = Mth.clamp(scaleProgress + (target == null ? -renderer.delta : renderer.delta), 0, 1);
 
             double scaleAnimation = scaleProgress * scaleProgress * scaleProgress;
             if (scaleAnimation < 0.01) {
@@ -219,17 +218,17 @@ public class TargetHud extends HudElement {
             String health = String.format("%.1f", renderHealth);
             renderer.text(health, translateX + 20 * scale, translateY + 81 * scale - renderer.textHeight(false, scale / 2) / 2, textColor.get(), false, scale / 2);
 
-            float barAnimation = MathHelper.lerp(mc.getRenderTickCounter().getTickProgress(true) / 10, lastHp, renderHealth);
+            float barAnimation = Mth.lerp(mc.getDeltaTracker().getGameTimeDeltaPartialTick(true) / 10, lastHp, renderHealth);
 
-            float barStart = Math.max(mc.textRenderer.getWidth(String.valueOf(Math.round((renderHealth) * 10) / 10f)),
-                mc.textRenderer.getWidth("36.0")) + 25;
+            float barStart = Math.max(mc.font.width(String.valueOf(Math.round((renderHealth) * 10) / 10f)),
+                mc.font.width("36.0")) + 25;
 
             // Health Bar
             if (barAnimation > 0) {
                 renderer.quad(
                     translateX + barStart * scale,
                     translateY + 77 * scale,
-                    MathHelper.clamp(barAnimation / 20, 0, 1) * (width - 24 - barStart) * scale,
+                    Mth.clamp(barAnimation / 20, 0, 1) * (width - 24 - barStart) * scale,
                     8 * scale,
                     healthColor.get()
                 );
@@ -249,7 +248,7 @@ public class TargetHud extends HudElement {
                 renderer.quad(
                     translateX + barStart * scale,
                     translateY + 77 * scale,
-                    MathHelper.clamp((barAnimation - 20) / 16, 0, 1) * (width - 24 - barStart) * scale,
+                    Mth.clamp((barAnimation - 20) / 16, 0, 1) * (width - 24 - barStart) * scale,
                     8 * scale,
                     absorptionColor.get()
                 );
@@ -296,7 +295,7 @@ public class TargetHud extends HudElement {
 
             // Bar
 
-            int progress = MathHelper.ceil(MathHelper.clamp(renderHealth, 0, 20));
+            int progress = Mth.ceil(Mth.clamp(renderHealth, 0, 20));
 
             for (int i = 0; i < 10; i++) {
                 renderer.quad(
@@ -314,9 +313,9 @@ public class TargetHud extends HudElement {
             }
 
             // Misc info
-            String miscTextLine1 = "Yaw: " + Math.round((target.getYaw()) * 10) / 10f + " Pitch: " + Math.round(target.getPitch() * 10) / 10f + " BodyYaw: " + Math.round((target.getBodyYaw()) * 10) / 10f;
+            String miscTextLine1 = "Yaw: " + Math.round((target.getYRot()) * 10) / 10f + " Pitch: " + Math.round(target.getXRot() * 10) / 10f + " BodyYaw: " + Math.round((target.getVisualRotationYInDegrees()) * 10) / 10f;
             renderer.text(miscTextLine1, x + 66 * scale.get(), y + (45 * scale.get() - renderer.textHeight(false, scale.get() / 2) / 2), textColor.get(), false, scale.get() / 2);
-            String miscTextLine2 = "TOG: " + (tog.getOrDefault(target, 0)) + " HURT: " + ((target.hurtTime) * 10) / 10f + " TE: " + target.age;
+            String miscTextLine2 = "TOG: " + (tog.getOrDefault(target, 0)) + " HURT: " + ((target.hurtTime) * 10) / 10f + " TE: " + target.tickCount;
             renderer.text(miscTextLine2, x + 66 * scale.get(), y + (55 * scale.get() - renderer.textHeight(false, scale.get() / 2) / 2), textColor.get(), false, scale.get() / 2);
         }
         if (mode.get() == Mode.Exhibition) {
@@ -362,7 +361,7 @@ public class TargetHud extends HudElement {
 
             // Bar
 
-            int progress = (int) (Math.ceil(MathHelper.clamp(renderHealth, 0, 20)));
+            int progress = (int) (Math.ceil(Mth.clamp(renderHealth, 0, 20)));
 
             for (int i = 0; i < 10; i++) {
                 renderer.quad(
@@ -382,20 +381,20 @@ public class TargetHud extends HudElement {
 
             renderer.post(() -> {
                 //Armor
-                Matrix3x2fStack drawStack = renderer.drawContext.getMatrices();
+                Matrix3x2fStack drawStack = renderer.graphics.pose();
                 drawStack.pushMatrix();
 
                 drawStack.translate(x, y);
                 drawStack.scale(scale.get().floatValue() * 1.35f, scale.get().floatValue() * 1.35f);
 
                 for (EquipmentSlot slot : new EquipmentSlot[]{EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET}) {
-                    ItemStack itemStack = mc.player.getEquippedStack(slot);
+                    ItemStack itemStack = mc.player.getItemBySlot(slot);
 
-                    renderer.item(itemStack, (3 - slot.getIndex()) * 20 + 42, 25, scale.get().floatValue(), false);
+                    renderer.item(itemStack, (3 - slot.getId()) * 20 + 42, 25, scale.get().floatValue(), false);
                 }
 
                 //Item
-                ItemStack itemStack = target.getMainHandStack();
+                ItemStack itemStack = target.getMainHandItem();
 
                 renderer.item(itemStack, 122, 25, scale.get().floatValue(), false);
 
@@ -406,7 +405,7 @@ public class TargetHud extends HudElement {
 
     private void drawFace(HudRenderer renderer, float scale, double x, double y, float tilt) {
         renderer.post(() -> {
-            Matrix3x2fStack drawStack = renderer.drawContext.getMatrices();
+            Matrix3x2fStack drawStack = renderer.graphics.pose();
 
             drawStack.pushMatrix();
 
@@ -414,7 +413,7 @@ public class TargetHud extends HudElement {
             drawStack.scale(scale, scale);
             drawStack.rotate(tilt);
 
-            PlayerSkinDrawer.draw(renderer.drawContext, renderSkinTextures, 0, 0, 32, -1);
+            net.minecraft.client.gui.components.PlayerFaceExtractor.extractRenderState(renderer.graphics, renderSkinTextures, 0, 0, 32, -1);
 
             drawStack.popMatrix();
         });
@@ -422,12 +421,12 @@ public class TargetHud extends HudElement {
 
     private void updateTarget() {
         target = null;
-        if (mc.world == null) {return;}
+        if (mc.level == null) {return;}
 
-        AbstractClientPlayerEntity closest = null;
+        AbstractClientPlayer closest = null;
         double distance = Double.MAX_VALUE;
 
-        for (AbstractClientPlayerEntity player : mc.world.getPlayers()) {
+        for (AbstractClientPlayer player : mc.level.players()) {
             if (player == mc.player) {continue;}
             if (Friends.get().isFriend(player)) {continue;}
 
@@ -449,7 +448,7 @@ public class TargetHud extends HudElement {
             renderHealth = target.getHealth() + target.getAbsorptionAmount();
             renderSkinTextures = target.getSkin();
 
-            PlayerListEntry playerListEntry = mc.getNetworkHandler().getPlayerListEntry(target.getUuid());
+            PlayerInfo playerListEntry = mc.getConnection().getPlayerInfo(target.getUUID());
             renderPing = playerListEntry == null ? -1 : playerListEntry.getLatency();
         }
     }

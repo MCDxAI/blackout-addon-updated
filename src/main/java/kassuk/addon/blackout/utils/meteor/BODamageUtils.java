@@ -6,48 +6,40 @@ https://github.com/MeteorDevelopment/meteor-client/blob/master/src/main/java/met
 package kassuk.addon.blackout.utils.meteor;
 
 import kassuk.addon.blackout.utils.OLEPOSSUtils;
-import kassuk.addon.blackout.utils.SettingUtils;
 import meteordevelopment.meteorclient.MeteorClient;
 import meteordevelopment.meteorclient.events.game.GameJoinedEvent;
-import meteordevelopment.meteorclient.mixininterface.IRaycastContext;
-import meteordevelopment.meteorclient.mixininterface.IVec3d;
+import meteordevelopment.meteorclient.mixininterface.IClipContext;
 import meteordevelopment.meteorclient.utils.PreInit;
-import meteordevelopment.meteorclient.utils.entity.EntityUtils;
-import meteordevelopment.meteorclient.utils.entity.fakeplayer.FakePlayerEntity;
 import meteordevelopment.orbit.EventHandler;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
-import net.minecraft.component.type.ItemEnchantmentsComponent;
-import net.minecraft.enchantment.Enchantment;
-import net.minecraft.enchantment.EnchantmentHelper;
-import net.minecraft.enchantment.Enchantments;
-import net.minecraft.entity.*;
-import net.minecraft.entity.attribute.EntityAttributes;
-import net.minecraft.entity.effect.StatusEffects;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.nbt.NbtList;
-import net.minecraft.util.hit.BlockHitResult;
-import net.minecraft.util.hit.HitResult;
-import net.minecraft.util.math.*;
-import net.minecraft.util.shape.VoxelShape;
-import net.minecraft.util.shape.VoxelShapes;
-import net.minecraft.world.BlockView;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.util.Mth;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.item.enchantment.ItemEnchantments;
+import net.minecraft.world.item.enchantment.Enchantments;
+import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult;
+import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.phys.shapes.VoxelShape;
+import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.Difficulty;
-import net.minecraft.world.GameMode;
-import net.minecraft.world.RaycastContext;
-import net.minecraft.world.explosion.Explosion;
+import net.minecraft.world.level.ClipContext;
 import org.apache.commons.lang3.mutable.MutableInt;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 import static meteordevelopment.meteorclient.MeteorClient.mc;
 
 public class BODamageUtils {
-    public static RaycastContext raycastContext;
+    public static ClipContext raycastContext;
 
     @PreInit
     public static void init() {
@@ -56,34 +48,34 @@ public class BODamageUtils {
 
     @EventHandler
     public static void onGameJoin(GameJoinedEvent event) {
-        raycastContext = new RaycastContext(Vec3d.ZERO, Vec3d.ZERO, RaycastContext.ShapeType.COLLIDER, RaycastContext.FluidHandling.NONE, mc.player);
+        raycastContext = new ClipContext(Vec3.ZERO, Vec3.ZERO, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, mc.player);
     }
 
-    public static double crystalDamage(LivingEntity entity, Box box, Vec3d pos, boolean ignoreTerrain) {
+    public static double crystalDamage(LivingEntity entity, AABB box, Vec3 pos, boolean ignoreTerrain) {
         return crystalDamage(entity, box, pos, null, ignoreTerrain);
     }
 
-    public static double crystalDamage(LivingEntity entity, Box box, Vec3d pos, BlockPos ignorePos, boolean ignoreTerrain) {
+    public static double crystalDamage(LivingEntity entity, AABB box, Vec3 pos, BlockPos ignorePos, boolean ignoreTerrain) {
         return explosionDamage(entity, box, pos, ignorePos, ignoreTerrain, 6);
     }
 
-    public static double crystalDamage(LivingEntity entity, Box box, Vec3d pos, BlockPos ignorePos, BlockPos obbyPos, boolean ignoreTerrain) {
+    public static double crystalDamage(LivingEntity entity, AABB box, Vec3 pos, BlockPos ignorePos, BlockPos obbyPos, boolean ignoreTerrain) {
         return explosionDamage(entity, box, pos, ignorePos, obbyPos, ignoreTerrain, 6);
     }
 
-    public static double anchorDamage(LivingEntity entity, Box box, Vec3d pos, boolean ignoreTerrain) {
+    public static double anchorDamage(LivingEntity entity, AABB box, Vec3 pos, boolean ignoreTerrain) {
         return explosionDamage(entity, box, pos, null, ignoreTerrain, 5);
     }
 
-    public static double anchorDamage(LivingEntity entity, Box box, Vec3d pos, BlockPos ignorePos, boolean ignoreTerrain) {
+    public static double anchorDamage(LivingEntity entity, AABB box, Vec3 pos, BlockPos ignorePos, boolean ignoreTerrain) {
         return explosionDamage(entity, box, pos, ignorePos, ignoreTerrain, 5);
     }
 
-    private static double explosionDamage(LivingEntity entity, Box box, Vec3d pos, BlockPos ignorePos, boolean ignoreTerrain, double strength) {
+    private static double explosionDamage(LivingEntity entity, AABB box, Vec3 pos, BlockPos ignorePos, boolean ignoreTerrain, double strength) {
         return explosionDamage(entity, box, pos, ignorePos, null, ignoreTerrain, strength);
     }
 
-    public static double getBaseDamage(Box box, Vec3d pos, BlockPos ignorePos, BlockPos obbyPos, boolean ignoreTerrain, double strength) {
+    public static double getBaseDamage(AABB box, Vec3 pos, BlockPos ignorePos, BlockPos obbyPos, boolean ignoreTerrain, double strength) {
         double q = strength * 2;
         double dist = OLEPOSSUtils.feet(box).distanceTo(pos) / q;
 
@@ -95,7 +87,7 @@ public class BODamageUtils {
         return (float)((int)((ab * ab + ab) * 3.5 * q + 1.0));
     }
 
-    private static double explosionDamage(LivingEntity entity, Box box, Vec3d pos, BlockPos ignorePos, BlockPos obbyPos, boolean ignoreTerrain, double strength) {
+    private static double explosionDamage(LivingEntity entity, AABB box, Vec3 pos, BlockPos ignorePos, BlockPos obbyPos, boolean ignoreTerrain, double strength) {
         if (box == null) return 0;
 
         double damage = getBaseDamage(box, pos, ignorePos, obbyPos, ignoreTerrain, strength);
@@ -114,13 +106,13 @@ public class BODamageUtils {
         for (ItemStack stack : equipment) {
             if (stack.isEmpty()) continue;
 
-            ItemEnchantmentsComponent enchantments = stack.getEnchantments();
+            ItemEnchantments enchantments = stack.getEnchantments();
 
-            enchantments.getEnchantments().stream().forEach(entry -> {
+            enchantments.keySet().stream().forEach(entry -> {
                 int level = enchantments.getLevel(entry);
-                if (entry.matchesId(Enchantments.PROTECTION.getValue()))
+                if (entry.is(Enchantments.PROTECTION.identifier()))
                     mint.add(level);
-                else if (explosion && entry.matchesId(Enchantments.BLAST_PROTECTION.getValue()))
+                else if (explosion && entry.is(Enchantments.BLAST_PROTECTION.identifier()))
                     mint.add(level * 2);
             });
         }
@@ -129,7 +121,7 @@ public class BODamageUtils {
     }
 
     public static double difficultyDamage(double damage) {
-        Difficulty difficulty = mc.world.getDifficulty();
+        Difficulty difficulty = mc.level.getDifficulty();
         if (difficulty == Difficulty.EASY) return Math.min(damage / 2 + 1, damage);
         if (difficulty == Difficulty.NORMAL) return damage;
 
@@ -137,14 +129,14 @@ public class BODamageUtils {
     }
 
     public static double applyArmor(LivingEntity entity, double damage) {
-        double armor = entity.getArmor();
-        double f = 2 + entity.getAttributeValue(EntityAttributes.ARMOR_TOUGHNESS) / 4;
+        double armor = entity.getArmorValue();
+        double f = 2 + entity.getAttributeValue(Attributes.ARMOR_TOUGHNESS) / 4;
 
-        return damage * (1 - MathHelper.clamp(armor - damage / f, armor * 0.2, 20) / 25);
+        return damage * (1 - Mth.clamp(armor - damage / f, armor * 0.2, 20) / 25);
     }
 
     public static double applyResistance(LivingEntity entity, double damage) {
-        int amplifier = entity.hasStatusEffect(StatusEffects.RESISTANCE) ? entity.getStatusEffect(StatusEffects.RESISTANCE).getAmplifier() : 0;
+        int amplifier = entity.hasEffect(MobEffects.RESISTANCE) ? entity.getEffect(MobEffects.RESISTANCE).getAmplifier() : 0;
 
         int j = 25 - (amplifier + 1) * 5;
         return Math.max(damage * j / 25, 0);
@@ -155,31 +147,31 @@ public class BODamageUtils {
 
         List<ItemStack> armorItems = new ArrayList<>();
         for (EquipmentSlot slot : new EquipmentSlot[]{EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET}) {
-            armorItems.add(entity.getEquippedStack(slot));
+            armorItems.add(entity.getItemBySlot(slot));
         }
         protectionAmount = getProtectionAmount(armorItems, explosions);
 
         if (protectionAmount > 0) {
-            damage *= (1 - MathHelper.clamp(protectionAmount, 0f, 20f) / 25);
+            damage *= (1 - Mth.clamp(protectionAmount, 0f, 20f) / 25);
         }
 
         return damage;
     }
 
-    public static double getExposure(Vec3d source, Box box) {
+    public static double getExposure(Vec3 source, AABB box) {
         return getExposure(source, box, null, null, true);
     }
 
-    public static double getExposure(Vec3d source, Box box, BlockPos ignorePos, boolean ignoreTerrain) {
+    public static double getExposure(Vec3 source, AABB box, BlockPos ignorePos, boolean ignoreTerrain) {
         return getExposure(source, box, ignorePos, null, ignoreTerrain);
     }
 
-    public static double getExposure(Vec3d source, Box box, BlockPos ignorePos, BlockPos obbyPos, boolean ignoreTerrain) {
-        ((IRaycastContext) raycastContext).meteor$set(source, null, RaycastContext.ShapeType.COLLIDER, RaycastContext.FluidHandling.NONE, mc.player);
+    public static double getExposure(Vec3 source, AABB box, BlockPos ignorePos, BlockPos obbyPos, boolean ignoreTerrain) {
+        ((IClipContext) raycastContext).meteor$set(source, null, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, mc.player);
 
-        double lx = box.getLengthX();
-        double ly = box.getLengthY();
-        double lz = box.getLengthZ();
+        double lx = box.getXsize();
+        double ly = box.getYsize();
+        double lz = box.getZsize();
 
         double deltaX = 1 / (lx * 2 + 1);
         double deltaY = 1 / (ly * 2 + 1);
@@ -200,9 +192,9 @@ public class BODamageUtils {
         for (double x = box.minX + offsetX, maxX = box.maxX + offsetX; x <= maxX; x += stepX) {
             for (double y = box.minY; y <= box.maxY; y += stepY) {
                 for (double z = box.minZ + offsetZ, maxZ = box.maxZ + offsetZ; z <= maxZ; z += stepZ) {
-                    Vec3d vec3d = new Vec3d(x, y, z);
+                    Vec3 vec3d = new Vec3(x, y, z);
 
-                    ((IRaycastContext) raycastContext).meteor$set(source, vec3d, RaycastContext.ShapeType.COLLIDER, RaycastContext.FluidHandling.NONE, mc.player);
+                    ((IClipContext) raycastContext).meteor$set(source, vec3d, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, mc.player);
                     if (raycast(BODamageUtils.raycastContext, ignorePos, obbyPos, ignoreTerrain).getType() == HitResult.Type.MISS) ++i;
 
                     ++j;
@@ -213,42 +205,42 @@ public class BODamageUtils {
         return i / j;
     }
 
-    public static BlockHitResult raycast(RaycastContext context) {
+    public static BlockHitResult raycast(ClipContext context) {
         return raycast(context, false);
     }
 
-    public static BlockHitResult raycast(RaycastContext context, boolean ignoreTerrain) {
+    public static BlockHitResult raycast(ClipContext context, boolean ignoreTerrain) {
         return raycast(context, null, null, ignoreTerrain);
     }
 
-    public static BlockHitResult raycast(RaycastContext context, BlockPos ignorePos, BlockPos obbyPos) {
+    public static BlockHitResult raycast(ClipContext context, BlockPos ignorePos, BlockPos obbyPos) {
         return raycast(context, ignorePos, obbyPos, false);
     }
 
-    public static BlockHitResult raycast(RaycastContext context,BlockPos ignorePos, BlockPos obbyPos, boolean ignoreTerrain) {
-        return BlockView.raycast(context.getStart(), context.getEnd(), context, (contextx, pos) -> {
+    public static BlockHitResult raycast(ClipContext context, BlockPos ignorePos, BlockPos obbyPos, boolean ignoreTerrain) {
+        return BlockGetter.traverseBlocks(context.getFrom(), context.getTo(), context, (contextx, pos) -> {
             BlockState blockState;
 
             if (pos.equals(obbyPos))
-                blockState = Blocks.OBSIDIAN.getDefaultState();
+                blockState = Blocks.OBSIDIAN.defaultBlockState();
             else if (pos.equals(ignorePos))
-                blockState = Blocks.AIR.getDefaultState();
+                blockState = Blocks.AIR.defaultBlockState();
             else {
-                BlockState state = mc.world.getBlockState(pos);
+                BlockState state = mc.level.getBlockState(pos);
 
-                if (ignoreTerrain && state.getBlock().getBlastResistance() < 200) blockState = Blocks.AIR.getDefaultState();
+                if (ignoreTerrain && state.getBlock().getExplosionResistance() < 200) blockState = Blocks.AIR.defaultBlockState();
                 else blockState = state;
             }
 
-            Vec3d vec3d = contextx.getStart();
-            Vec3d vec3d2 = contextx.getEnd();
+            Vec3 vec3d = contextx.getFrom();
+            Vec3 vec3d2 = contextx.getTo();
 
-            VoxelShape voxelShape = contextx.getBlockShape(blockState, mc.world, pos);
+            VoxelShape voxelShape = contextx.getBlockShape(blockState, mc.level, pos);
 
-            return mc.world.raycastBlock(vec3d, vec3d2, pos, voxelShape, blockState);
+            return mc.level.clipWithInteractionOverride(vec3d, vec3d2, pos, voxelShape, blockState);
         }, (contextx) -> {
-            Vec3d vec3d = contextx.getStart().subtract(contextx.getEnd());
-            return BlockHitResult.createMissed(contextx.getEnd(), Direction.getFacing(vec3d.x, vec3d.y, vec3d.z), BlockPos.ofFloored(contextx.getEnd()));
+            Vec3 vec3d = contextx.getFrom().subtract(contextx.getTo());
+            return BlockHitResult.miss(contextx.getTo(), Direction.getApproximateNearest(vec3d.x, vec3d.y, vec3d.z), BlockPos.containing(contextx.getTo()));
         });
     }
 }

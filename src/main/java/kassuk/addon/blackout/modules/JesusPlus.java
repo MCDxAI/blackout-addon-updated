@@ -4,16 +4,16 @@ import kassuk.addon.blackout.BlackOut;
 import kassuk.addon.blackout.BlackOutModule;
 import meteordevelopment.meteorclient.events.entity.player.PlayerMoveEvent;
 import meteordevelopment.meteorclient.events.packets.PacketEvent;
-import meteordevelopment.meteorclient.mixininterface.IVec3d;
+import meteordevelopment.meteorclient.mixininterface.IVec3;
 import meteordevelopment.meteorclient.settings.BoolSetting;
 import meteordevelopment.meteorclient.settings.DoubleSetting;
 import meteordevelopment.meteorclient.settings.Setting;
 import meteordevelopment.meteorclient.settings.SettingGroup;
 import meteordevelopment.orbit.EventHandler;
-import net.minecraft.block.Blocks;
-import net.minecraft.entity.effect.StatusEffects;
-import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket;
-import net.minecraft.registry.tag.FluidTags;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.effect.MobEffects;
+import net.minecraft.network.protocol.game.ClientboundPlayerPositionPacket;
+import net.minecraft.tags.FluidTags;
 
 public class JesusPlus extends BlackOutModule {
     public JesusPlus() {
@@ -49,8 +49,8 @@ public class JesusPlus extends BlackOutModule {
 
     @EventHandler
     public void onMove(PlayerMoveEvent event) {
-        if (mc.player != null && mc.world != null) {
-            if (mc.world.getBlockState(mc.player.getBlockPos().down()).getBlock() == Blocks.WATER || mc.world.getBlockState(mc.player.getBlockPos()).getBlock() == Blocks.WATER) {
+        if (mc.player != null && mc.level != null) {
+            if (mc.level.getBlockState(mc.player.blockPosition().below()).getBlock() == Blocks.WATER || mc.level.getBlockState(mc.player.blockPosition()).getBlock() == Blocks.WATER) {
                 if (!inWater) {
                     isSlowed = false;
                 }
@@ -58,27 +58,27 @@ public class JesusPlus extends BlackOutModule {
             }
             else inWater = false;
 
-            if ((mc.player.isTouchingWater() && !mc.player.isSubmergedInWater()) || (mc.player.isInLava() && !mc.player.isSubmergedIn(FluidTags.LAVA))) {
-                ((IVec3d) mc.player.getVelocity()).meteor$setY(bob.get());
+            if ((mc.player.isInWater() && !mc.player.isUnderWater()) || (mc.player.isInLava() && !mc.player.isEyeInFluid(FluidTags.LAVA))) {
+                ((IVec3) mc.player.getDeltaMovement()).meteor$setY(bob.get());
 
-                if (toggle.get() && !(mc.player.isInLava() && !mc.player.isSubmergedIn(FluidTags.LAVA)) && !isSlowed) {
+                if (toggle.get() && !(mc.player.isInLava() && !mc.player.isEyeInFluid(FluidTags.LAVA)) && !isSlowed) {
                     double motion = water_speed.get();
-                    if (mc.player.hasStatusEffect(StatusEffects.SPEED)) {
-                        motion *= 1.2 + mc.player.getStatusEffect(StatusEffects.SPEED).getAmplifier() * 0.2;
+                    if (mc.player.hasEffect(MobEffects.SPEED)) {
+                        motion *= 1.2 + mc.player.getEffect(MobEffects.SPEED).getAmplifier() * 0.2;
                     }
-                    if (mc.player.hasStatusEffect(StatusEffects.SLOWNESS)) {
-                        motion /= 1.2 + mc.player.getStatusEffect(StatusEffects.SLOWNESS).getAmplifier() * 0.2;
+                    if (mc.player.hasEffect(MobEffects.SLOWNESS)) {
+                        motion /= 1.2 + mc.player.getEffect(MobEffects.SLOWNESS).getAmplifier() * 0.2;
                     }
-                    double forward = mc.player.input.getMovementInput().y;
-                    double sideways = mc.player.input.getMovementInput().x;
+                    double forward = mc.player.input.getMoveVector().y;
+                    double sideways = mc.player.input.getMoveVector().x;
 
                     double yaw = getYaw(forward, sideways);
                     double x = Math.cos(Math.toRadians(yaw + 90.0f));
                     double z = Math.sin(Math.toRadians(yaw + 90.0f));
                     if (move) {
-                        ((IVec3d) event.movement).meteor$setXZ(motion * x, motion * z);
+                        ((IVec3) event.movement).meteor$setXZ(motion * x, motion * z);
                     } else {
-                        ((IVec3d) event.movement).meteor$setXZ(0, 0);
+                        ((IVec3) event.movement).meteor$setXZ(0, 0);
                     }
                 }
             }
@@ -86,7 +86,7 @@ public class JesusPlus extends BlackOutModule {
     }
     @EventHandler
     private void OnRecieve(PacketEvent.Receive event) {
-        if (event.packet instanceof PlayerPositionLookS2CPacket)
+        if (event.packet instanceof ClientboundPlayerPositionPacket)
             isSlowed = true;
     }
     public void onActivate() {
@@ -94,7 +94,7 @@ public class JesusPlus extends BlackOutModule {
     }
 
     private double getYaw(double f, double s) {
-        double yaw = mc.player.getYaw();
+        double yaw = mc.player.getYRot();
         if (f > 0) {
             move = true;
             yaw += s > 0 ? -45 : s < 0 ? 45 : 0;

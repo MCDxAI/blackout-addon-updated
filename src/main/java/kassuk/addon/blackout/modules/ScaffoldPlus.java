@@ -13,7 +13,7 @@ import kassuk.addon.blackout.utils.SettingUtils;
 import meteordevelopment.meteorclient.events.entity.player.PlayerMoveEvent;
 import meteordevelopment.meteorclient.events.render.Render3DEvent;
 import meteordevelopment.meteorclient.events.world.TickEvent;
-import meteordevelopment.meteorclient.mixininterface.IVec3d;
+import meteordevelopment.meteorclient.mixininterface.IVec3;
 import meteordevelopment.meteorclient.renderer.ShapeMode;
 import meteordevelopment.meteorclient.settings.*;
 import meteordevelopment.meteorclient.systems.modules.Modules;
@@ -24,16 +24,16 @@ import meteordevelopment.meteorclient.utils.player.InvUtils;
 import meteordevelopment.meteorclient.utils.render.color.Color;
 import meteordevelopment.meteorclient.utils.render.color.SettingColor;
 import meteordevelopment.orbit.EventHandler;
-import net.minecraft.block.AirBlock;
-import net.minecraft.block.Block;
-import net.minecraft.block.Blocks;
-import net.minecraft.item.BlockItem;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.Hand;
-import net.minecraft.util.math.BlockBox;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Box;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.world.level.block.AirBlock;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.level.levelgen.structure.BoundingBox;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -192,7 +192,7 @@ public class ScaffoldPlus extends BlackOutModule {
     );
 
     private final TimerList<BlockPos> timers = new TimerList<>();
-    private Vec3d motion = null;
+    private Vec3 motion = null;
     private double placeTimer;
     private int placesLeft = 0;
     public static boolean shouldStopSprinting = false;
@@ -212,7 +212,7 @@ public class ScaffoldPlus extends BlackOutModule {
                     Modules.get().get(SafeWalk.class).toggle();
                 }
             }
-            case Legit -> mc.options.sneakKey.setPressed(false);
+            case Legit -> mc.options.keyShift.setDown(false);
         }
     }
 
@@ -240,7 +240,7 @@ public class ScaffoldPlus extends BlackOutModule {
     @EventHandler(priority = 10000)
     private void onTick(TickEvent.Pre event) {
         if (scaffoldMode.get() == ScaffoldMode.Legit) {
-            mc.options.sneakKey.setPressed(mc.world.getBlockState(mc.player.getBlockPos().down()).getBlock() instanceof AirBlock);
+            mc.options.keyShift.setDown(mc.level.getBlockState(mc.player.blockPosition().below()).getBlock() instanceof AirBlock);
         }
     }
 
@@ -251,11 +251,11 @@ public class ScaffoldPlus extends BlackOutModule {
             return;
         }
 
-        if (mc.player == null || mc.world == null) {return;}
+        if (mc.player == null || mc.level == null) {return;}
 
         FindItemResult hotbar = InvUtils.findInHotbar(item -> item.getItem() instanceof BlockItem && blocks.get().contains(((BlockItem) item.getItem()).getBlock()));
         FindItemResult inventory = InvUtils.find(item -> item.getItem() instanceof BlockItem && blocks.get().contains(((BlockItem) item.getItem()).getBlock()));
-        Hand hand = isValid(Managers.HOLDING.getStack()) ? Hand.MAIN_HAND : isValid(mc.player.getOffHandStack()) ? Hand.OFF_HAND : null;
+        InteractionHand hand = isValid(Managers.HOLDING.getStack()) ? InteractionHand.MAIN_HAND : isValid(mc.player.getOffhandItem()) ? InteractionHand.OFF_HAND : null;
 
         if (hand != null || ((switchMode.get() == SwitchMode.PickSilent || switchMode.get() == SwitchMode.InvSwitch) && inventory.slot() >= 0) ||
             ((switchMode.get() == SwitchMode.Silent || switchMode.get() == SwitchMode.Normal) && hotbar.slot() >= 0)) {
@@ -287,8 +287,8 @@ public class ScaffoldPlus extends BlackOutModule {
                 }
 
                 if (!toPlace.isEmpty()) {
-                    int obsidian = hand == Hand.MAIN_HAND ? Managers.HOLDING.getStack().getCount() :
-                        hand == Hand.OFF_HAND ? mc.player.getOffHandStack().getCount() : -1;
+                    int obsidian = hand == InteractionHand.MAIN_HAND ? Managers.HOLDING.getStack().getCount() :
+                        hand == InteractionHand.OFF_HAND ? mc.player.getOffhandItem().getCount() : -1;
 
 
                     if (hand == null) {
@@ -300,25 +300,25 @@ public class ScaffoldPlus extends BlackOutModule {
 
                     if (obsidian >= 0) {
                         Block block = null;
-                        if (hand == Hand.MAIN_HAND) {
+                        if (hand == InteractionHand.MAIN_HAND) {
                             block = ((BlockItem) Managers.HOLDING.getStack().getItem()).getBlock();
                         }
-                        if (hand == Hand.OFF_HAND) {
-                            block = ((BlockItem) mc.player.getOffHandStack().getItem()).getBlock();
+                        if (hand == InteractionHand.OFF_HAND) {
+                            block = ((BlockItem) mc.player.getOffhandItem().getItem()).getBlock();
                         } else {
                             switch (switchMode.get()) {
                                 case Silent, Normal -> {
                                     obsidian = hotbar.count();
                                     InvUtils.swap(hotbar.slot(), true);
-                                    block = ((BlockItem) mc.player.getInventory().getStack(hotbar.slot()).getItem()).getBlock();
+                                    block = ((BlockItem) mc.player.getInventory().getItem(hotbar.slot()).getItem()).getBlock();
                                 }
                                 case InvSwitch -> {
                                     obsidian = BOInvUtils.invSwitch(inventory.slot()) ? inventory.count() : -1;
-                                    block = ((BlockItem) mc.player.getInventory().getStack(inventory.slot()).getItem()).getBlock();
+                                    block = ((BlockItem) mc.player.getInventory().getItem(inventory.slot()).getItem()).getBlock();
                                 }
                                 case PickSilent -> {
                                     obsidian = BOInvUtils.pickSwitch(inventory.slot()) ? inventory.count() : -1;
-                                    block = ((BlockItem) mc.player.getInventory().getStack(inventory.slot()).getItem()).getBlock();
+                                    block = ((BlockItem) mc.player.getInventory().getItem(inventory.slot()).getItem()).getBlock();
                                 }
                             }
                         }
@@ -331,7 +331,7 @@ public class ScaffoldPlus extends BlackOutModule {
                                 if (!rotated) {
                                     break;
                                 }
-                                place(placeData, toPlace.get(i), hand == null ? Hand.MAIN_HAND : hand, block);
+                                place(placeData, toPlace.get(i), hand == null ? InteractionHand.MAIN_HAND : hand, block);
                             }
                         }
 
@@ -355,16 +355,16 @@ public class ScaffoldPlus extends BlackOutModule {
     void yVel() {
         if (!tower.get()) return;
 
-        if (mc.options.jumpKey.isPressed() && mc.player.input.getMovementInput().y == 0 && mc.player.input.getMovementInput().x == 0) {
-            if (mc.player.isOnGround() || jumpProgress == 3) {
+        if (mc.options.keyJump.isDown() && mc.player.input.getMoveVector().y == 0 && mc.player.input.getMoveVector().x == 0) {
+            if (mc.player.onGround() || jumpProgress == 3) {
                 jumpProgress = 0;
             }
 
             if (jumpProgress > -1) {
                 if (jumpProgress < 3) {
-                    ((IVec3d) motion).meteor$setXZ(0, 0);
-                    ((IVec3d) motion).meteor$setY(velocities[jumpProgress]);
-                    ((IVec3d) mc.player.getVelocity()).meteor$setY(velocities[jumpProgress]);
+                    ((IVec3) motion).meteor$setXZ(0, 0);
+                    ((IVec3) motion).meteor$setY(velocities[jumpProgress]);
+                    ((IVec3) mc.player.getDeltaMovement()).meteor$setY(velocities[jumpProgress]);
                     jumpProgress++;
                 }
             }
@@ -384,17 +384,17 @@ public class ScaffoldPlus extends BlackOutModule {
     private List<BlockPos> getBlocks() {
         List<BlockPos> list = new ArrayList<>();
 
-        Vec3d vec = mc.player.getEntityPos();
+        Vec3 vec = mc.player.position();
         for (int i = 0; i < extrapolation.get() * 10; i++) {
             vec = vec.add(motion.x / 10, 0, motion.z / 10);
 
             if (smart.get() && inside(getBox(vec))) {
                 break;
             } else {
-                BlockPos pos = BlockPos.ofFloored(vec).down();
+                BlockPos pos = BlockPos.containing(vec).below();
 
                 if (!timers.contains(pos) && OLEPOSSUtils.replaceable(pos) && !list.contains(pos) &&
-                    !mc.player.getBoundingBox().intersects(Box.from(new BlockBox(pos)))) {
+                    !mc.player.getBoundingBox().intersects(AABB.of(new BoundingBox(pos)))) {
                     list.add(pos);
                 }
             }
@@ -402,26 +402,26 @@ public class ScaffoldPlus extends BlackOutModule {
         return list;
     }
 
-    private Box getBox(Vec3d vec) {
-        Box box = mc.player.getBoundingBox();
-        return new Box(vec.x - 0.3, vec.y, vec.z - 0.3, vec.x + 0.3, vec.y + (box.maxY - box.minY), vec.z + 0.3);
+    private AABB getBox(Vec3 vec) {
+        AABB box = mc.player.getBoundingBox();
+        return new AABB(vec.x - 0.3, vec.y, vec.z - 0.3, vec.x + 0.3, vec.y + (box.maxY - box.minY), vec.z + 0.3);
     }
 
-    private boolean inside(Box bb) {
-        return mc.world.getBlockCollisions(mc.player, bb).iterator().hasNext();
+    private boolean inside(AABB bb) {
+        return mc.level.getBlockCollisions(mc.player, bb).iterator().hasNext();
     }
 
 
-    private void place(PlaceData d, BlockPos ogPos, Hand hand, Block block) {
+    private void place(PlaceData d, BlockPos ogPos, InteractionHand hand, Block block) {
         timers.add(ogPos, cooldown.get());
         render.add(new Render(ogPos, System.currentTimeMillis()));
         placesLeft--;
 
-        placeBlock(hand, d.pos().toCenterPos(), d.dir(), d.pos());
+        placeBlock(hand, d.pos().getCenter(), d.dir(), d.pos());
 
         if (placeSwing.get()) clientSwing(placeHand.get(), hand);
 
-        mc.world.setBlockState(ogPos, block.getDefaultState());
+        mc.level.setBlockAndUpdate(ogPos, block.defaultBlockState());
 
         if (SettingUtils.shouldRotate(RotationType.BlockPlace)) {
             Managers.ROTATION.end(Objects.hash(name + "placing"));

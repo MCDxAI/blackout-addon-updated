@@ -19,18 +19,18 @@ import meteordevelopment.meteorclient.utils.player.InvUtils;
 import meteordevelopment.meteorclient.utils.render.color.SettingColor;
 import meteordevelopment.orbit.EventHandler;
 import meteordevelopment.orbit.EventPriority;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
-import net.minecraft.client.network.AbstractClientPlayerEntity;
-import net.minecraft.entity.ItemEntity;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.state.property.Properties;
-import net.minecraft.util.Hand;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Box;
-import net.minecraft.util.math.Direction;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.client.player.AbstractClientPlayer;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.core.Direction;
+import net.minecraft.world.phys.Vec3;
 
 import java.util.*;
 import java.util.function.Predicate;
@@ -191,8 +191,8 @@ public class AnchorAuraRewrite extends BlackOutModule {
     private BlockPos calcPos = null;
     private PlaceData calcData = null;
     private BlockPos renderPos = null;
-    private final List<AbstractClientPlayerEntity> targets = new ArrayList<>();
-    private final Map<AbstractClientPlayerEntity, Box> extMap = new HashMap<>();
+    private final List<AbstractClientPlayer> targets = new ArrayList<>();
+    private final Map<AbstractClientPlayer, AABB> extMap = new HashMap<>();
     private final TimerList<Anchor> anchors = new TimerList<>();
     private BlockPos explodePos = null;
     private Direction explodeDir = null;
@@ -218,7 +218,7 @@ public class AnchorAuraRewrite extends BlackOutModule {
         placePos = calcPos;
         placeData = calcData;
 
-        getBlocks(mc.player.getEyePos(), Math.max(SettingUtils.getPlaceRange(), SettingUtils.getPlaceWallsRange()));
+        getBlocks(mc.player.getEyePosition(), Math.max(SettingUtils.getPlaceRange(), SettingUtils.getPlaceWallsRange()));
 
         // Reset stuff for next calculation
         tickTime = System.currentTimeMillis();
@@ -236,7 +236,7 @@ public class AnchorAuraRewrite extends BlackOutModule {
         double delta = (System.currentTimeMillis() - lastTime) / 1000f;
         lastTime = System.currentTimeMillis();
 
-        if (tickTime < 0 || mc.player == null || mc.world == null) return;
+        if (tickTime < 0 || mc.player == null || mc.level == null) return;
 
         update();
 
@@ -251,11 +251,11 @@ public class AnchorAuraRewrite extends BlackOutModule {
         targets.clear();
 
         double closestDist = 1000;
-        AbstractClientPlayerEntity closest;
+        AbstractClientPlayer closest;
 
         for (int i = 4; i > 0; i--) {
             closest = null;
-            for (AbstractClientPlayerEntity player : mc.world.getPlayers()) {
+            for (AbstractClientPlayer player : mc.level.players()) {
                 if (targets.contains(player)) continue;
 
                 double dist = player.distanceTo(mc.player);
@@ -272,7 +272,7 @@ public class AnchorAuraRewrite extends BlackOutModule {
         ExtrapolationUtils.extrapolateMap(extMap, player -> player == mc.player ? selfExt.get() : extrapolation.get(), player -> extSmoothness.get());
     }
 
-    private void getBlocks(Vec3d middle, double radius) {
+    private void getBlocks(Vec3 middle, double radius) {
         blocks.clear();
         int i = (int) Math.ceil(radius);
 
@@ -281,7 +281,7 @@ public class AnchorAuraRewrite extends BlackOutModule {
                 for (int z = -i; z <= i; z++) {
                     BlockPos pos = new BlockPos((int) (Math.floor(middle.x) + x), (int) (Math.floor(middle.y) + y), (int) (Math.floor(middle.z) + z));
 
-                    if (!OLEPOSSUtils.replaceable(pos) && !(mc.world.getBlockState(pos).getBlock() == Blocks.RESPAWN_ANCHOR)) continue;
+                    if (!OLEPOSSUtils.replaceable(pos) && !(mc.level.getBlockState(pos).getBlock() == Blocks.RESPAWN_ANCHOR)) continue;
                     if (!inRangeToTargets(pos)) continue;
 
                     blocks.add(pos);
@@ -308,7 +308,7 @@ public class AnchorAuraRewrite extends BlackOutModule {
         Anchor a = getAnchor(placePos);
         if (a.state != AnchorState.Air) return;
 
-        Hand hand = getHand(stack -> stack.getItem() == Items.RESPAWN_ANCHOR);
+        InteractionHand hand = getHand(stack -> stack.getItem() == Items.RESPAWN_ANCHOR);
         FindItemResult result = getResult(switchMode.get(), stack -> stack.getItem() == Items.RESPAWN_ANCHOR);
         boolean present = hand != null || result.found();
 
@@ -330,10 +330,10 @@ public class AnchorAuraRewrite extends BlackOutModule {
 
         if (hand == null) {
             if (!switched) return;
-            hand = Hand.MAIN_HAND;
+            hand = InteractionHand.MAIN_HAND;
         }
 
-        placeBlock(hand, placeData.pos().toCenterPos(), placeData.dir(), placeData.pos());
+        placeBlock(hand, placeData.pos().getCenter(), placeData.dir(), placeData.pos());
 
         anchors.remove(t -> t.value.pos.equals(placePos));
         anchors.add(new Anchor(placePos, AnchorState.Anchor, 0), 0.5);
@@ -363,7 +363,7 @@ public class AnchorAuraRewrite extends BlackOutModule {
         for (int x = -i; x <= i; x++) {
             for (int y = -i; y <= i; y++) {
                 for (int z = -i; z <= i; z++) {
-                    BlockPos pos = BlockPos.ofFloored(mc.player.getEyePos());
+                    BlockPos pos = BlockPos.containing(mc.player.getEyePosition());
 
                     Anchor anchor = get(pos);
                     if (anchor == null) return;
@@ -391,8 +391,8 @@ public class AnchorAuraRewrite extends BlackOutModule {
         if (System.currentTimeMillis() - lastExplode < 1000 / explodeSpeed.get()) return;
         if (anchor.state == AnchorState.Air) return;
 
-        Hand glowHand = getHand(stack -> stack.getItem() == Items.GLOWSTONE);
-        Hand explodeHand = getHand(stack -> stack.getItem() != Items.GLOWSTONE);
+        InteractionHand glowHand = getHand(stack -> stack.getItem() == Items.GLOWSTONE);
+        InteractionHand explodeHand = getHand(stack -> stack.getItem() != Items.GLOWSTONE);
 
         FindItemResult glowResult = getResult(switchMode.get(), stack -> stack.getItem() == Items.GLOWSTONE);
         FindItemResult explodeResult = getResult(switchMode.get(), stack -> stack.getItem() != Items.GLOWSTONE);
@@ -418,10 +418,10 @@ public class AnchorAuraRewrite extends BlackOutModule {
 
         if (glowHand == null) {
             if (!switched) return;
-            glowHand = Hand.MAIN_HAND;
+            glowHand = InteractionHand.MAIN_HAND;
         }
 
-        interactBlock(glowHand, explodePos.toCenterPos(), explodeDir, explodePos);
+        interactBlock(glowHand, explodePos.getCenter(), explodeDir, explodePos);
 
         Anchor a = anchors.remove(t -> t.value.pos.equals(placePos));
         anchors.add(new Anchor(placePos, AnchorState.Loaded, a.charges + 1), 0.5);
@@ -449,10 +449,10 @@ public class AnchorAuraRewrite extends BlackOutModule {
 
         if (explodeHand == null) {
             if (!switched) return;
-            explodeHand = Hand.MAIN_HAND;
+            explodeHand = InteractionHand.MAIN_HAND;
         }
 
-        interactBlock(explodeHand, explodePos.toCenterPos(), explodeDir, explodePos);
+        interactBlock(explodeHand, explodePos.getCenter(), explodeDir, explodePos);
 
         lastExplode = System.currentTimeMillis();
 
@@ -465,8 +465,8 @@ public class AnchorAuraRewrite extends BlackOutModule {
         if (a != null) {
             return a;
         }
-        BlockState state = mc.world.getBlockState(pos);
-        return new Anchor(pos, state.getBlock() == Blocks.RESPAWN_ANCHOR ? state.get(Properties.CHARGES) < 1 ? AnchorState.Anchor : AnchorState.Loaded : AnchorState.Air, state.getBlock() == Blocks.RESPAWN_ANCHOR ? state.get(Properties.CHARGES) : 0);
+        BlockState state = mc.level.getBlockState(pos);
+        return new Anchor(pos, state.getBlock() == Blocks.RESPAWN_ANCHOR ? state.getValue(BlockStateProperties.RESPAWN_ANCHOR_CHARGES) < 1 ? AnchorState.Anchor : AnchorState.Loaded : AnchorState.Air, state.getBlock() == Blocks.RESPAWN_ANCHOR ? state.getValue(BlockStateProperties.RESPAWN_ANCHOR_CHARGES) : 0);
     }
 
     private Anchor get(BlockPos pos) {
@@ -478,12 +478,12 @@ public class AnchorAuraRewrite extends BlackOutModule {
         return null;
     }
 
-    private Hand getHand(Predicate<ItemStack> predicate) {
+    private InteractionHand getHand(Predicate<ItemStack> predicate) {
         if (predicate.test(Managers.HOLDING.getStack())) {
-            return Hand.MAIN_HAND;
+            return InteractionHand.MAIN_HAND;
         }
-        if (predicate.test(mc.player.getOffHandStack())) {
-            return Hand.OFF_HAND;
+        if (predicate.test(mc.player.getOffhandItem())) {
+            return InteractionHand.OFF_HAND;
         }
         return null;
     }
@@ -508,7 +508,7 @@ public class AnchorAuraRewrite extends BlackOutModule {
             getDmg(pos);
 
             if (!placeDmgCheck()) continue;
-            if (EntityUtils.intersectsWithEntity(new Box(pos), entity -> !(entity instanceof ItemEntity))) continue;
+            if (EntityUtils.intersectsWithEntity(new AABB(pos), entity -> !(entity instanceof ItemEntity))) continue;
 
             calcData = data;
             calcPos = pos;
@@ -518,8 +518,8 @@ public class AnchorAuraRewrite extends BlackOutModule {
     }
 
     private boolean inRangeToTargets(BlockPos pos) {
-        for (AbstractClientPlayerEntity target : targets) {
-            if (target.getEntityPos().add(0, 1, 0).distanceTo(Vec3d.ofCenter(pos)) < 3.5) return true;
+        for (AbstractClientPlayer target : targets) {
+            if (target.position().add(0, 1, 0).distanceTo(Vec3.atCenterOf(pos)) < 3.5) return true;
         }
         return false;
     }
@@ -544,7 +544,7 @@ public class AnchorAuraRewrite extends BlackOutModule {
         self = -1;
 
         targets.forEach(target -> {
-            double d = BODamageUtils.anchorDamage(target, extMap.containsKey(target) ? extMap.get(target) : target.getBoundingBox(), pos.toCenterPos(), pos, true);
+            double d = BODamageUtils.anchorDamage(target, extMap.containsKey(target) ? extMap.get(target) : target.getBoundingBox(), pos.getCenter(), pos, true);
 
             if (target == mc.player) self = Math.max(self, d);
             else if (Friends.get().isFriend(target)) friend = Math.max(friend, d);

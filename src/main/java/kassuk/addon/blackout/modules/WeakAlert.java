@@ -9,7 +9,7 @@ import meteordevelopment.meteorclient.settings.Setting;
 import meteordevelopment.meteorclient.settings.SettingGroup;
 import meteordevelopment.orbit.EventHandler;
 import meteordevelopment.orbit.EventPriority;
-import net.minecraft.entity.effect.StatusEffects;
+import net.minecraft.world.effect.MobEffects;
 
 /**
  * @author KassuK
@@ -44,8 +44,8 @@ public class WeakAlert extends BlackOutModule {
 
     @EventHandler(priority = EventPriority.HIGH)
     private void onTick(TickEvent.Pre event) {
-        if (mc.player != null && mc.world != null) {
-            if (mc.player.hasStatusEffect(StatusEffects.WEAKNESS)) {
+        if (mc.player != null && mc.level != null) {
+            if (mc.player.hasEffect(MobEffects.WEAKNESS)) {
                 if (single.get()) {
                     if (!last) {
                         last = true;

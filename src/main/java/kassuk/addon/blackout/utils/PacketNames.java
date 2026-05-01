@@ -7,37 +7,186 @@
 package kassuk.addon.blackout.utils;
 
 import com.mojang.authlib.properties.Property;
-import kassuk.addon.blackout.mixins.AccessorNbtCompound;
+import kassuk.addon.blackout.mixins.AccessorCompoundTag;
 import kassuk.addon.blackout.mixins.IInteractEntityC2SPacket;
-import net.minecraft.advancement.AdvancementEntry;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.map.MapDecoration;
-import net.minecraft.item.map.MapState;
-import net.minecraft.network.packet.Packet;
+import net.minecraft.advancements.AdvancementHolder;
+import net.minecraft.network.protocol.common.*;
+import net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket;
+import net.minecraft.network.protocol.common.ClientboundDisconnectPacket;
+import net.minecraft.network.protocol.common.ClientboundKeepAlivePacket;
+import net.minecraft.network.protocol.common.ClientboundPingPacket;
+import net.minecraft.network.protocol.common.ClientboundResourcePackPopPacket;
+import net.minecraft.network.protocol.common.ClientboundResourcePackPushPacket;
+import net.minecraft.network.protocol.common.ClientboundUpdateTagsPacket;
+import net.minecraft.network.protocol.game.*;
+import net.minecraft.network.protocol.game.ClientboundAddEntityPacket;
+import net.minecraft.network.protocol.game.ClientboundAnimatePacket;
+import net.minecraft.network.protocol.game.ClientboundAwardStatsPacket;
+import net.minecraft.network.protocol.game.ClientboundBlockChangedAckPacket;
+import net.minecraft.network.protocol.game.ClientboundBlockDestructionPacket;
+import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
+import net.minecraft.network.protocol.game.ClientboundBlockEventPacket;
+import net.minecraft.network.protocol.game.ClientboundBlockUpdatePacket;
+import net.minecraft.network.protocol.game.ClientboundBossEventPacket;
+import net.minecraft.network.protocol.game.ClientboundBundlePacket;
+import net.minecraft.network.protocol.game.ClientboundChangeDifficultyPacket;
+import net.minecraft.network.protocol.game.ClientboundChunkBatchFinishedPacket;
+import net.minecraft.network.protocol.game.ClientboundChunkBatchStartPacket;
+import net.minecraft.network.protocol.game.ClientboundChunksBiomesPacket;
+import net.minecraft.network.protocol.game.ClientboundClearTitlesPacket;
+import net.minecraft.network.protocol.game.ClientboundCommandSuggestionsPacket;
+import net.minecraft.network.protocol.game.ClientboundCommandsPacket;
+import net.minecraft.network.protocol.game.ClientboundContainerClosePacket;
+import net.minecraft.network.protocol.game.ClientboundContainerSetContentPacket;
+import net.minecraft.network.protocol.game.ClientboundContainerSetDataPacket;
+import net.minecraft.network.protocol.game.ClientboundContainerSetSlotPacket;
+import net.minecraft.network.protocol.game.ClientboundCustomChatCompletionsPacket;
+import net.minecraft.network.protocol.game.ClientboundDamageEventPacket;
+import net.minecraft.network.protocol.game.ClientboundDeleteChatPacket;
+import net.minecraft.network.protocol.game.ClientboundDisguisedChatPacket;
+import net.minecraft.network.protocol.game.ClientboundEntityEventPacket;
+import net.minecraft.network.protocol.game.ClientboundForgetLevelChunkPacket;
+import net.minecraft.network.protocol.game.ClientboundGameEventPacket;
+import net.minecraft.network.protocol.game.ClientboundHurtAnimationPacket;
+import net.minecraft.network.protocol.game.ClientboundInitializeBorderPacket;
+import net.minecraft.network.protocol.game.ClientboundLevelChunkWithLightPacket;
+import net.minecraft.network.protocol.game.ClientboundLevelEventPacket;
+import net.minecraft.network.protocol.game.ClientboundLightUpdatePacket;
+import net.minecraft.network.protocol.game.ClientboundLoginPacket;
+import net.minecraft.network.protocol.game.ClientboundMapItemDataPacket;
+import net.minecraft.network.protocol.game.ClientboundMerchantOffersPacket;
+import net.minecraft.network.protocol.game.ClientboundMoveEntityPacket;
+import net.minecraft.network.protocol.game.ClientboundMoveVehiclePacket;
+import net.minecraft.network.protocol.game.ClientboundOpenBookPacket;
+import net.minecraft.network.protocol.game.ClientboundOpenScreenPacket;
+import net.minecraft.network.protocol.game.ClientboundOpenSignEditorPacket;
+import net.minecraft.network.protocol.game.ClientboundPlaceGhostRecipePacket;
+import net.minecraft.network.protocol.game.ClientboundPlayerAbilitiesPacket;
+import net.minecraft.network.protocol.game.ClientboundPlayerChatPacket;
+import net.minecraft.network.protocol.game.ClientboundPlayerCombatEndPacket;
+import net.minecraft.network.protocol.game.ClientboundPlayerCombatEnterPacket;
+import net.minecraft.network.protocol.game.ClientboundPlayerCombatKillPacket;
+import net.minecraft.network.protocol.game.ClientboundPlayerInfoRemovePacket;
+import net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket;
+import net.minecraft.network.protocol.game.ClientboundPlayerLookAtPacket;
+import net.minecraft.network.protocol.game.ClientboundPlayerPositionPacket;
+import net.minecraft.network.protocol.game.ClientboundRemoveEntitiesPacket;
+import net.minecraft.network.protocol.game.ClientboundRemoveMobEffectPacket;
+import net.minecraft.network.protocol.game.ClientboundResetScorePacket;
+import net.minecraft.network.protocol.game.ClientboundRespawnPacket;
+import net.minecraft.network.protocol.game.ClientboundRotateHeadPacket;
+import net.minecraft.network.protocol.game.ClientboundSectionBlocksUpdatePacket;
+import net.minecraft.network.protocol.game.ClientboundSelectAdvancementsTabPacket;
+import net.minecraft.network.protocol.game.ClientboundServerDataPacket;
+import net.minecraft.network.protocol.game.ClientboundSetActionBarTextPacket;
+import net.minecraft.network.protocol.game.ClientboundSetBorderCenterPacket;
+import net.minecraft.network.protocol.game.ClientboundSetBorderLerpSizePacket;
+import net.minecraft.network.protocol.game.ClientboundSetBorderSizePacket;
+import net.minecraft.network.protocol.game.ClientboundSetBorderWarningDelayPacket;
+import net.minecraft.network.protocol.game.ClientboundSetBorderWarningDistancePacket;
+import net.minecraft.network.protocol.game.ClientboundSetCameraPacket;
+import net.minecraft.network.protocol.game.ClientboundSetChunkCacheCenterPacket;
+import net.minecraft.network.protocol.game.ClientboundSetChunkCacheRadiusPacket;
+import net.minecraft.network.protocol.game.ClientboundSetDefaultSpawnPositionPacket;
+import net.minecraft.network.protocol.game.ClientboundSetDisplayObjectivePacket;
+import net.minecraft.network.protocol.game.ClientboundSetEntityDataPacket;
+import net.minecraft.network.protocol.game.ClientboundSetEntityLinkPacket;
+import net.minecraft.network.protocol.game.ClientboundSetEntityMotionPacket;
+import net.minecraft.network.protocol.game.ClientboundSetEquipmentPacket;
+import net.minecraft.network.protocol.game.ClientboundSetExperiencePacket;
+import net.minecraft.network.protocol.game.ClientboundSetHealthPacket;
+import net.minecraft.network.protocol.game.ClientboundSetHeldSlotPacket;
+import net.minecraft.network.protocol.game.ClientboundSetObjectivePacket;
+import net.minecraft.network.protocol.game.ClientboundSetPassengersPacket;
+import net.minecraft.network.protocol.game.ClientboundSetPlayerTeamPacket;
+import net.minecraft.network.protocol.game.ClientboundSetScorePacket;
+import net.minecraft.network.protocol.game.ClientboundSetSimulationDistancePacket;
+import net.minecraft.network.protocol.game.ClientboundSetSubtitleTextPacket;
+import net.minecraft.network.protocol.game.ClientboundSetTimePacket;
+import net.minecraft.network.protocol.game.ClientboundSetTitleTextPacket;
+import net.minecraft.network.protocol.game.ClientboundSetTitlesAnimationPacket;
+import net.minecraft.network.protocol.game.ClientboundSoundEntityPacket;
+import net.minecraft.network.protocol.game.ClientboundSoundPacket;
+import net.minecraft.network.protocol.game.ClientboundStartConfigurationPacket;
+import net.minecraft.network.protocol.game.ClientboundStopSoundPacket;
+import net.minecraft.network.protocol.game.ClientboundSystemChatPacket;
+import net.minecraft.network.protocol.game.ClientboundTabListPacket;
+import net.minecraft.network.protocol.game.ClientboundTagQueryPacket;
+import net.minecraft.network.protocol.game.ClientboundTakeItemEntityPacket;
+import net.minecraft.network.protocol.game.ClientboundTeleportEntityPacket;
+import net.minecraft.network.protocol.game.ClientboundTickingStatePacket;
+import net.minecraft.network.protocol.game.ClientboundTickingStepPacket;
+import net.minecraft.network.protocol.game.ClientboundUpdateAdvancementsPacket;
+import net.minecraft.network.protocol.game.ClientboundUpdateAttributesPacket;
+import net.minecraft.network.protocol.game.ClientboundUpdateMobEffectPacket;
+import net.minecraft.network.protocol.game.ServerboundAcceptTeleportationPacket;
+import net.minecraft.network.protocol.game.ServerboundBlockEntityTagQueryPacket;
+import net.minecraft.network.protocol.game.ServerboundChangeDifficultyPacket;
+import net.minecraft.network.protocol.game.ServerboundChatAckPacket;
+import net.minecraft.network.protocol.game.ServerboundChatCommandPacket;
+import net.minecraft.network.protocol.game.ServerboundChatPacket;
+import net.minecraft.network.protocol.game.ServerboundChatSessionUpdatePacket;
+import net.minecraft.network.protocol.game.ServerboundClientCommandPacket;
+import net.minecraft.network.protocol.game.ServerboundCommandSuggestionPacket;
+import net.minecraft.network.protocol.game.ServerboundContainerButtonClickPacket;
+import net.minecraft.network.protocol.game.ServerboundContainerClickPacket;
+import net.minecraft.network.protocol.game.ServerboundContainerClosePacket;
+import net.minecraft.network.protocol.game.ServerboundContainerSlotStateChangedPacket;
+import net.minecraft.network.protocol.game.ServerboundEntityTagQueryPacket;
+import net.minecraft.network.protocol.game.ServerboundInteractPacket;
+import net.minecraft.network.protocol.game.ServerboundJigsawGeneratePacket;
+import net.minecraft.network.protocol.game.ServerboundLockDifficultyPacket;
+import net.minecraft.network.protocol.game.ServerboundMovePlayerPacket;
+import net.minecraft.network.protocol.game.ServerboundMoveVehiclePacket;
+import net.minecraft.network.protocol.game.ServerboundPlaceRecipePacket;
+import net.minecraft.network.protocol.game.ServerboundPlayerAbilitiesPacket;
+import net.minecraft.network.protocol.game.ServerboundPlayerActionPacket;
+import net.minecraft.network.protocol.game.ServerboundPlayerCommandPacket;
+import net.minecraft.network.protocol.game.ServerboundRecipeBookChangeSettingsPacket;
+import net.minecraft.network.protocol.game.ServerboundRecipeBookSeenRecipePacket;
+import net.minecraft.network.protocol.game.ServerboundRenameItemPacket;
+import net.minecraft.network.protocol.game.ServerboundSelectTradePacket;
+import net.minecraft.network.protocol.game.ServerboundSetBeaconPacket;
+import net.minecraft.network.protocol.game.ServerboundSetCarriedItemPacket;
+import net.minecraft.network.protocol.game.ServerboundSetCommandBlockPacket;
+import net.minecraft.network.protocol.game.ServerboundSetCommandMinecartPacket;
+import net.minecraft.network.protocol.game.ServerboundSetCreativeModeSlotPacket;
+import net.minecraft.network.protocol.game.ServerboundSetJigsawBlockPacket;
+import net.minecraft.network.protocol.game.ServerboundSetStructureBlockPacket;
+import net.minecraft.network.protocol.game.ServerboundSignUpdatePacket;
+import net.minecraft.network.protocol.game.ServerboundSwingPacket;
+import net.minecraft.network.protocol.game.ServerboundTeleportToEntityPacket;
+import net.minecraft.network.protocol.game.ServerboundUseItemOnPacket;
+import net.minecraft.network.protocol.game.ServerboundUseItemPacket;
+import net.minecraft.network.protocol.login.*;
+import net.minecraft.network.protocol.login.ClientboundCustomQueryPacket;
+import net.minecraft.network.protocol.login.ClientboundHelloPacket;
+import net.minecraft.network.protocol.login.ClientboundLoginDisconnectPacket;
+import net.minecraft.network.protocol.login.ClientboundLoginFinishedPacket;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.saveddata.maps.MapDecoration;
+import net.minecraft.world.level.saveddata.maps.MapItemSavedData;
+import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.packet.c2s.common.*;
-import net.minecraft.network.packet.c2s.config.ReadyC2SPacket;
-import net.minecraft.network.packet.c2s.handshake.HandshakeC2SPacket;
-import net.minecraft.network.packet.c2s.login.EnterConfigurationC2SPacket;
-import net.minecraft.network.packet.c2s.login.LoginHelloC2SPacket;
-import net.minecraft.network.packet.c2s.login.LoginKeyC2SPacket;
-import net.minecraft.network.packet.c2s.login.LoginQueryResponseC2SPacket;
+import net.minecraft.network.protocol.configuration.ServerboundFinishConfigurationPacket;
+import net.minecraft.network.protocol.handshake.ClientIntentionPacket;
 import net.minecraft.network.packet.c2s.play.*;
-import net.minecraft.network.packet.c2s.query.QueryPingC2SPacket;
-import net.minecraft.network.packet.c2s.query.QueryRequestC2SPacket;
+import net.minecraft.network.protocol.ping.ServerboundPingRequestPacket;
+import net.minecraft.network.protocol.status.ServerboundStatusRequestPacket;
 import net.minecraft.network.packet.s2c.common.*;
-import net.minecraft.network.packet.s2c.config.DynamicRegistriesS2CPacket;
-import net.minecraft.network.packet.s2c.config.FeaturesS2CPacket;
-import net.minecraft.network.packet.s2c.config.ReadyS2CPacket;
+import net.minecraft.network.protocol.configuration.ClientboundRegistryDataPacket;
+import net.minecraft.network.protocol.configuration.ClientboundUpdateEnabledFeaturesPacket;
+import net.minecraft.network.protocol.configuration.ClientboundFinishConfigurationPacket;
 import net.minecraft.network.packet.s2c.login.*;
 import net.minecraft.network.packet.s2c.play.*;
-import net.minecraft.network.packet.s2c.query.PingResultS2CPacket;
-import net.minecraft.network.packet.s2c.query.QueryResponseS2CPacket;
-import net.minecraft.screen.sync.ItemStackHash;
-import net.minecraft.server.ServerMetadata;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.village.TradedItem;
+import net.minecraft.network.protocol.ping.ClientboundPongResponsePacket;
+import net.minecraft.network.protocol.status.ClientboundStatusResponsePacket;
+import net.minecraft.network.HashedStack;
+import net.minecraft.network.protocol.status.ServerStatus;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.item.trading.ItemCost;
 
 import java.util.*;
 import java.util.function.Function;
@@ -60,47 +209,47 @@ public class PacketNames {
         /* ************************ C2S ************************ */
 
         // common
-        c2s(ClientOptionsC2SPacket.class, "ClientOptions", packet -> "language: " + packet.options().language() + " allowsServerListing: " + packet.options().allowsServerListing() + " chatColorsEnabled: " + packet.options().chatColorsEnabled() + " chatVisibility: " + packet.options().chatVisibility() + " filtersText: " + packet.options().filtersText() + " mainArm: " + packet.options().mainArm().name() + " playerModelParts: " + packet.options().playerModelParts() + " viewDistance: " + packet.options().viewDistance());
-        c2s(CommonPongC2SPacket.class, "CommonPong", packet -> "parameter: " + packet.getParameter());
-        c2s(CustomPayloadC2SPacket.class, "CustomPayload", packet -> "identifier: " + packet.payload().getId().id().toString());
-        c2s(KeepAliveC2SPacket.class, "KeepAlive", packet -> "id: " + packet.getId());
-        c2s(ResourcePackStatusC2SPacket.class, "ResourcePackStatus", packet -> "id: " + packet.id().toString() + " status: " + packet.status().name());
+        c2s(ServerboundClientInformationPacket.class, "ClientOptions", packet -> "language: " + packet.information().language() + " allowsServerListing: " + packet.information().allowsListing() + " chatColorsEnabled: " + packet.information().chatColors() + " chatVisibility: " + packet.information().chatVisibility() + " filtersText: " + packet.information().textFilteringEnabled() + " mainArm: " + packet.information().mainHand().name() + " playerModelParts: " + packet.information().modelCustomisation() + " viewDistance: " + packet.information().viewDistance());
+        c2s(ServerboundPongPacket.class, "CommonPong", packet -> "parameter: " + packet.getId());
+        c2s(ServerboundCustomPayloadPacket.class, "CustomPayload", packet -> "identifier: " + packet.payload().type().id().toString());
+        c2s(ServerboundKeepAlivePacket.class, "KeepAlive", packet -> "id: " + packet.getId());
+        c2s(ServerboundResourcePackPacket.class, "ResourcePackStatus", packet -> "id: " + packet.id().toString() + " status: " + packet.action().name());
 
         // config
-        c2s(ReadyC2SPacket.class, "Ready", packet -> "transitionsNetworkState: " + packet.transitionsNetworkState());
+        c2s(ServerboundFinishConfigurationPacket.class, "Ready", packet -> "transitionsNetworkState: " + packet.isTerminal());
 
         // handshake
-        c2s(HandshakeC2SPacket.class, "Handshake", packet -> "address: " + packet.address() + " port: " + packet.port() + " protocolVersion: " + packet.protocolVersion() + " transitionsNetworkState: " + packet.transitionsNetworkState() + " intendedState: " + packet.intendedState());
+        c2s(ClientIntentionPacket.class, "Handshake", packet -> "address: " + packet.hostName() + " port: " + packet.port() + " protocolVersion: " + packet.protocolVersion() + " transitionsNetworkState: " + packet.isTerminal() + " intendedState: " + packet.intention());
 
         // login
-        c2s(EnterConfigurationC2SPacket.class, "EnterConfiguration", packet -> "transitionsNetworkState: " + packet.transitionsNetworkState());
-        c2s(LoginHelloC2SPacket.class, "LoginHello", packet -> "name: " + packet.name() + " id: " + packet.profileId().toString());
-        c2s(LoginKeyC2SPacket.class, "LoginKey");
-        c2s(LoginQueryResponseC2SPacket.class, "LoginQueryResponse", packet -> "queryId: " + packet.queryId());
+        c2s(ServerboundLoginAcknowledgedPacket.class, "EnterConfiguration", packet -> "transitionsNetworkState: " + packet.isTerminal());
+        c2s(ServerboundHelloPacket.class, "LoginHello", packet -> "name: " + packet.name() + " id: " + packet.profileId().toString());
+        c2s(ServerboundKeyPacket.class, "LoginKey");
+        c2s(ServerboundCustomQueryAnswerPacket.class, "LoginQueryResponse", packet -> "queryId: " + packet.transactionId());
 
         // play
-        c2s(AcknowledgeChunksC2SPacket.class, "AcknowledgeChunks", packet -> "desiredChunksPerTick: " + packet.desiredChunksPerTick());
-        c2s(AcknowledgeReconfigurationC2SPacket.class, "AcknowledgeReconfiguration", packet -> "transitionsNetworkState: " + packet.transitionsNetworkState());
-        c2s(AdvancementTabC2SPacket.class, "AdvancementTab", packet -> "action: " + packet.getAction().name() + " tabToOpen: " + packet.getTabToOpen().toString());
-        c2s(BoatPaddleStateC2SPacket.class, "BoatPaddleState", packet -> "isLeftPaddling: " + packet.isLeftPaddling() + " isRightPaddling: " + packet.isRightPaddling());
-        c2s(BookUpdateC2SPacket.class, "BookUpdate", packet -> {
+        c2s(ServerboundChunkBatchReceivedPacket.class, "AcknowledgeChunks", packet -> "desiredChunksPerTick: " + packet.desiredChunksPerTick());
+        c2s(ServerboundConfigurationAcknowledgedPacket.class, "AcknowledgeReconfiguration", packet -> "transitionsNetworkState: " + packet.isTerminal());
+        c2s(ServerboundSeenAdvancementsPacket.class, "AdvancementTab", packet -> "action: " + packet.getAction().name() + " tabToOpen: " + packet.getTab().toString());
+        c2s(ServerboundPaddleBoatPacket.class, "BoatPaddleState", packet -> "isLeftPaddling: " + packet.getLeft() + " isRightPaddling: " + packet.getRight());
+        c2s(ServerboundEditBookPacket.class, "BookUpdate", packet -> {
             StringBuilder builder = new StringBuilder("title: " + packet.title().orElse("null") + " slot: " + packet.slot());
             for (int page = 0; page < packet.pages().size(); page++)
                 builder.append("\n").append(packet.pages().get(page));
             return builder.toString();
         });
-        c2s(ButtonClickC2SPacket.class, "ButtonClick", packet -> "syncId: " + packet.syncId() + " buttonId: " + packet.buttonId());
-        c2s(ChatMessageC2SPacket.class, "ChatMessage", packet -> "chatMessage: " + packet.chatMessage() + " timeStamp: " + packet.timestamp().toString() + " acknowledgementOffset: " + packet.acknowledgment().offset() + " signature: " + Objects.requireNonNull(packet.signature()) + " salt: " + packet.salt());
-        c2s(ClickSlotC2SPacket.class, "ClickSlot", packet -> {
-            StringBuilder builder = new StringBuilder("syncId: " + packet.syncId()
-                + " slot: " + packet.slot()
-                + " button: " + packet.button()
-                + " action: " + packet.actionType().name()
-                + " revision: " + packet.revision());
+        c2s(ServerboundContainerButtonClickPacket.class, "ButtonClick", packet -> "syncId: " + packet.containerId() + " buttonId: " + packet.buttonId());
+        c2s(ServerboundChatPacket.class, "ChatMessage", packet -> "chatMessage: " + packet.message() + " timeStamp: " + packet.timeStamp().toString() + " acknowledgementOffset: " + packet.lastSeenMessages().offset() + " signature: " + Objects.requireNonNull(packet.signature()) + " salt: " + packet.salt());
+        c2s(ServerboundContainerClickPacket.class, "ClickSlot", packet -> {
+            StringBuilder builder = new StringBuilder("syncId: " + packet.containerId()
+                + " slot: " + packet.slotNum()
+                + " button: " + packet.buttonNum()
+                + " action: " + packet.clickType().name()
+                + " revision: " + packet.stateId());
 
             builder.append(" modified: {");
-            packet.modifiedStacks().forEach((i, stack) -> {
-                if (stack instanceof ItemStackHash.Impl impl) {
+            packet.changedSlots().forEach((i, stack) -> {
+                if (stack instanceof HashedStack.ActualItem impl) {
                     builder.append("\nslot ").append(i).append(": ")
                         .append(impl.item().value().getName().getString())
                         .append(" ").append(impl.count());
@@ -110,7 +259,7 @@ public class PacketNames {
             });
             builder.append("\n} cursor: ");
 
-            if (packet.cursor() instanceof ItemStackHash.Impl impl) {
+            if (packet.carriedItem() instanceof HashedStack.ActualItem impl) {
                 builder.append(impl.item().value().getName().getString()).append(" ").append(impl.count());
             } else {
                 builder.append("<empty>");
@@ -119,106 +268,106 @@ public class PacketNames {
             return builder.toString();
         });
 
-        c2s(ClientCommandC2SPacket.class, "ClientCommand", packet -> "entityId: " + packet.getEntityId() + " mountJumpTime: " + packet.getMountJumpHeight() + " mode: " + packet.getMode().name());
-        c2s(ClientStatusC2SPacket.class, "ClientStatus", packet -> "mode: " + packet.getMode().name());
-        c2s(CloseHandledScreenC2SPacket.class, "CloseHandledScreen", packet -> "syncId: " + packet.getSyncId());
-        c2s(CommandExecutionC2SPacket.class, "CommandExecution", packet -> "command: " + packet.command());
-        c2s(CraftRequestC2SPacket.class, "CraftRequest", packet -> "syncId: " + packet.syncId() + " shouldCraftAll: " + packet.craftAll() + " recipe: " + packet.recipeId().toString());
-        c2s(CreativeInventoryActionC2SPacket.class, "CreativeInventoryAction", packet -> "slot: " + packet.slot() + " name: " + packet.stack().getName().getString() + " count: " + packet.stack().getCount());
-        c2s(HandSwingC2SPacket.class, "HandSwing", packet -> "hand: " + packet.getHand().name());
-        c2s(JigsawGeneratingC2SPacket.class, "JigsawGenerating", packet -> "pos: " + packet.getPos().toShortString() + " maxDepth: " + packet.getMaxDepth() + " shouldKeepJigsaws: " + packet.shouldKeepJigsaws());
-        c2s(MessageAcknowledgmentC2SPacket.class, "MessageAcknowledgment", packet -> "offset: " + packet.offset());
-        c2s(PlayerActionC2SPacket.class, "PlayerAction", packet -> "action: " + packet.getAction().name() + "pos: " + packet.getPos().toShortString() + " direction: " + packet.getDirection().name() + " sequence: " + packet.getSequence());
+        c2s(ServerboundPlayerCommandPacket.class, "ClientCommand", packet -> "entityId: " + packet.getId() + " mountJumpTime: " + packet.getData() + " mode: " + packet.getAction().name());
+        c2s(ServerboundClientCommandPacket.class, "ClientStatus", packet -> "mode: " + packet.getAction().name());
+        c2s(ServerboundContainerClosePacket.class, "CloseHandledScreen", packet -> "syncId: " + packet.getContainerId());
+        c2s(ServerboundChatCommandPacket.class, "CommandExecution", packet -> "command: " + packet.command());
+        c2s(ServerboundPlaceRecipePacket.class, "CraftRequest", packet -> "syncId: " + packet.containerId() + " shouldCraftAll: " + packet.useMaxItems() + " recipe: " + packet.recipe().toString());
+        c2s(ServerboundSetCreativeModeSlotPacket.class, "CreativeInventoryAction", packet -> "slot: " + packet.slotNum() + " name: " + packet.itemStack().getHoverName().getString() + " count: " + packet.itemStack().getCount());
+        c2s(ServerboundSwingPacket.class, "HandSwing", packet -> "hand: " + packet.getHand().name());
+        c2s(ServerboundJigsawGeneratePacket.class, "JigsawGenerating", packet -> "pos: " + packet.getPos().toShortString() + " maxDepth: " + packet.levels() + " shouldKeepJigsaws: " + packet.keepJigsaws());
+        c2s(ServerboundChatAckPacket.class, "MessageAcknowledgment", packet -> "offset: " + packet.offset());
+        c2s(ServerboundPlayerActionPacket.class, "PlayerAction", packet -> "action: " + packet.getAction().name() + "pos: " + packet.getPos().toShortString() + " direction: " + packet.getDirection().name() + " sequence: " + packet.getSequence());
         // FML // c2s(PlayerInputC2SPacket.class, "PlayerInput", packet -> "forward: " + packet.getForward() + " sideways: " + packet.getSideways() + " isJumping: " + packet.isJumping() + " isSneaking: " + packet.isSneaking());
-        c2s(PlayerInteractBlockC2SPacket.class, "PlayerInteractBlock", packet -> "hand: " + packet.getHand().name() + " blockPos: " + packet.getBlockHitResult().getBlockPos().toShortString() + " pos: " + packet.getBlockHitResult().getPos().toString() + " side: " + packet.getBlockHitResult().getSide() + " isInsideBlock: " + packet.getBlockHitResult().isInsideBlock() + " type: " + packet.getBlockHitResult().getType().name() + " sequence: " + packet.getSequence());
-        c2s(PlayerInteractEntityC2SPacket.class, "PlayerInteractEntity", packet -> "id: " + ((IInteractEntityC2SPacket) packet).blackout$getId() + " type: " + ((IInteractEntityC2SPacket) packet).blackout$getType().getType().name() + " isPlayerSneaking: " + packet.isPlayerSneaking());
-        c2s(PlayerInteractItemC2SPacket.class, "PlayerInteractItem", packet -> "hand: " + packet.getHand().name() + " sequence: " + packet.getSequence());
+        c2s(ServerboundUseItemOnPacket.class, "PlayerInteractBlock", packet -> "hand: " + packet.getHand().name() + " blockPos: " + packet.getHitResult().getBlockPos().toShortString() + " pos: " + packet.getHitResult().getLocation().toString() + " side: " + packet.getHitResult().getDirection() + " isInsideBlock: " + packet.getHitResult().isInside() + " type: " + packet.getHitResult().getType().name() + " sequence: " + packet.getSequence());
+        c2s(ServerboundInteractPacket.class, "PlayerInteractEntity", packet -> "id: " + ((IInteractEntityC2SPacket) packet).blackout$getId() + " type: " + ((IInteractEntityC2SPacket) packet).blackout$getAction().getType().name() + " isPlayerSneaking: " + packet.isUsingSecondaryAction());
+        c2s(ServerboundUseItemPacket.class, "PlayerInteractItem", packet -> "hand: " + packet.getHand().name() + " sequence: " + packet.getSequence());
 
-        c2s(PlayerMoveC2SPacket.Full.class, "PlayerMove Full", packet -> "x: " + packet.getX(0) + " y: " + packet.getY(0) + " z: " + packet.getZ(0) + " yaw: " + packet.getYaw(0) + " pitch: " + packet.getPitch(0) + " isOnGround: " + packet.isOnGround());
-        c2s(PlayerMoveC2SPacket.PositionAndOnGround.class, "PlayerMove PositionAndOnGround", packet -> "x: " + packet.getX(0) + " y: " + packet.getY(0) + " z: " + packet.getZ(0) + " isOnGround: " + packet.isOnGround());
-        c2s(PlayerMoveC2SPacket.LookAndOnGround.class, "PlayerMove LookAndOnGround", packet -> "yaw: " + packet.getYaw(0) + " pitch: " + packet.getPitch(0) + " isOnGround: " + packet.isOnGround());
-        c2s(PlayerMoveC2SPacket.OnGroundOnly.class, "PlayerMove OnGroundOnly", packet -> "isOnGround: " + packet.isOnGround());
+        c2s(ServerboundMovePlayerPacket.PosRot.class, "PlayerMove Full", packet -> "x: " + packet.getX(0) + " y: " + packet.getY(0) + " z: " + packet.getZ(0) + " yaw: " + packet.getYRot(0) + " pitch: " + packet.getXRot(0) + " isOnGround: " + packet.isOnGround());
+        c2s(ServerboundMovePlayerPacket.Pos.class, "PlayerMove PositionAndOnGround", packet -> "x: " + packet.getX(0) + " y: " + packet.getY(0) + " z: " + packet.getZ(0) + " isOnGround: " + packet.isOnGround());
+        c2s(ServerboundMovePlayerPacket.Rot.class, "PlayerMove LookAndOnGround", packet -> "yaw: " + packet.getYRot(0) + " pitch: " + packet.getXRot(0) + " isOnGround: " + packet.isOnGround());
+        c2s(ServerboundMovePlayerPacket.StatusOnly.class, "PlayerMove OnGroundOnly", packet -> "isOnGround: " + packet.isOnGround());
 
-        c2s(PlayerSessionC2SPacket.class, "PlayerSession", packet -> "sessionId: " + packet.chatSession().sessionId() + " isExpired: " + packet.chatSession().publicKeyData().isExpired() + " expiresAt: " + packet.chatSession().publicKeyData().expiresAt().toString() + " keySignature: " + byteArrToString(packet.chatSession().publicKeyData().keySignature()));
-        c2s(QueryBlockNbtC2SPacket.class, "QueryBlockNbt", packet -> "pos: " + packet.getPos() + " transactionId: " + packet.getTransactionId());
-        c2s(QueryEntityNbtC2SPacket.class, "QueryEntityNbt", packet -> "entityId: " + packet.getEntityId() + " transactionId: " + packet.getTransactionId());
-        c2s(RecipeBookDataC2SPacket.class, "RecipeBookData", packet -> "recipeId: " + packet.recipeId().toString());
-        c2s(RecipeCategoryOptionsC2SPacket.class, "RecipeCategoryOptions", packet -> "category: " + packet.getCategory().name() + " isFilteringCraftable: " + packet.isFilteringCraftable() + " isGuiOpen: " + packet.isGuiOpen());
-        c2s(RenameItemC2SPacket.class, "RenameItem", packet -> "name: " + packet.getName());
-        c2s(RequestCommandCompletionsC2SPacket.class, "RequestCommandCompletions", packet -> "partialCommand: " + packet.getPartialCommand() + " completionId: " + packet.getCompletionId());
-        c2s(SelectMerchantTradeC2SPacket.class, "SelectMerchantTrade", packet -> "tradeId: " + packet.getTradeId());
-        c2s(SlotChangedStateC2SPacket.class, "SlotChangedState", packet -> "slotId: " + packet.slotId() + " newState: " + packet.newState() + " screenHandlerId: " + packet.screenHandlerId());
-        c2s(SpectatorTeleportC2SPacket.class, "SpectatorTeleport");
-        c2s(TeleportConfirmC2SPacket.class, "TeleportConfirm", packet -> "teleportId: " + packet.getTeleportId());
-        c2s(UpdateBeaconC2SPacket.class, "UpdateBeacon", packet -> {
+        c2s(ServerboundChatSessionUpdatePacket.class, "PlayerSession", packet -> "sessionId: " + packet.chatSession().sessionId() + " isExpired: " + packet.chatSession().profilePublicKey().hasExpired() + " expiresAt: " + packet.chatSession().profilePublicKey().expiresAt().toString() + " keySignature: " + byteArrToString(packet.chatSession().profilePublicKey().keySignature()));
+        c2s(ServerboundBlockEntityTagQueryPacket.class, "QueryBlockNbt", packet -> "pos: " + packet.getPos() + " transactionId: " + packet.getTransactionId());
+        c2s(ServerboundEntityTagQueryPacket.class, "QueryEntityNbt", packet -> "entityId: " + packet.getEntityId() + " transactionId: " + packet.getTransactionId());
+        c2s(ServerboundRecipeBookSeenRecipePacket.class, "RecipeBookData", packet -> "recipeId: " + packet.recipe().toString());
+        c2s(ServerboundRecipeBookChangeSettingsPacket.class, "RecipeCategoryOptions", packet -> "category: " + packet.getBookType().name() + " isFilteringCraftable: " + packet.isFiltering() + " isGuiOpen: " + packet.isOpen());
+        c2s(ServerboundRenameItemPacket.class, "RenameItem", packet -> "name: " + packet.getName());
+        c2s(ServerboundCommandSuggestionPacket.class, "RequestCommandCompletions", packet -> "partialCommand: " + packet.getCommand() + " completionId: " + packet.getId());
+        c2s(ServerboundSelectTradePacket.class, "SelectMerchantTrade", packet -> "tradeId: " + packet.getItem());
+        c2s(ServerboundContainerSlotStateChangedPacket.class, "SlotChangedState", packet -> "slotId: " + packet.slotId() + " newState: " + packet.newState() + " screenHandlerId: " + packet.containerId());
+        c2s(ServerboundTeleportToEntityPacket.class, "SpectatorTeleport");
+        c2s(ServerboundAcceptTeleportationPacket.class, "TeleportConfirm", packet -> "teleportId: " + packet.getId());
+        c2s(ServerboundSetBeaconPacket.class, "UpdateBeacon", packet -> {
             StringBuilder builder = new StringBuilder();
 
             builder.append("primary: ");
             if (packet.primary().isPresent())
-                builder.append(packet.primary().get().getIdAsString());
+                builder.append(packet.primary().get().getRegisteredName());
             else
                 builder.append("null");
 
             builder.append(" secondary: ");
             if (packet.secondary().isPresent())
-                builder.append(packet.secondary().get().getIdAsString());
+                builder.append(packet.secondary().get().getRegisteredName());
             else
                 builder.append("null");
 
             return builder.toString();
         });
-        c2s(UpdateCommandBlockC2SPacket.class, "UpdateCommandBlock", packet -> "command: " + packet.getCommand() + " pos: " + packet.getPos() + " isAlwaysActive: " + packet.isAlwaysActive() + " isConditional: " + packet.isConditional() + " shouldTrackOutput: " + packet.shouldTrackOutput() + " type: " + packet.getType().name());
-        c2s(UpdateCommandBlockMinecartC2SPacket.class, "UpdateCommandBlockMinecart", packet -> "command: " + packet.getCommand() + " shouldTrackOutput: " + packet.shouldTrackOutput());
-        c2s(UpdateDifficultyC2SPacket.class, "UpdateDifficulty", packet -> "difficulty: " + packet.difficulty().getName());
-        c2s(UpdateDifficultyLockC2SPacket.class, "UpdateDifficultyLock", packet -> "isDifficultyLocked: " + packet.isDifficultyLocked());
-        c2s(UpdateJigsawC2SPacket.class, "UpdateJigsaw", packet -> "name: " + packet.getName().toString() + " pos: " + packet.getPos().toShortString() + " finalState: " + packet.getFinalState() + " jointType: " + packet.getJointType().asString() + " target: " + packet.getTarget().toString() + " pool: " + packet.getPool().toString() + " placementPriority: " + packet.getPlacementPriority() + " selectionPriority: " + packet.getSelectionPriority());
-        c2s(UpdatePlayerAbilitiesC2SPacket.class, "UpdatePlayerAbilities", packet -> "isFlying: " + packet.isFlying());
-        c2s(UpdateSelectedSlotC2SPacket.class, "UpdateSelectedSlot", packet -> "selectedSlot: " + packet.getSelectedSlot());
-        c2s(UpdateSignC2SPacket.class, "UpdateSign", packet -> {
-            StringBuilder builder = new StringBuilder("pos: " + packet.getPos().toShortString() + " isFront: " + packet.isFront());
-            for (String str : packet.getText()) builder.append("\n").append(str);
+        c2s(ServerboundSetCommandBlockPacket.class, "UpdateCommandBlock", packet -> "command: " + packet.getCommand() + " pos: " + packet.getPos() + " isAlwaysActive: " + packet.isAutomatic() + " isConditional: " + packet.isConditional() + " shouldTrackOutput: " + packet.isTrackOutput() + " type: " + packet.getMode().name());
+        c2s(ServerboundSetCommandMinecartPacket.class, "UpdateCommandBlockMinecart", packet -> "command: " + packet.getCommand() + " shouldTrackOutput: " + packet.isTrackOutput());
+        c2s(ServerboundChangeDifficultyPacket.class, "UpdateDifficulty", packet -> "difficulty: " + packet.difficulty().getKey());
+        c2s(ServerboundLockDifficultyPacket.class, "UpdateDifficultyLock", packet -> "isDifficultyLocked: " + packet.isLocked());
+        c2s(ServerboundSetJigsawBlockPacket.class, "UpdateJigsaw", packet -> "name: " + packet.getName().toString() + " pos: " + packet.getPos().toShortString() + " finalState: " + packet.getFinalState() + " jointType: " + packet.getJoint().getSerializedName() + " target: " + packet.getTarget().toString() + " pool: " + packet.getPool().toString() + " placementPriority: " + packet.getPlacementPriority() + " selectionPriority: " + packet.getSelectionPriority());
+        c2s(ServerboundPlayerAbilitiesPacket.class, "UpdatePlayerAbilities", packet -> "isFlying: " + packet.isFlying());
+        c2s(ServerboundSetCarriedItemPacket.class, "UpdateSelectedSlot", packet -> "selectedSlot: " + packet.getSlot());
+        c2s(ServerboundSignUpdatePacket.class, "UpdateSign", packet -> {
+            StringBuilder builder = new StringBuilder("pos: " + packet.getPos().toShortString() + " isFront: " + packet.isFrontText());
+            for (String str : packet.getLines()) builder.append("\n").append(str);
             return builder.toString();
         });
-        c2s(UpdateStructureBlockC2SPacket.class, "UpdateStructureBlock", packet -> "pos: " + packet.getPos().toShortString() + " rotation: " + packet.getRotation().asString() + " offset: " + packet.getOffset().toShortString() + " size: " + packet.getSize().toShortString() + " seed: " + packet.getSeed() + " templateName: " + packet.getTemplateName() + " mode: " + packet.getMode().asString() + " action: " + packet.getAction().name() + " metaData: " + packet.getMetadata() + " integrity: " + packet.getIntegrity() + " mirror: " + packet.getMirror());
-        c2s(VehicleMoveC2SPacket.class, "VehicleMove", packet -> "x: " + packet.position().x + " y: " + packet.position().y + " z: " + packet.position().z + " yaw: " + packet.yaw() + " pitch: " + packet.pitch());
+        c2s(ServerboundSetStructureBlockPacket.class, "UpdateStructureBlock", packet -> "pos: " + packet.getPos().toShortString() + " rotation: " + packet.getRotation().getSerializedName() + " offset: " + packet.getOffset().toShortString() + " size: " + packet.getSize().toShortString() + " seed: " + packet.getSeed() + " templateName: " + packet.getName() + " mode: " + packet.getMode().getSerializedName() + " action: " + packet.getUpdateType().name() + " metaData: " + packet.getData() + " integrity: " + packet.getIntegrity() + " mirror: " + packet.getMirror());
+        c2s(ServerboundMoveVehiclePacket.class, "VehicleMove", packet -> "x: " + packet.position().x + " y: " + packet.position().y + " z: " + packet.position().z + " yaw: " + packet.yRot() + " pitch: " + packet.xRot());
 
         // query
-        c2s(QueryPingC2SPacket.class, "QueryPing", packet -> "startTime: " + packet.getStartTime());
-        c2s(QueryRequestC2SPacket.class, "QueryRequest");
+        c2s(ServerboundPingRequestPacket.class, "QueryPing", packet -> "startTime: " + packet.getTime());
+        c2s(ServerboundStatusRequestPacket.class, "QueryRequest");
 
         /* ************************ S2C ************************ */
 
         // common
-        s2c(CommonPingS2CPacket.class, "CommonPing", packet -> "parameter: " + packet.getParameter());
-        s2c(CustomPayloadS2CPacket.class, "CustomPayload", packet -> "payloadId: " + packet.payload().getId().toString());
-        s2c(DisconnectS2CPacket.class, "Disconnect", packet -> "reason: " + packet.reason().getString());
-        s2c(KeepAliveS2CPacket.class, "KeepAlive", packet -> "id: " + packet.getId());
-        s2c(ResourcePackRemoveS2CPacket.class, "ResourcePackRemove", packet -> "id: " + packet.id());
-        s2c(ResourcePackSendS2CPacket.class, "ResourcePackSend", packet -> "url: " + packet.url() + " hash: " + packet.hash() + " id: " + packet.id().toString() + " prompt: " + packet.prompt().orElse(Text.of("null")).getString() + " required: " + packet.required());
-        s2c(SynchronizeTagsS2CPacket.class, "SynchronizeTags", packet -> {
+        s2c(ClientboundPingPacket.class, "CommonPing", packet -> "parameter: " + packet.getId());
+        s2c(ClientboundCustomPayloadPacket.class, "CustomPayload", packet -> "payloadId: " + packet.payload().type().toString());
+        s2c(ClientboundDisconnectPacket.class, "Disconnect", packet -> "reason: " + packet.reason().getString());
+        s2c(ClientboundKeepAlivePacket.class, "KeepAlive", packet -> "id: " + packet.getId());
+        s2c(ClientboundResourcePackPopPacket.class, "ResourcePackRemove", packet -> "id: " + packet.id());
+        s2c(ClientboundResourcePackPushPacket.class, "ResourcePackSend", packet -> "url: " + packet.url() + " hash: " + packet.hash() + " id: " + packet.id().toString() + " prompt: " + packet.prompt().orElse(Component.nullToEmpty("null")).getString() + " required: " + packet.required());
+        s2c(ClientboundUpdateTagsPacket.class, "SynchronizeTags", packet -> {
             StringBuilder builder = new StringBuilder("groups: ");
-            packet.getGroups().forEach((key, serialized) -> builder.append("\n").append(key.toString()).append(" serializedSize: ").append(serialized.size()));
+            packet.getTags().forEach((key, serialized) -> builder.append("\n").append(key.toString()).append(" serializedSize: ").append(serialized.size()));
             return builder.toString();
         });
 
         // config
-        s2c(DynamicRegistriesS2CPacket.class, "DynamicRegistries");
-        s2c(FeaturesS2CPacket.class, "Features", packet -> {
+        s2c(ClientboundRegistryDataPacket.class, "DynamicRegistries");
+        s2c(ClientboundUpdateEnabledFeaturesPacket.class, "Features", packet -> {
             StringBuilder builder = new StringBuilder("features: ");
             for (Identifier v : packet.features())
                 builder.append("\n").append(v.toString());
             return builder.toString();
         });
-        s2c(ReadyS2CPacket.class, "Ready", packet -> "transitionsNetworkState: " + packet.transitionsNetworkState());
+        s2c(ClientboundFinishConfigurationPacket.class, "Ready", packet -> "transitionsNetworkState: " + packet.isTerminal());
 
         // login
-        s2c(LoginCompressionS2CPacket.class, "LoginCompression", packet -> "compressionThreshold: " + packet.getCompressionThreshold());
-        s2c(LoginDisconnectS2CPacket.class, "LoginDisconnect", packet -> "reason: " + packet.reason());
-        s2c(LoginHelloS2CPacket.class, "LoginHello", packet -> "serverId: " + packet.getServerId() + " nonce: " + byteArrToString(packet.getNonce()));
-        s2c(LoginQueryRequestS2CPacket.class, "LoginQueryRequest", packet -> "queryId: " + packet.queryId() + " payloadId: " + packet.payload().id());
-        s2c(LoginSuccessS2CPacket.class, "LoginSuccess", packet -> {
-            StringBuilder builder = new StringBuilder("name: " + packet.profile().name() + " id: " + packet.profile().id().toString() + " newNetworkState: " + packet.profile().id().toString() + " properties: {");
-            packet.profile().properties().asMap().forEach((str, collection) -> {
+        s2c(ClientboundLoginCompressionPacket.class, "LoginCompression", packet -> "compressionThreshold: " + packet.getCompressionThreshold());
+        s2c(ClientboundLoginDisconnectPacket.class, "LoginDisconnect", packet -> "reason: " + packet.reason());
+        s2c(ClientboundHelloPacket.class, "LoginHello", packet -> "serverId: " + packet.getServerId() + " nonce: " + byteArrToString(packet.getChallenge()));
+        s2c(ClientboundCustomQueryPacket.class, "LoginQueryRequest", packet -> "queryId: " + packet.transactionId() + " payloadId: " + packet.payload().id());
+        s2c(ClientboundLoginFinishedPacket.class, "LoginSuccess", packet -> {
+            StringBuilder builder = new StringBuilder("name: " + packet.gameProfile().name() + " id: " + packet.gameProfile().id().toString() + " newNetworkState: " + packet.gameProfile().id().toString() + " properties: {");
+            packet.gameProfile().properties().asMap().forEach((str, collection) -> {
                 builder.append("\n").append(str);
                 for (Property v : collection) {
                     builder.append("\n  ").append(v.name()).append(" ").append(v.value()).append(" ").append(v.signature());
@@ -229,36 +378,36 @@ public class PacketNames {
         });
 
         // play
-        s2c(AdvancementUpdateS2CPacket.class, "AdvancementUpdate", packet -> {
-            StringBuilder builder = new StringBuilder("shouldClearCurrent: " + packet.shouldClearCurrent());
+        s2c(ClientboundUpdateAdvancementsPacket.class, "AdvancementUpdate", packet -> {
+            StringBuilder builder = new StringBuilder("shouldClearCurrent: " + packet.shouldReset());
 
             // this packet is gonna fill the whole log
             builder.append(" advancementIdsToRemove: {");
-            for (Identifier v : packet.getAdvancementIdsToRemove())
+            for (Identifier v : packet.getRemoved())
                 builder.append("\n  ").append(v.toString());
             builder.append("\n}");
 
             builder.append(" advancementsToEarn: {");
-            for (AdvancementEntry v : packet.getAdvancementsToEarn())
+            for (AdvancementHolder v : packet.getAdded())
                 builder.append("\n  ").append(v.toString());
             builder.append("\n}");
 
             builder.append(" advancementsToEarn: {");
-            packet.getAdvancementsToProgress().forEach((id, progress) -> {
+            packet.getProgress().forEach((id, progress) -> {
                 builder.append("\n  id: ").append(id.toString())
                     .append(" isDone: ").append(progress.isDone())
-                    .append(" isAnyObtained: ").append(progress.isAnyObtained())
-                    .append(" progressBarPercentage: ").append(progress.getProgressBarPercentage())
-                    .append(" progressBarFraction: ").append(progress.getProgressBarFraction() == null ? "null" : progress.getProgressBarFraction().getString())
-                    .append(" earliestProgressObtainDate: ").append(progress.getEarliestProgressObtainDate() == null ? "null" : progress.getEarliestProgressObtainDate().toString())
+                    .append(" isAnyObtained: ").append(progress.hasProgress())
+                    .append(" progressBarPercentage: ").append(progress.getPercent())
+                    .append(" progressBarFraction: ").append(progress.getProgressText() == null ? "null" : progress.getProgressText().getString())
+                    .append(" earliestProgressObtainDate: ").append(progress.getFirstProgressDate() == null ? "null" : progress.getFirstProgressDate().toString())
                     .append(" obtainedCriteria: {");
 
-                for (String str : progress.getObtainedCriteria()) {
+                for (String str : progress.getCompletedCriteria()) {
                     builder.append("\n    ").append(str);
                 }
 
                 builder.append("\n  }\n   unobtainedCriteria");
-                for (String str : progress.getUnobtainedCriteria()) {
+                for (String str : progress.getRemainingCriteria()) {
                     builder.append("\n    ").append(str);
                 }
                 builder.append("\n  }");
@@ -266,129 +415,129 @@ public class PacketNames {
             builder.append("\n}");
             return builder.toString();
         });
-        s2c(BlockBreakingProgressS2CPacket.class, "BlockBreakingProgress", packet -> "pos: " + packet.getPos().toShortString() + " progress: " + packet.getProgress() + " entityId: " + packet.getEntityId());
-        s2c(BlockEntityUpdateS2CPacket.class, "BlockEntityUpdate", packet -> {
+        s2c(ClientboundBlockDestructionPacket.class, "BlockBreakingProgress", packet -> "pos: " + packet.getPos().toShortString() + " progress: " + packet.getProgress() + " entityId: " + packet.getId());
+        s2c(ClientboundBlockEntityDataPacket.class, "BlockEntityUpdate", packet -> {
             StringBuilder builder = new StringBuilder("pos: " + packet.getPos().toShortString() + " blockEntityType: ");
-            builder.append(packet.getBlockEntityType().getRegistryEntry().getIdAsString());
+            builder.append(packet.getType().builtInRegistryHolder().getRegisteredName());
             builder.append(" nbt: {");
-            ((AccessorNbtCompound) (Object) packet.getNbt()).blackout$getEntries().forEach((string, element) -> builder.append("\n  ").append(string).append(" ").append(element.asString()));
+            ((AccessorCompoundTag) (Object) packet.getTag()).blackout$getTags().forEach((string, element) -> builder.append("\n  ").append(string).append(" ").append(element.asString()));
             builder.append("\n}");
             return builder.toString();
         });
-        s2c(BlockEventS2CPacket.class, "BlockEvent", packet -> "pos: " + packet.getPos().toShortString() + " block: " + packet.getBlock().getName() + " data: " + packet.getData() + " type: " + packet.getType());
-        s2c(BlockUpdateS2CPacket.class, "BlockUpdate", packet -> "pos: " + packet.getPos() + " state: {" + packet.getState().toString() + "}");
-        s2c(BossBarS2CPacket.class, "BossBar");
-        s2c(BundleS2CPacket.class, "Bundle", packet -> {
+        s2c(ClientboundBlockEventPacket.class, "BlockEvent", packet -> "pos: " + packet.getPos().toShortString() + " block: " + packet.getBlock().getName() + " data: " + packet.getB1() + " type: " + packet.getB0());
+        s2c(ClientboundBlockUpdatePacket.class, "BlockUpdate", packet -> "pos: " + packet.getPos() + " state: {" + packet.getBlockState().toString() + "}");
+        s2c(ClientboundBossEventPacket.class, "BossBar");
+        s2c(ClientboundBundlePacket.class, "Bundle", packet -> {
             StringBuilder builder = new StringBuilder("BUNDLE START");
-            packet.getPackets().forEach(p -> {
+            packet.subPackets().forEach(p -> {
                 builder.append("\n").append(getData(p).getName()).append(" ").append(getData(p).funnyApply(p));
             });
             builder.append("\nBUNDLE END");
             return builder.toString();
         });
-        s2c(ChatMessageS2CPacket.class, "ChatMessage", packet -> "unsignedContent: " + packet.unsignedContent().getString() + " sender: " + packet.sender().toString() + " index: " + packet.index() + " isWritingErrorSkippable: " + packet.isWritingErrorSkippable() + " isFullyFiltered: " + packet.filterMask().isFullyFiltered() + " isPassThrough: " + packet.filterMask().isPassThrough() + " bodyContent: " + packet.body().content() + " bodySalt: " + packet.body().salt() + " bodyTimestamp: " + packet.body().timestamp() + " bodyLastSeenSize: " + packet.body().lastSeen().buf().size() + " signature: " + byteArrToString(packet.signature().data()) + " serializedParametersName: " + packet.serializedParameters().name().getString() + " serializedParametersTargetName: " + packet.serializedParameters().targetName().orElse(Text.of("null")).getString());
-        s2c(ChatSuggestionsS2CPacket.class, "ChatSuggestions", packet -> {
+        s2c(ClientboundPlayerChatPacket.class, "ChatMessage", packet -> "unsignedContent: " + packet.unsignedContent().getString() + " sender: " + packet.sender().toString() + " index: " + packet.index() + " isWritingErrorSkippable: " + packet.isSkippable() + " isFullyFiltered: " + packet.filterMask().isFullyFiltered() + " isPassThrough: " + packet.filterMask().isEmpty() + " bodyContent: " + packet.body().content() + " bodySalt: " + packet.body().salt() + " bodyTimestamp: " + packet.body().timeStamp() + " bodyLastSeenSize: " + packet.body().lastSeen().entries().size() + " signature: " + byteArrToString(packet.signature().bytes()) + " serializedParametersName: " + packet.chatType().name().getString() + " serializedParametersTargetName: " + packet.chatType().targetName().orElse(Component.nullToEmpty("null")).getString());
+        s2c(ClientboundCustomChatCompletionsPacket.class, "ChatSuggestions", packet -> {
             StringBuilder builder = new StringBuilder("action: " + packet.action().name() + " entries: {");
             for (String entry : packet.entries()) builder.append("\n  ").append(entry);
             builder.append("\n}");
             return builder.toString();
         });
-        s2c(ChunkBiomeDataS2CPacket.class, "ChunkBiomeData", packet -> {
+        s2c(ClientboundChunksBiomesPacket.class, "ChunkBiomeData", packet -> {
             StringBuilder builder = new StringBuilder("chunkBiomeData: {");
             for (var v : packet.chunkBiomeData())
                 builder.append("\n  pos: ").append(v.pos()).append(" buffer: ").append(byteArrToString(v.buffer()));
             builder.append("\n}");
             return builder.toString();
         });
-        s2c(ChunkDataS2CPacket.class, "ChunkData", packet -> {
+        s2c(ClientboundLevelChunkWithLightPacket.class, "ChunkData", packet -> {
 
-            String builder = "chunkX: " + packet.getChunkX() + " chunkZ: " + packet.getChunkZ() + " chunkDataSectionsDataBuf: " + byteArrToString(packet.getChunkData().getSectionsDataBuf().array()) + " chunkDataHeightMap: {" + "\n} " +
-                " lightDataBlockNibblesSize: " + packet.getLightData().getBlockNibbles().size() +
-                " lightDataBlockNibblesSize: " + packet.getLightData().getSkyNibbles().size();
+            String builder = "chunkX: " + packet.getX() + " chunkZ: " + packet.getZ() + " chunkDataSectionsDataBuf: " + byteArrToString(packet.getChunkData().getReadBuffer().array()) + " chunkDataHeightMap: {" + "\n} " +
+                " lightDataBlockNibblesSize: " + packet.getLightData().getBlockUpdates().size() +
+                " lightDataBlockNibblesSize: " + packet.getLightData().getSkyUpdates().size();
 
             return builder;
         });
-        s2c(ChunkDeltaUpdateS2CPacket.class, "ChunkDeltaUpdate");
-        s2c(ChunkLoadDistanceS2CPacket.class, "ChunkLoadDistance", packet -> "distance: " + packet.getDistance());
-        s2c(ChunkRenderDistanceCenterS2CPacket.class, "ChunkRenderDistanceCenter", packet -> "chunkX: " + packet.getChunkX() + " chunkZ: " + packet.getChunkZ());
-        s2c(ChunkSentS2CPacket.class, "ChunkSent", packet -> "batchSize: " + packet.batchSize());
-        s2c(ClearTitleS2CPacket.class, "ClearTitle", packet -> "shouldReset: " + packet.shouldReset());
-        s2c(CloseScreenS2CPacket.class, "CloseScreen", packet -> "syncId: " + packet.getSyncId());
-        s2c(CommandSuggestionsS2CPacket.class, "CommandSuggestions", packet -> {
+        s2c(ClientboundSectionBlocksUpdatePacket.class, "ChunkDeltaUpdate");
+        s2c(ClientboundSetChunkCacheRadiusPacket.class, "ChunkLoadDistance", packet -> "distance: " + packet.getRadius());
+        s2c(ClientboundSetChunkCacheCenterPacket.class, "ChunkRenderDistanceCenter", packet -> "chunkX: " + packet.getX() + " chunkZ: " + packet.getZ());
+        s2c(ClientboundChunkBatchFinishedPacket.class, "ChunkSent", packet -> "batchSize: " + packet.batchSize());
+        s2c(ClientboundClearTitlesPacket.class, "ClearTitle", packet -> "shouldReset: " + packet.shouldResetTimes());
+        s2c(ClientboundContainerClosePacket.class, "CloseScreen", packet -> "syncId: " + packet.getContainerId());
+        s2c(ClientboundCommandSuggestionsPacket.class, "CommandSuggestions", packet -> {
             StringBuilder builder = new StringBuilder("id: " + packet.id() + " length: " + packet.length() + " start: " + packet.start() + " suggestions: {");
-            packet.suggestions().forEach(suggestion -> builder.append("\n  text: ").append(suggestion.text()).append(" toolTip: ").append(suggestion.tooltip().orElse(Text.of("null")).getString()));
+            packet.suggestions().forEach(suggestion -> builder.append("\n  text: ").append(suggestion.text()).append(" toolTip: ").append(suggestion.tooltip().orElse(Component.nullToEmpty("null")).getString()));
             builder.append("\n}");
             return builder.toString();
         });
-        s2c(CommandTreeS2CPacket.class, "CommandTree"); //TODO: should add something here
+        s2c(ClientboundCommandsPacket.class, "CommandTree"); //TODO: should add something here
         // FML // s2c(CooldownUpdateS2CPacket.class, "CooldownUpdate", packet -> "item: " + packet.item().getName() + " cooldown: " + packet.cooldown());
-        s2c(CraftFailedResponseS2CPacket.class, "CraftFailedResponse", packet -> "syncId: " + packet.syncId());
-        s2c(DamageTiltS2CPacket.class, "DamageTiltS2CPacket", packet -> "id: " + packet.id() + " yaw: " + packet.yaw());
-        s2c(DeathMessageS2CPacket.class, "DeathMessage", packet -> "playerId: " + packet.playerId() + " message: " + packet.message().getString());
-        s2c(DifficultyS2CPacket.class, "Difficulty", packet -> "difficulty: " + packet.difficulty().getName() + " isDifficultyLocked: " + packet.difficultyLocked());
-        s2c(EndCombatS2CPacket.class, "EndCombat");
-        s2c(EnterCombatS2CPacket.class, "EnterCombat");
-        s2c(EnterReconfigurationS2CPacket.class, "EnterReconfiguration");
-        s2c(EntitiesDestroyS2CPacket.class, "EntitiesDestroy", packet -> {
+        s2c(ClientboundPlaceGhostRecipePacket.class, "CraftFailedResponse", packet -> "syncId: " + packet.containerId());
+        s2c(ClientboundHurtAnimationPacket.class, "DamageTiltS2CPacket", packet -> "id: " + packet.id() + " yaw: " + packet.yaw());
+        s2c(ClientboundPlayerCombatKillPacket.class, "DeathMessage", packet -> "playerId: " + packet.playerId() + " message: " + packet.message().getString());
+        s2c(ClientboundChangeDifficultyPacket.class, "Difficulty", packet -> "difficulty: " + packet.difficulty().getKey() + " isDifficultyLocked: " + packet.locked());
+        s2c(ClientboundPlayerCombatEndPacket.class, "EndCombat");
+        s2c(ClientboundPlayerCombatEnterPacket.class, "EnterCombat");
+        s2c(ClientboundStartConfigurationPacket.class, "EnterReconfiguration");
+        s2c(ClientboundRemoveEntitiesPacket.class, "EntitiesDestroy", packet -> {
             StringBuilder builder = new StringBuilder("entityIds: {");
             packet.getEntityIds().forEach(id -> builder.append("\n  ").append(id));
             builder.append("\n}");
             return builder.toString();
         });
-        s2c(EntityAnimationS2CPacket.class, "EntityAnimation", packet -> "entityId: " + packet.getEntityId() + " animationId: " + packet.getAnimationId());
-        s2c(EntityAttachS2CPacket.class, "EntityAttach", packet -> "holdingEntityId: " + packet.getHoldingEntityId() + " attachedEntityId: " + packet.getAttachedEntityId());
-        s2c(EntityAttributesS2CPacket.class, "EntityAttributes", packet -> {
+        s2c(ClientboundAnimatePacket.class, "EntityAnimation", packet -> "entityId: " + packet.getId() + " animationId: " + packet.getAction());
+        s2c(ClientboundSetEntityLinkPacket.class, "EntityAttach", packet -> "holdingEntityId: " + packet.getDestId() + " attachedEntityId: " + packet.getSourceId());
+        s2c(ClientboundUpdateAttributesPacket.class, "EntityAttributes", packet -> {
             StringBuilder builder = new StringBuilder("entityId: " + packet.getEntityId() + " attributes: {");
-            packet.getEntries().forEach(entry -> {
-                String attribute = entry.attribute().getIdAsString();
+            packet.getValues().forEach(entry -> {
+                String attribute = entry.attribute().getRegisteredName();
 
                 builder.append("\n  attribute: ").append(attribute).append(" base: ").append(entry.base()).append(" modifiers: {");
-                entry.modifiers().forEach(modifier -> builder.append("\n    id: ").append(modifier.id().toString()).append(" value: ").append(modifier.value()));
+                entry.modifiers().forEach(modifier -> builder.append("\n    id: ").append(modifier.id().toString()).append(" value: ").append(modifier.amount()));
                 builder.append("\n  }");
             });
             builder.append("\n}");
             return builder.toString();
         });
-        s2c(EntityDamageS2CPacket.class, "EntityDamage", packet -> {
+        s2c(ClientboundDamageEventPacket.class, "EntityDamage", packet -> {
             StringBuilder builder = new StringBuilder("entityId: " + packet.entityId() + " sourceType: ");
-            builder.append(packet.sourceType().getIdAsString());
+            builder.append(packet.sourceType().getRegisteredName());
 
             builder.append(" sourcePosition: ");
-            Optional<Vec3d> rur = packet.sourcePosition();
+            Optional<Vec3> rur = packet.sourcePosition();
             builder.append(rur.isPresent() ? rur.get().toString() : "null");
 
             builder.append(" sourceCauseId: ").append(packet.sourceCauseId()).append(" sourceDirectId: ").append(packet.sourceDirectId());
             return builder.toString();
         });
-        s2c(EntityEquipmentUpdateS2CPacket.class, "EntityEquipmentUpdate", packet -> {
-            StringBuilder builder = new StringBuilder("entityId: " + packet.getEntityId() + " equipment: {");
-            packet.getEquipmentList().forEach(pair -> builder.append("\n  type: ").append(pair.getFirst().getName()).append(" item: ").append(pair.getSecond().getItem().getName().getString()).append(" count: ").append(pair.getSecond().getCount()));
+        s2c(ClientboundSetEquipmentPacket.class, "EntityEquipmentUpdate", packet -> {
+            StringBuilder builder = new StringBuilder("entityId: " + packet.getEntity() + " equipment: {");
+            packet.getSlots().forEach(pair -> builder.append("\n  type: ").append(pair.getFirst().getName()).append(" item: ").append(pair.getSecond().getItem().getName().getString()).append(" count: ").append(pair.getSecond().getCount()));
             builder.append("\n}");
             return builder.toString();
         });
-        s2c(EntityPassengersSetS2CPacket.class, "EntityPassengersSet", packet -> {
-            StringBuilder builder = new StringBuilder("entityId: " + packet.getEntityId() + " passengerIds: ");
-            for (int id : packet.getPassengerIds()) builder.append("\n  ").append(id);
+        s2c(ClientboundSetPassengersPacket.class, "EntityPassengersSet", packet -> {
+            StringBuilder builder = new StringBuilder("entityId: " + packet.getVehicle() + " passengerIds: ");
+            for (int id : packet.getPassengers()) builder.append("\n  ").append(id);
             builder.append("\n}");
             return builder.toString();
         });
-        s2c(EntityPositionS2CPacket.class, "EntityPosition", packet -> "entityId: " + packet.entityId() + " x: " + packet.change().position().x + " y: " + packet.change().position().y + " z: " + packet.change().position().z + " yaw: " + packet.change().yaw() + " pitch: " + packet.change().pitch() + " isOnGround: " + packet.onGround());
-        s2c(EntityS2CPacket.class, "Entity", packet -> "deltaX: " + packet.getDeltaX() + " deltaY: " + packet.getDeltaY() + " deltaZ: " + packet.getDeltaZ() + " yaw: " + packet.getYaw() + " pitch: " + packet.getPitch() + " hasRotation: " + packet.hasRotation() + " isPositionChanged: " + packet.isPositionChanged() + " isOnGround: " + packet.isOnGround());
-        s2c(EntitySetHeadYawS2CPacket.class, "EntitySetHeadYaw", packet -> "headYaw: " + packet.getHeadYaw());
-        s2c(EntitySpawnS2CPacket.class, "EntitySpawn", packet -> "entityId: " + packet.getEntityId() + " entityData: " + packet.getEntityData() + " entityType: " + packet.getEntityType().getName() + " uuid: " + packet.getUuid().toString() + " x: " + packet.getX() + " y: " + packet.getY() + " z: " + packet.getZ() + " yaw: " + packet.getYaw() + " pitch: " + packet.getPitch() + " headYaw: " + packet.getHeadYaw() + " velocityX: " + packet.getVelocity().getX() + " velocityY: " + packet.getVelocity().getY()+ " velocityZ: " + packet.getVelocity().getZ());
-        s2c(EntityStatusEffectS2CPacket.class, "EntityStatusEffect", packet -> {
-            String effect = packet.getEffectId().getIdAsString();
-            return "effectId: " + effect + " entityId: " + packet.getEntityId() + " amplifier: " + packet.getAmplifier() + " duration: " + packet.getDuration() + " isAmbient: " + packet.isAmbient() + " shouldShowIcon: " + packet.shouldShowIcon() + " shouldShowParticles: " + packet.shouldShowParticles();
+        s2c(ClientboundTeleportEntityPacket.class, "EntityPosition", packet -> "entityId: " + packet.id() + " x: " + packet.change().position().x + " y: " + packet.change().position().y + " z: " + packet.change().position().z + " yaw: " + packet.change().yRot() + " pitch: " + packet.change().xRot() + " isOnGround: " + packet.onGround());
+        s2c(ClientboundMoveEntityPacket.class, "Entity", packet -> "deltaX: " + packet.getXa() + " deltaY: " + packet.getYa() + " deltaZ: " + packet.getZa() + " yaw: " + packet.getYRot() + " pitch: " + packet.getXRot() + " hasRotation: " + packet.hasRotation() + " isPositionChanged: " + packet.hasPosition() + " isOnGround: " + packet.isOnGround());
+        s2c(ClientboundRotateHeadPacket.class, "EntitySetHeadYaw", packet -> "headYaw: " + packet.getYHeadRot());
+        s2c(ClientboundAddEntityPacket.class, "EntitySpawn", packet -> "entityId: " + packet.getId() + " entityData: " + packet.getData() + " entityType: " + packet.getType().getDescription() + " uuid: " + packet.getUUID().toString() + " x: " + packet.getX() + " y: " + packet.getY() + " z: " + packet.getZ() + " yaw: " + packet.getYRot() + " pitch: " + packet.getXRot() + " headYaw: " + packet.getYHeadRot() + " velocityX: " + packet.getMovement().x() + " velocityY: " + packet.getMovement().y()+ " velocityZ: " + packet.getMovement().z());
+        s2c(ClientboundUpdateMobEffectPacket.class, "EntityStatusEffect", packet -> {
+            String effect = packet.getEffect().getRegisteredName();
+            return "effectId: " + effect + " entityId: " + packet.getEntityId() + " amplifier: " + packet.getEffectAmplifier() + " duration: " + packet.getEffectDurationTicks() + " isAmbient: " + packet.isEffectAmbient() + " shouldShowIcon: " + packet.effectShowsIcon() + " shouldShowParticles: " + packet.isEffectVisible();
         });
-        s2c(EntityStatusS2CPacket.class, "EntityStatus", packet -> String.valueOf(packet.getStatus()));
-        s2c(EntityTrackerUpdateS2CPacket.class, "EntityTrackerUpdate", packet -> {
+        s2c(ClientboundEntityEventPacket.class, "EntityStatus", packet -> String.valueOf(packet.getEventId()));
+        s2c(ClientboundSetEntityDataPacket.class, "EntityTrackerUpdate", packet -> {
             StringBuilder builder = new StringBuilder("id: " + packet.id() + " trackedValues: {");
-            packet.trackedValues().forEach(entry -> builder.append("\n  id: ").append(entry.id()).append(" value: ").append(entry.value()));
+            packet.packedItems().forEach(entry -> builder.append("\n  id: ").append(entry.id()).append(" value: ").append(entry.value()));
             builder.append("\n}");
             return builder.toString();
         });
-        s2c(EntityVelocityUpdateS2CPacket.class, "EntityVelocityUpdate", packet -> "entityId: " + packet.getEntityId() + " velocityX: " + packet.getVelocity().getX() + " velocityY: " + packet.getVelocity().getY() + " velocityZ: " + packet.getVelocity().getZ());
-        s2c(ExperienceBarUpdateS2CPacket.class, "ExperienceBarUpdate", packet -> "experience: " + packet.getExperience() + " barProgress: " + packet.getBarProgress() + " experienceLevel: " + packet.getExperienceLevel());
+        s2c(ClientboundSetEntityMotionPacket.class, "EntityVelocityUpdate", packet -> "entityId: " + packet.getId() + " velocityX: " + packet.getMovement().x() + " velocityY: " + packet.getMovement().y() + " velocityZ: " + packet.getMovement().z());
+        s2c(ClientboundSetExperiencePacket.class, "ExperienceBarUpdate", packet -> "experience: " + packet.getExperienceLevel() + " barProgress: " + packet.getExperienceProgress() + " experienceLevel: " + packet.getTotalExperience());
         //s2c(ExperienceOrbSpawnS2CPacket.class, "ExperienceOrbSpawn", packet -> "entityId: " + packet.getEntityId() + " experience: " + packet.getExperience() + " x: " + packet.getX() + " y: " + packet.getY() + " z: " + packet.getZ());
 
         // FML //
@@ -401,38 +550,38 @@ public class PacketNames {
             return builder.toString();
         });*/
 
-        s2c(GameJoinS2CPacket.class, "GameJoin", packet -> {
-            StringBuilder builder = new StringBuilder("playerEntityId: " + packet.playerEntityId() + " maxPlayers: " + packet.maxPlayers() + " viewDistance: " + packet.viewDistance() + " simulationDistance: " + packet.simulationDistance() + " doLimitedCrafting: " + packet.doLimitedCrafting() + " enforcesSecureChat: " + packet.enforcesSecureChat() + " hardcore: " + packet.hardcore() + " showDeathScreen: " + packet.showDeathScreen() + " reducedDebugInfo: " + packet.reducedDebugInfo() + " commonPlayerSpawnInfoGameMode: " + packet.commonPlayerSpawnInfo().gameMode() + " commonPlayerSpawnInfoIsFlat: " + packet.commonPlayerSpawnInfo().isFlat() + " commonPlayerSpawnInfoLastGameMode: " + packet.commonPlayerSpawnInfo().lastGameMode() + " commonPlayerSpawnInfoSeed: " + packet.commonPlayerSpawnInfo().seed() + " commonPlayerSpawnInfoPortalCooldown: " + packet.commonPlayerSpawnInfo().portalCooldown());
-            builder.append(" commonPlayerSpawnInfoDimension: ").append(packet.commonPlayerSpawnInfo().dimension().getValue().toString());
-            builder.append(" commonPlayerSpawnInfoDimensionType: ").append(packet.commonPlayerSpawnInfo().dimensionType().getIdAsString());
+        s2c(ClientboundLoginPacket.class, "GameJoin", packet -> {
+            StringBuilder builder = new StringBuilder("playerEntityId: " + packet.playerId() + " maxPlayers: " + packet.maxPlayers() + " viewDistance: " + packet.chunkRadius() + " simulationDistance: " + packet.simulationDistance() + " doLimitedCrafting: " + packet.doLimitedCrafting() + " enforcesSecureChat: " + packet.enforcesSecureChat() + " hardcore: " + packet.hardcore() + " showDeathScreen: " + packet.showDeathScreen() + " reducedDebugInfo: " + packet.reducedDebugInfo() + " commonPlayerSpawnInfoGameMode: " + packet.commonPlayerSpawnInfo().gameType() + " commonPlayerSpawnInfoIsFlat: " + packet.commonPlayerSpawnInfo().isFlat() + " commonPlayerSpawnInfoLastGameMode: " + packet.commonPlayerSpawnInfo().previousGameType() + " commonPlayerSpawnInfoSeed: " + packet.commonPlayerSpawnInfo().seed() + " commonPlayerSpawnInfoPortalCooldown: " + packet.commonPlayerSpawnInfo().portalCooldown());
+            builder.append(" commonPlayerSpawnInfoDimension: ").append(packet.commonPlayerSpawnInfo().dimension().identifier().toString());
+            builder.append(" commonPlayerSpawnInfoDimensionType: ").append(packet.commonPlayerSpawnInfo().dimensionType().getRegisteredName());
             builder.append(" commonPlayerSpawnInfoLastDeathPos: ").append(packet.commonPlayerSpawnInfo().lastDeathLocation().isPresent() ? packet.commonPlayerSpawnInfo().lastDeathLocation().get().toString() : "null");
             builder.append(" dimensionIds: {");
-            packet.dimensionIds().forEach(key -> builder.append("\n  ").append(key.getValue().toString()));
+            packet.levels().forEach(key -> builder.append("\n  ").append(key.identifier().toString()));
             builder.append("\n}");
             return builder.toString();
         });
-        s2c(GameMessageS2CPacket.class, "GameMessage", packet -> "content: " + packet.content().getString() + " overlay: " + packet.overlay());
-        s2c(GameStateChangeS2CPacket.class, "GameStateChange", packet -> "value: " + packet.getValue());
-        s2c(HealthUpdateS2CPacket.class, "HealthUpdate", packet -> "health: " + packet.getHealth() + " food: " + packet.getFood() + " saturation: " + packet.getSaturation());
-        s2c(InventoryS2CPacket.class, "Inventory", packet -> {
-            StringBuilder builder = new StringBuilder("syncId: " + packet.syncId() + " revision: " + packet.revision() + "cursorStackItem: " + packet.cursorStack().getItem().getName().getString() + " cursorStackCount:" + packet.cursorStack().getCount() + " contents: {");
-            for (int i = 0; i < packet.contents().size(); i++) {
-                ItemStack stack = packet.contents().get(i);
+        s2c(ClientboundSystemChatPacket.class, "GameMessage", packet -> "content: " + packet.content().getString() + " overlay: " + packet.overlay());
+        s2c(ClientboundGameEventPacket.class, "GameStateChange", packet -> "value: " + packet.getParam());
+        s2c(ClientboundSetHealthPacket.class, "HealthUpdate", packet -> "health: " + packet.getHealth() + " food: " + packet.getFood() + " saturation: " + packet.getSaturation());
+        s2c(ClientboundContainerSetContentPacket.class, "Inventory", packet -> {
+            StringBuilder builder = new StringBuilder("syncId: " + packet.containerId() + " revision: " + packet.stateId() + "cursorStackItem: " + packet.carriedItem().getItem().getName().getString() + " cursorStackCount:" + packet.carriedItem().getCount() + " contents: {");
+            for (int i = 0; i < packet.items().size(); i++) {
+                ItemStack stack = packet.items().get(i);
                 builder.append("\n  slot: ").append(i).append(" item: ").append(stack.getItem().getName().getString()).append(" count: ").append(stack.getCount());
             }
             builder.append("\n}");
             return builder.toString();
         });
-        s2c(ItemPickupAnimationS2CPacket.class, "ItemPickupAnimation", packet -> "entityId: " + packet.getEntityId() + " collectorEntityId: " + packet.getCollectorEntityId() + " stackAmount: " + packet.getStackAmount());
-        s2c(LightUpdateS2CPacket.class, "LightUpdate", packet -> "chunkX: " + packet.getChunkX() + " chunkZ: " + packet.getChunkZ() + " blockNibblesSize: " + packet.getData().getBlockNibbles().size() + " skyNibblesSize: " + packet.getData().getSkyNibbles().size());
-        s2c(LookAtS2CPacket.class, "LookAt");
-        s2c(MapUpdateS2CPacket.class, "MapUpdate", packet -> {
+        s2c(ClientboundTakeItemEntityPacket.class, "ItemPickupAnimation", packet -> "entityId: " + packet.getItemId() + " collectorEntityId: " + packet.getPlayerId() + " stackAmount: " + packet.getAmount());
+        s2c(ClientboundLightUpdatePacket.class, "LightUpdate", packet -> "chunkX: " + packet.getX() + " chunkZ: " + packet.getZ() + " blockNibblesSize: " + packet.getLightData().getBlockUpdates().size() + " skyNibblesSize: " + packet.getLightData().getSkyUpdates().size());
+        s2c(ClientboundPlayerLookAtPacket.class, "LookAt");
+        s2c(ClientboundMapItemDataPacket.class, "MapUpdate", packet -> {
             StringBuilder builder = new StringBuilder("mapId: " + packet.mapId().id() + " locked: " + packet.locked() + " scale: " + packet.scale());
 
             builder.append(" decorations: {");
             if (packet.decorations().isPresent()) {
                 List<MapDecoration> decorations = packet.decorations().get();
-                decorations.forEach(decoration -> builder.append("\n  name: ").append(decoration.name().orElse(Text.of("null")).getString()).append(" x: ").append(decoration.x()).append(" z: ").append(decoration.z()).append(" x: ").append(" type: ").append(decoration.type().getIdAsString()).append(" rotation: ").append(decoration.rotation()).append(" assetId: ").append(decoration.getAssetId()).append(" isAlwaysRendered: ").append(decoration.isAlwaysRendered()));
+                decorations.forEach(decoration -> builder.append("\n  name: ").append(decoration.name().orElse(Component.nullToEmpty("null")).getString()).append(" x: ").append(decoration.x()).append(" z: ").append(decoration.y()).append(" x: ").append(" type: ").append(decoration.type().getRegisteredName()).append(" rotation: ").append(decoration.rot()).append(" assetId: ").append(decoration.getSpriteLocation()).append(" isAlwaysRendered: ").append(decoration.renderOnFrame()));
             }
             builder.append("\n}");
 
@@ -442,13 +591,13 @@ public class PacketNames {
             String height;
             String colors;
 
-            if (packet.updateData().isPresent()) {
-                MapState.UpdateData data = packet.updateData().get();
+            if (packet.colorPatch().isPresent()) {
+                MapItemSavedData.MapPatch data = packet.colorPatch().get();
                 startX = String.valueOf(data.startX());
-                startZ = String.valueOf(data.startZ());
+                startZ = String.valueOf(data.startY());
                 width = String.valueOf(data.width());
                 height = String.valueOf(data.height());
-                colors = byteArrToString(data.colors());
+                colors = byteArrToString(data.mapColors());
             } else {
                 startX = "null";
                 startZ = "null";
@@ -460,82 +609,82 @@ public class PacketNames {
             builder.append(" startX: ").append(startX).append(" startZ: ").append(startZ).append(" width: ").append(width).append(" height: ").append(height).append(" colors: ").append(colors);
             return builder.toString();
         });
-        s2c(NbtQueryResponseS2CPacket.class, "NbtQueryResponse", packet -> {
+        s2c(ClientboundTagQueryPacket.class, "NbtQueryResponse", packet -> {
             StringBuilder builder = new StringBuilder("transactionId: " + packet.getTransactionId());
             builder.append(" nbt: {");
-            ((AccessorNbtCompound)(Object) packet.getNbt()).blackout$getEntries().forEach((string, element) -> builder.append("\n  ").append(string).append(" ").append(element.asString()));
+            ((AccessorCompoundTag)(Object) packet.getTag()).blackout$getTags().forEach((string, element) -> builder.append("\n  ").append(string).append(" ").append(element.asString()));
             builder.append("\n}");
             return builder.toString();
         });
-        s2c(OpenScreenS2CPacket.class, "OpenScreen", packet -> "name: " + packet.getName().getString() + " syncId: " + packet.getSyncId() + " screenHandlerType: " + packet.getScreenHandlerType());
-        s2c(OpenWrittenBookS2CPacket.class, "OpenWrittenBook", packet -> "hand: " + packet.getHand().name());
-        s2c(OverlayMessageS2CPacket.class, "OverlayMessage", packet -> "text: " + packet.text().getString());
+        s2c(ClientboundOpenScreenPacket.class, "OpenScreen", packet -> "name: " + packet.getTitle().getString() + " syncId: " + packet.getContainerId() + " screenHandlerType: " + packet.getType());
+        s2c(ClientboundOpenBookPacket.class, "OpenWrittenBook", packet -> "hand: " + packet.getHand().name());
+        s2c(ClientboundSetActionBarTextPacket.class, "OverlayMessage", packet -> "text: " + packet.text().getString());
         // FML // s2c(ParticleS2CPacket.class, "Particle", packet -> "count: " + packet.getCount() + " x: " + packet.getX() + " y: " + packet.getY() + " z: " + packet.getZ() + " offsetX: " + packet.getOffsetX() + " offsetY: " + packet.getOffsetY() + " offsetZ: " + packet.getOffsetZ() + " speed: " + packet.getSpeed() + " isLongDistance: " + packet.isLongDistance() + " parameterType: " + packet.getParameters().getType());
-        s2c(PlayerAbilitiesS2CPacket.class, "PlayerAbilities", packet -> "isCreativeMod: " + packet.isCreativeMode() + " allowFlying: " + packet.allowFlying() + " isInvulnerable: " + packet.isInvulnerable() + " isFlying: " + packet.isFlying() + " flySpeed: " + packet.getFlySpeed() + " walkSpeed: " + packet.getWalkSpeed());
-        s2c(PlayerActionResponseS2CPacket.class, "PlayerActionResponse", packet -> "sequence: " + packet.sequence());
-        s2c(PlayerListHeaderS2CPacket.class, "PlayerListHeader", packet -> "header: " + packet.header().getString() + " footer: " + packet.footer().getString());
-        s2c(PlayerListS2CPacket.class, "PlayerList", packet -> {
+        s2c(ClientboundPlayerAbilitiesPacket.class, "PlayerAbilities", packet -> "isCreativeMod: " + packet.canInstabuild() + " allowFlying: " + packet.canFly() + " isInvulnerable: " + packet.isInvulnerable() + " isFlying: " + packet.isFlying() + " flySpeed: " + packet.getFlyingSpeed() + " walkSpeed: " + packet.getWalkingSpeed());
+        s2c(ClientboundBlockChangedAckPacket.class, "PlayerActionResponse", packet -> "sequence: " + packet.sequence());
+        s2c(ClientboundTabListPacket.class, "PlayerListHeader", packet -> "header: " + packet.header().getString() + " footer: " + packet.footer().getString());
+        s2c(ClientboundPlayerInfoUpdatePacket.class, "PlayerList", packet -> {
             StringBuilder builder = new StringBuilder("entries: {");
 
-            packet.getEntries().forEach(entry -> builder.append("\n  displayName: ").append(entry.displayName()).append(" profileId: ").append(entry.profileId()).append(" gameProfileName: ").append(entry.profile() == null ? "null" : entry.profile().name()).append(" gameProfileId: ").append(entry.profile() == null ? "null" : entry.profile().id()).append(" listed: ").append(entry.listed()).append(" gameMode: ").append(entry.gameMode()).append(" latency: ").append(entry.latency()).append(" chatSessionId: ").append(entry.chatSession() == null ? "null" : entry.chatSession().sessionId().toString()).append(" isExpired: ").append(entry.chatSession() == null ? "null" : entry.chatSession().publicKeyData().isExpired()).append(" expiresAt: ").append(entry.chatSession() == null ? "null" : entry.chatSession().publicKeyData().expiresAt().toString()).append(" keySignature: ").append(entry.chatSession() == null ? "null" : byteArrToString(entry.chatSession().publicKeyData().keySignature())));
+            packet.entries().forEach(entry -> builder.append("\n  displayName: ").append(entry.displayName()).append(" profileId: ").append(entry.profileId()).append(" gameProfileName: ").append(entry.profile() == null ? "null" : entry.profile().name()).append(" gameProfileId: ").append(entry.profile() == null ? "null" : entry.profile().id()).append(" listed: ").append(entry.listed()).append(" gameMode: ").append(entry.gameMode()).append(" latency: ").append(entry.latency()).append(" chatSessionId: ").append(entry.chatSession() == null ? "null" : entry.chatSession().sessionId().toString()).append(" isExpired: ").append(entry.chatSession() == null ? "null" : entry.chatSession().profilePublicKey().hasExpired()).append(" expiresAt: ").append(entry.chatSession() == null ? "null" : entry.chatSession().profilePublicKey().expiresAt().toString()).append(" keySignature: ").append(entry.chatSession() == null ? "null" : byteArrToString(entry.chatSession().profilePublicKey().keySignature())));
             builder.append("\n} playerAdditionEntries: {");
-            packet.getPlayerAdditionEntries().forEach(entry -> builder.append("\n  displayName: ").append(entry.displayName()).append(" profileId: ").append(entry.profileId()).append(" gameProfileName: ").append(entry.profile() == null ? "null" : entry.profile().name()).append(" gameProfileId: ").append(entry.profile() == null ? "null" : entry.profile().id()).append(" listed: ").append(entry.listed()).append(" gameMode: ").append(entry.gameMode()).append(" latency: ").append(entry.latency()).append(" chatSessionId: ").append(entry.chatSession() == null ? "null" : entry.chatSession().sessionId().toString()).append(" isExpired: ").append(entry.chatSession() == null ? "null" : entry.chatSession().publicKeyData().isExpired()).append(" expiresAt: ").append(entry.chatSession() == null ? "null" : entry.chatSession().publicKeyData().expiresAt().toString()).append(" keySignature: ").append(entry.chatSession() == null ? "null" : byteArrToString(entry.chatSession().publicKeyData().keySignature())));
+            packet.newEntries().forEach(entry -> builder.append("\n  displayName: ").append(entry.displayName()).append(" profileId: ").append(entry.profileId()).append(" gameProfileName: ").append(entry.profile() == null ? "null" : entry.profile().name()).append(" gameProfileId: ").append(entry.profile() == null ? "null" : entry.profile().id()).append(" listed: ").append(entry.listed()).append(" gameMode: ").append(entry.gameMode()).append(" latency: ").append(entry.latency()).append(" chatSessionId: ").append(entry.chatSession() == null ? "null" : entry.chatSession().sessionId().toString()).append(" isExpired: ").append(entry.chatSession() == null ? "null" : entry.chatSession().profilePublicKey().hasExpired()).append(" expiresAt: ").append(entry.chatSession() == null ? "null" : entry.chatSession().profilePublicKey().expiresAt().toString()).append(" keySignature: ").append(entry.chatSession() == null ? "null" : byteArrToString(entry.chatSession().profilePublicKey().keySignature())));
             builder.append("\n} actions: {");
-            packet.getActions().forEach(action -> builder.append("\n  ").append(action.name()));
+            packet.actions().forEach(action -> builder.append("\n  ").append(action.name()));
             builder.append("\n}");
             return builder.toString();
         });
-        s2c(PlayerPositionLookS2CPacket.class, "PlayerPositionLook", packet -> {
-            StringBuilder builder = new StringBuilder("teleportId: " + packet.teleportId() + " x: " + packet.change().position().x+ " y: " + packet.change().position().y + " z: " + packet.change().position().z + " yaw: " + packet.change().yaw() + " pitch: " + packet.change().pitch());
+        s2c(ClientboundPlayerPositionPacket.class, "PlayerPositionLook", packet -> {
+            StringBuilder builder = new StringBuilder("teleportId: " + packet.id() + " x: " + packet.change().position().x+ " y: " + packet.change().position().y + " z: " + packet.change().position().z + " yaw: " + packet.change().yRot() + " pitch: " + packet.change().xRot());
             return builder.toString();
         });
-        s2c(PlayerRemoveS2CPacket.class, "PlayerRemove", packet -> {
+        s2c(ClientboundPlayerInfoRemovePacket.class, "PlayerRemove", packet -> {
             StringBuilder builder = new StringBuilder("profileIds: {");
             packet.profileIds().forEach(id -> builder.append("\n  ").append(id.toString()));
             builder.append("\n}");
             return builder.toString();
         });
-        s2c(PlayerRespawnS2CPacket.class, "PlayerRespawn", packet -> "flag: " + Integer.toBinaryString(packet.flag()) + " commonPlayerSpawnInfoGameMode: " + packet.commonPlayerSpawnInfo().gameMode() + " commonPlayerSpawnInfoIsFlat: " + packet.commonPlayerSpawnInfo().isFlat() + " commonPlayerSpawnInfoLastGameMode: " + packet.commonPlayerSpawnInfo().lastGameMode() + " commonPlayerSpawnInfoSeed: " + packet.commonPlayerSpawnInfo().seed() + " commonPlayerSpawnInfoPortalCooldown: " + packet.commonPlayerSpawnInfo().portalCooldown() + " commonPlayerSpawnInfoDimension: " + packet.commonPlayerSpawnInfo().dimension().getValue().toString() + " commonPlayerSpawnInfoDimensionType: " + packet.commonPlayerSpawnInfo().dimensionType().getIdAsString() + " commonPlayerSpawnInfoLastDeathPos: " + (packet.commonPlayerSpawnInfo().lastDeathLocation().isPresent() ? packet.commonPlayerSpawnInfo().lastDeathLocation().get().toString() : "null"));
-        s2c(PlayerSpawnPositionS2CPacket.class, "PlayerSpawnPosition", packet -> "pos: " + packet.respawnData().getPos().toShortString()/* + " angle: " + packet.getAngle()*/);
-        s2c(PlaySoundFromEntityS2CPacket.class, "PlaySoundFromEntity", packet -> "entityId: " + packet.getEntityId() + " pitch: " + packet.getPitch() + " volume: " + packet.getVolume() + " seed: " + packet.getSeed() + " category: " + packet.getCategory().getName() + " sound: " + packet.getSound().getIdAsString());
-        s2c(PlaySoundS2CPacket.class, "PlaySound", packet -> "x: " + packet.getX() + " y: " + packet.getY() + " z: " + packet.getZ() + " pitch: " + packet.getPitch() + " volume: " + packet.getVolume() + " seed: " + packet.getSeed() + " category: " + packet.getCategory().getName() + " sound: " + packet.getSound().getIdAsString());
-        s2c(ProfilelessChatMessageS2CPacket.class, "ProfilelessChatMessage", packet -> "message: " + packet.message() + " chatTypeName: " + packet.chatType().name() + " chatTypeTargetName: " + packet.chatType().targetName().orElse(Text.of("null")).getString() + " chatTypeType: " + packet.chatType().type().getIdAsString());
-        s2c(RemoveEntityStatusEffectS2CPacket.class, "RemoveEntityStatusEffect", packet -> " entityId: " + packet.entityId() + " effect: " + packet.effect().getIdAsString());
-        s2c(RemoveMessageS2CPacket.class, "RemoveMessage", packet -> "messageSignatureId: " + packet.messageSignature().id() + " messageSignatureFullSignature: " + byteArrToString(packet.messageSignature().fullSignature().data()));
-        s2c(ScoreboardDisplayS2CPacket.class, "ScoreboardDisplay", packet -> "name: " + packet.getName() + " slot: " + packet.getSlot().asString() + " slotId:" + packet.getSlot().getId());
-        s2c(ScoreboardObjectiveUpdateS2CPacket.class, "ScoreboardObjectiveUpdate", packet -> "name: " + packet.getName() + " displayName: " + packet.getDisplayName() + " type: " + packet.getType().getName() + " mode: " + packet.getMode());
-        s2c(ScoreboardScoreResetS2CPacket.class, "ScoreboardScoreReset", packet -> "objectiveName: " + packet.objectiveName() + " scoreHolderName: " + packet.scoreHolderName());
-        s2c(ScoreboardScoreUpdateS2CPacket.class, "ScoreboardScoreUpdate", packet -> "objectiveName: " + packet.objectiveName() + " scoreHolderName: " + packet.scoreHolderName() + " score: " + packet.score() + " display: " + packet.display().orElse(Text.of("null")).getString());
-        s2c(ScreenHandlerPropertyUpdateS2CPacket.class, "ScreenHandlerPropertyUpdate", packet -> "syncId: " + packet.getSyncId() + " propertyName: " + packet.getPropertyId() + " value: " + packet.getValue());
-        s2c(ScreenHandlerSlotUpdateS2CPacket.class, "ScreenHandlerSlotUpdate", packet -> "syncId: " + packet.getSyncId() + " slot: " + packet.getSlot() + " revision: " + packet.getRevision() + " item: " + packet.getStack().getItem().getName() + " itemCount: " + packet.getStack().getCount());
-        s2c(SelectAdvancementTabS2CPacket.class, "SelectAdvancementTab", packet -> "tabId: " + packet.getTabId());
-        s2c(ServerMetadataS2CPacket.class, "ServerMetadata", packet -> "description: " + packet.description().getString() + " favicon: " + (packet.favicon().isPresent() ? byteArrToString(packet.favicon().get()) : "null"));
-        s2c(SetCameraEntityS2CPacket.class, "SetCameraEntity");
-        s2c(SetTradeOffersS2CPacket.class, "SetTradeOffers", packet -> {
-            StringBuilder builder = new StringBuilder("syncId: " + packet.getSyncId() + " experience: " + packet.getExperience() + " levelProgress: " + packet.getLevelProgress() + " isLeveled: " + packet.isLeveled() + " isRefreshable: " + packet.isRefreshable() + " offers: {");
+        s2c(ClientboundRespawnPacket.class, "PlayerRespawn", packet -> "flag: " + Integer.toBinaryString(packet.dataToKeep()) + " commonPlayerSpawnInfoGameMode: " + packet.commonPlayerSpawnInfo().gameType() + " commonPlayerSpawnInfoIsFlat: " + packet.commonPlayerSpawnInfo().isFlat() + " commonPlayerSpawnInfoLastGameMode: " + packet.commonPlayerSpawnInfo().previousGameType() + " commonPlayerSpawnInfoSeed: " + packet.commonPlayerSpawnInfo().seed() + " commonPlayerSpawnInfoPortalCooldown: " + packet.commonPlayerSpawnInfo().portalCooldown() + " commonPlayerSpawnInfoDimension: " + packet.commonPlayerSpawnInfo().dimension().identifier().toString() + " commonPlayerSpawnInfoDimensionType: " + packet.commonPlayerSpawnInfo().dimensionType().getRegisteredName() + " commonPlayerSpawnInfoLastDeathPos: " + (packet.commonPlayerSpawnInfo().lastDeathLocation().isPresent() ? packet.commonPlayerSpawnInfo().lastDeathLocation().get().toString() : "null"));
+        s2c(ClientboundSetDefaultSpawnPositionPacket.class, "PlayerSpawnPosition", packet -> "pos: " + packet.respawnData().pos().toShortString()/* + " angle: " + packet.getAngle()*/);
+        s2c(ClientboundSoundEntityPacket.class, "PlaySoundFromEntity", packet -> "entityId: " + packet.getId() + " pitch: " + packet.getPitch() + " volume: " + packet.getVolume() + " seed: " + packet.getSeed() + " category: " + packet.getSource().getName() + " sound: " + packet.getSound().getRegisteredName());
+        s2c(ClientboundSoundPacket.class, "PlaySound", packet -> "x: " + packet.getX() + " y: " + packet.getY() + " z: " + packet.getZ() + " pitch: " + packet.getPitch() + " volume: " + packet.getVolume() + " seed: " + packet.getSeed() + " category: " + packet.getSource().getName() + " sound: " + packet.getSound().getRegisteredName());
+        s2c(ClientboundDisguisedChatPacket.class, "ProfilelessChatMessage", packet -> "message: " + packet.message() + " chatTypeName: " + packet.chatType().name() + " chatTypeTargetName: " + packet.chatType().targetName().orElse(Component.nullToEmpty("null")).getString() + " chatTypeType: " + packet.chatType().chatType().getRegisteredName());
+        s2c(ClientboundRemoveMobEffectPacket.class, "RemoveEntityStatusEffect", packet -> " entityId: " + packet.entityId() + " effect: " + packet.effect().getRegisteredName());
+        s2c(ClientboundDeleteChatPacket.class, "RemoveMessage", packet -> "messageSignatureId: " + packet.messageSignature().id() + " messageSignatureFullSignature: " + byteArrToString(packet.messageSignature().fullSignature().bytes()));
+        s2c(ClientboundSetDisplayObjectivePacket.class, "ScoreboardDisplay", packet -> "name: " + packet.getObjectiveName() + " slot: " + packet.getSlot().getSerializedName() + " slotId:" + packet.getSlot().id());
+        s2c(ClientboundSetObjectivePacket.class, "ScoreboardObjectiveUpdate", packet -> "name: " + packet.getObjectiveName() + " displayName: " + packet.getDisplayName() + " type: " + packet.getRenderType().getId() + " mode: " + packet.getMethod());
+        s2c(ClientboundResetScorePacket.class, "ScoreboardScoreReset", packet -> "objectiveName: " + packet.objectiveName() + " scoreHolderName: " + packet.owner());
+        s2c(ClientboundSetScorePacket.class, "ScoreboardScoreUpdate", packet -> "objectiveName: " + packet.objectiveName() + " scoreHolderName: " + packet.owner() + " score: " + packet.score() + " display: " + packet.display().orElse(Component.nullToEmpty("null")).getString());
+        s2c(ClientboundContainerSetDataPacket.class, "ScreenHandlerPropertyUpdate", packet -> "syncId: " + packet.getContainerId() + " propertyName: " + packet.getId() + " value: " + packet.getValue());
+        s2c(ClientboundContainerSetSlotPacket.class, "ScreenHandlerSlotUpdate", packet -> "syncId: " + packet.getContainerId() + " slot: " + packet.getSlot() + " revision: " + packet.getStateId() + " item: " + packet.getItem().getItem().getName() + " itemCount: " + packet.getItem().getCount());
+        s2c(ClientboundSelectAdvancementsTabPacket.class, "SelectAdvancementTab", packet -> "tabId: " + packet.getTab());
+        s2c(ClientboundServerDataPacket.class, "ServerMetadata", packet -> "description: " + packet.motd().getString() + " favicon: " + (packet.iconBytes().isPresent() ? byteArrToString(packet.iconBytes().get()) : "null"));
+        s2c(ClientboundSetCameraPacket.class, "SetCameraEntity");
+        s2c(ClientboundMerchantOffersPacket.class, "SetTradeOffers", packet -> {
+            StringBuilder builder = new StringBuilder("syncId: " + packet.getContainerId() + " experience: " + packet.getVillagerXp() + " levelProgress: " + packet.getVillagerLevel() + " isLeveled: " + packet.showProgress() + " isRefreshable: " + packet.canRestock() + " offers: {");
             packet.getOffers().forEach(offer -> {
-                builder.append("\n  uses: " + offer.getUses() + " maxUses: " + offer.getMaxUses() + " demandBonus: " + offer.getDemandBonus() + " hasBeenUsed: " + offer.hasBeenUsed() + " disabled: " + offer.isDisabled() + " specialPrice: " + offer.getSpecialPrice() + " merchantExperience: " + offer.getMerchantExperience() + " shouldRewardPlayerExperience: " + offer.shouldRewardPlayerExperience() + " firstBuyItem: " + offer.getFirstBuyItem().item().getIdAsString() + " secondBuyItem: ");
-                Optional<TradedItem> v = offer.getSecondBuyItem();
-                builder.append(v.isPresent() ? v.get().item().getIdAsString() : "null").append(" sellItem: ").append(offer.getSellItem().getName().getString()).append(" sellItemCount: ").append(offer.getSellItem().getCount());
-                builder.append(" displayedFirstBuyItem: ").append(offer.getDisplayedFirstBuyItem().getItem().getName().getString()).append(" displayedFirstBuyItemCount: ").append(offer.getDisplayedFirstBuyItem().getCount()).append(" displayedSecondBuyItem: ").append(offer.getDisplayedSecondBuyItem().getItem().getName().getString()).append(" displayedSecondBuyItemCount: ").append(offer.getDisplayedSecondBuyItem().getCount());
-                builder.append(" originalFirstBuyItem: " + offer.getOriginalFirstBuyItem().getItem().getName().getString()).append(" originalFirstBuyItemCount: " + offer.getOriginalFirstBuyItem().getCount());
+                builder.append("\n  uses: " + offer.getUses() + " maxUses: " + offer.getMaxUses() + " demandBonus: " + offer.getDemand() + " hasBeenUsed: " + offer.needsRestock() + " disabled: " + offer.isOutOfStock() + " specialPrice: " + offer.getSpecialPriceDiff() + " merchantExperience: " + offer.getXp() + " shouldRewardPlayerExperience: " + offer.shouldRewardExp() + " firstBuyItem: " + offer.getItemCostA().item().getRegisteredName() + " secondBuyItem: ");
+                Optional<ItemCost> v = offer.getItemCostB();
+                builder.append(v.isPresent() ? v.get().item().getRegisteredName() : "null").append(" sellItem: ").append(offer.getResult().getHoverName().getString()).append(" sellItemCount: ").append(offer.getResult().getCount());
+                builder.append(" displayedFirstBuyItem: ").append(offer.getCostA().getItem().getName().getString()).append(" displayedFirstBuyItemCount: ").append(offer.getCostA().getCount()).append(" displayedSecondBuyItem: ").append(offer.getCostB().getItem().getName().getString()).append(" displayedSecondBuyItemCount: ").append(offer.getCostB().getCount());
+                builder.append(" originalFirstBuyItem: " + offer.getBaseCostA().getItem().getName().getString()).append(" originalFirstBuyItemCount: " + offer.getBaseCostA().getCount());
             });
             builder.append("\n}");
             return builder.toString();
         });
-        s2c(SignEditorOpenS2CPacket.class, "SignEditorOpen", packet -> "pos: " + packet.getPos().toShortString() + " isFront: " + packet.isFront());
-        s2c(SimulationDistanceS2CPacket.class, "SimulationDistance", packet -> "simulationDistance: " + packet.simulationDistance());
-        s2c(StartChunkSendS2CPacket.class, "StartChunkSend");
-        s2c(StatisticsS2CPacket.class, "Statistics", packet -> {
+        s2c(ClientboundOpenSignEditorPacket.class, "SignEditorOpen", packet -> "pos: " + packet.getPos().toShortString() + " isFront: " + packet.isFrontText());
+        s2c(ClientboundSetSimulationDistancePacket.class, "SimulationDistance", packet -> "simulationDistance: " + packet.simulationDistance());
+        s2c(ClientboundChunkBatchStartPacket.class, "StartChunkSend");
+        s2c(ClientboundAwardStatsPacket.class, "Statistics", packet -> {
             StringBuilder builder = new StringBuilder("stats: {");
             packet.stats().forEach((stat, i) -> {
-                builder.append("\n  index: ").append(i).append(" statType: ").append(stat.getType().getName().getString()).append(" value: ").append(stat.getValue().toString());
+                builder.append("\n  index: ").append(i).append(" statType: ").append(stat.getType().getDisplayName().getString()).append(" value: ").append(stat.getValue().toString());
             });
             builder.append("\n}");
             return builder.toString();
         });
-        s2c(StopSoundS2CPacket.class, "StopSound", packet -> "category: " + packet.getCategory() + " soundId: " + packet.getSoundId().toString());
-        s2c(SubtitleS2CPacket.class, "Subtitle", packet -> "text: " + packet.text().getString());
+        s2c(ClientboundStopSoundPacket.class, "StopSound", packet -> "category: " + packet.getSource() + " soundId: " + packet.getName().toString());
+        s2c(ClientboundSetSubtitleTextPacket.class, "Subtitle", packet -> "text: " + packet.text().getString());
 
         // FML //
         /*s2c(SynchronizeRecipesS2CPacket.class, "SynchronizeRecipes", packet -> {
@@ -545,8 +694,8 @@ public class PacketNames {
             return builder.toString();
         });*/
 
-        s2c(TeamS2CPacket.class, "Team", packet -> {
-            StringBuilder builder = new StringBuilder("teamName: " + packet.getTeamName() + " teamOperation: " + (packet.getTeamOperation() == null ? "null" : packet.getTeamOperation().name()) + " playerListOperation: " + (packet.getPlayerListOperation() == null ? "null" : packet.getPlayerListOperation().name()));
+        s2c(ClientboundSetPlayerTeamPacket.class, "Team", packet -> {
+            StringBuilder builder = new StringBuilder("teamName: " + packet.getName() + " teamOperation: " + (packet.getTeamAction() == null ? "null" : packet.getTeamAction().name()) + " playerListOperation: " + (packet.getPlayerAction() == null ? "null" : packet.getPlayerAction().name()));
 
             String displayName;
             String collisionRule;
@@ -555,15 +704,15 @@ public class PacketNames {
             String nameTagVisibilityRule;
             String prefix;
             String suffix;
-            if (packet.getTeam().isPresent()) {
-                TeamS2CPacket.SerializableTeam v = packet.getTeam().get();
+            if (packet.getParameters().isPresent()) {
+                ClientboundSetPlayerTeamPacket.Parameters v = packet.getParameters().get();
                 displayName = v.getDisplayName().getString();
                 collisionRule =  v.getCollisionRule().toString();
                 color = v.getColor().getName();
-                friendlyFlagsBitwise = String.valueOf(v.getFriendlyFlagsBitwise());
-                nameTagVisibilityRule = v.getNameTagVisibilityRule().toString();
-                prefix = v.getPrefix().getString();
-                suffix = v.getSuffix().getString();
+                friendlyFlagsBitwise = String.valueOf(v.getOptions());
+                nameTagVisibilityRule = v.getNametagVisibility().toString();
+                prefix = v.getPlayerPrefix().getString();
+                suffix = v.getPlayerSuffix().getString();
             } else {
                 displayName = "null";
                 collisionRule = "null";
@@ -582,39 +731,39 @@ public class PacketNames {
                 .append(" teamPrefix: ").append(prefix)
                 .append(" teamSuffix: ").append(suffix);
             builder.append(" playerNames: {");
-            packet.getPlayerNames().forEach(name -> builder.append("\n  ").append(name));
+            packet.getPlayers().forEach(name -> builder.append("\n  ").append(name));
             builder.append("\n}");
             return builder.toString();
         });
-        s2c(TickStepS2CPacket.class, "TickStep", packet -> "tickSteps: " + packet.tickSteps());
-        s2c(TitleFadeS2CPacket.class, "TitleFade", packet -> "fadeInTicks: " + packet.getFadeInTicks() + " stayTicks: " + packet.getStayTicks() + " fadeOutTicks: " + packet.getFadeOutTicks());
-        s2c(TitleS2CPacket.class, "Title", packet -> "text: " + packet.text().getString());
-        s2c(UnloadChunkS2CPacket.class, "UnloadChunk", packet -> "chunkX: " + packet.pos().x + " chunkZ: " + packet.pos().z);
-        s2c(UpdateSelectedSlotS2CPacket.class, "UpdateSelectedSlot", packet -> "slot: " + packet.slot());
-        s2c(UpdateTickRateS2CPacket.class, "UpdateTickRate", packet -> "isFrozen: " + packet.isFrozen() + " tickRate: " + packet.tickRate());
-        s2c(VehicleMoveS2CPacket.class, "VehicleMove", packet -> "x: " + packet.position().x + " y: " + packet.position().y + " z: " + packet.position().z + " yaw: " + packet.yaw() + " pitch: " + packet.pitch());
-        s2c(WorldBorderCenterChangedS2CPacket.class, "WorldBorderCenterChanged", packet -> "centerX: " + packet.getCenterX() + " centerZ: " + packet.getCenterZ());
-        s2c(WorldBorderInitializeS2CPacket.class, "WorldBorderInitialize", packet -> "centerX: " + packet.getCenterX() + " centerZ: " + packet.getCenterZ() + " maxRadius: " + packet.getMaxRadius() + " size: " + packet.getSize() + " sizeLerpTarget: " + packet.getSizeLerpTarget() + " sizeLerpTime: " + packet.getSizeLerpTime() + " warningBlocks: " + packet.getWarningBlocks() + " warningTime: " + packet.getWarningTime());
-        s2c(WorldBorderInterpolateSizeS2CPacket.class, "WorldBorderInterpolateSize", packet -> "size: " + packet.getSize() + " sizeLerpTarget: " + packet.getSizeLerpTarget() + " sizeLerpTime: " + packet.getSizeLerpTime());
-        s2c(WorldBorderSizeChangedS2CPacket.class, "WorldBorderSizeChanged", packet -> "sizeLerpTarget: " + packet.getSizeLerpTarget());
-        s2c(WorldBorderWarningBlocksChangedS2CPacket.class, "WorldBorderWarningBlocksChanged", packet -> "warningBlocks: " + packet.getWarningBlocks());
-        s2c(WorldBorderWarningTimeChangedS2CPacket.class, "WorldBorderWarningTimeChanged", packet -> "warningTime: " + packet.getWarningTime());
-        s2c(WorldEventS2CPacket.class, "WorldEvent", packet -> "pos: " + packet.getPos().toShortString() + " data: " + packet.getData() + " eventId: " + packet.getEventId() + " isGlobal: " + packet.isGlobal());
-        s2c(WorldTimeUpdateS2CPacket.class, "WorldTimeUpdate", packet -> "time: " + packet.time() + " timeOfDay: " + packet.timeOfDay());
+        s2c(ClientboundTickingStepPacket.class, "TickStep", packet -> "tickSteps: " + packet.tickSteps());
+        s2c(ClientboundSetTitlesAnimationPacket.class, "TitleFade", packet -> "fadeInTicks: " + packet.getFadeIn() + " stayTicks: " + packet.getStay() + " fadeOutTicks: " + packet.getFadeOut());
+        s2c(ClientboundSetTitleTextPacket.class, "Title", packet -> "text: " + packet.text().getString());
+        s2c(ClientboundForgetLevelChunkPacket.class, "UnloadChunk", packet -> "chunkX: " + packet.pos().x + " chunkZ: " + packet.pos().z);
+        s2c(ClientboundSetHeldSlotPacket.class, "UpdateSelectedSlot", packet -> "slot: " + packet.slot());
+        s2c(ClientboundTickingStatePacket.class, "UpdateTickRate", packet -> "isFrozen: " + packet.isFrozen() + " tickRate: " + packet.tickRate());
+        s2c(ClientboundMoveVehiclePacket.class, "VehicleMove", packet -> "x: " + packet.position().x + " y: " + packet.position().y + " z: " + packet.position().z + " yaw: " + packet.yRot() + " pitch: " + packet.xRot());
+        s2c(ClientboundSetBorderCenterPacket.class, "WorldBorderCenterChanged", packet -> "centerX: " + packet.getNewCenterX() + " centerZ: " + packet.getNewCenterZ());
+        s2c(ClientboundInitializeBorderPacket.class, "WorldBorderInitialize", packet -> "centerX: " + packet.getNewCenterX() + " centerZ: " + packet.getNewCenterZ() + " maxRadius: " + packet.getNewAbsoluteMaxSize() + " size: " + packet.getOldSize() + " sizeLerpTarget: " + packet.getNewSize() + " sizeLerpTime: " + packet.getLerpTime() + " warningBlocks: " + packet.getWarningBlocks() + " warningTime: " + packet.getWarningTime());
+        s2c(ClientboundSetBorderLerpSizePacket.class, "WorldBorderInterpolateSize", packet -> "size: " + packet.getOldSize() + " sizeLerpTarget: " + packet.getNewSize() + " sizeLerpTime: " + packet.getLerpTime());
+        s2c(ClientboundSetBorderSizePacket.class, "WorldBorderSizeChanged", packet -> "sizeLerpTarget: " + packet.getSize());
+        s2c(ClientboundSetBorderWarningDistancePacket.class, "WorldBorderWarningBlocksChanged", packet -> "warningBlocks: " + packet.getWarningBlocks());
+        s2c(ClientboundSetBorderWarningDelayPacket.class, "WorldBorderWarningTimeChanged", packet -> "warningTime: " + packet.getWarningDelay());
+        s2c(ClientboundLevelEventPacket.class, "WorldEvent", packet -> "pos: " + packet.getPos().toShortString() + " data: " + packet.getData() + " eventId: " + packet.getType() + " isGlobal: " + packet.isGlobalEvent());
+        s2c(ClientboundSetTimePacket.class, "WorldTimeUpdate", packet -> "time: " + packet.gameTime() + " timeOfDay: " + packet.dayTime());
 
         // query
-        s2c(PingResultS2CPacket.class, "PingResult", packet -> "startTime: " + packet.startTime());
-        s2c(QueryResponseS2CPacket.class, "QueryResponse", packet -> {
-            StringBuilder builder = new StringBuilder("description: " + packet.metadata().description().getString() + " favicon: " + (packet.metadata().favicon().isPresent() ? byteArrToString(packet.metadata().favicon().get().iconBytes()) : "null") + " secureChatEnforced: " + packet.metadata().secureChatEnforced());
+        s2c(ClientboundPongResponsePacket.class, "PingResult", packet -> "startTime: " + packet.time());
+        s2c(ClientboundStatusResponsePacket.class, "QueryResponse", packet -> {
+            StringBuilder builder = new StringBuilder("description: " + packet.status().description().getString() + " favicon: " + (packet.status().favicon().isPresent() ? byteArrToString(packet.status().favicon().get().iconBytes()) : "null") + " secureChatEnforced: " + packet.status().enforcesSecureChat());
 
             String gameVersion;
             String protocolVersion;
 
-            Optional<ServerMetadata.Version> v = packet.metadata().version();
+            Optional<ServerStatus.Version> v = packet.status().version();
             if (v.isPresent()) {
-                ServerMetadata.Version version = v.get();
-                gameVersion = version.gameVersion();
-                protocolVersion = String.valueOf(version.protocolVersion());
+                ServerStatus.Version version = v.get();
+                gameVersion = version.name();
+                protocolVersion = String.valueOf(version.protocol());
             } else {
                 gameVersion = "null";
                 protocolVersion = "null";
@@ -622,9 +771,9 @@ public class PacketNames {
 
             builder.append(" gameVersion: ").append(gameVersion).append(" protocolVersion: ").append(protocolVersion);
 
-            Optional<ServerMetadata.Players> v2 = packet.metadata().players();
+            Optional<ServerStatus.Players> v2 = packet.status().players();
             if (v2.isPresent()) {
-                ServerMetadata.Players players = v2.get();
+                ServerStatus.Players players = v2.get();
 
                 builder.append(" maxPlayers: ").append(players.max()).append(" online: ").append(players.online()).append(" players: {");
                 players.sample().forEach(profile -> builder.append("\n  profileName: ").append(profile.name()).append(" profileId: ").append(profile.id().toString())/*.append(" propertiesSize: ").append(profile.getProperties().size())*/);

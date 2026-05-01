@@ -1,3 +1,4 @@
+// TODO(Ravel): Failed to fully resolve file: null cannot be cast to non-null type com.intellij.psi.PsiJavaCodeReferenceElement
 package kassuk.addon.blackout.modules;
 
 import kassuk.addon.blackout.BlackOut;
@@ -26,21 +27,27 @@ import meteordevelopment.meteorclient.utils.render.color.Color;
 import meteordevelopment.meteorclient.utils.render.color.SettingColor;
 import meteordevelopment.orbit.EventHandler;
 import meteordevelopment.orbit.EventPriority;
-import net.minecraft.block.Block;
-import net.minecraft.block.Blocks;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.ItemEntity;
-import net.minecraft.entity.decoration.EndCrystalEntity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.BlockItem;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket;
-import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket;
-import net.minecraft.sound.SoundCategory;
-import net.minecraft.sound.SoundEvents;
-import net.minecraft.util.Hand;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.util.Mth;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.boss.enderdragon.EndCrystal;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.network.protocol.game.ServerboundInteractPacket;
+import net.minecraft.network.protocol.game.ServerboundMovePlayerPacket;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.util.math.*;
+import net.minecraft.world.level.levelgen.structure.BoundingBox;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -283,7 +290,7 @@ public class SurroundPlus extends BlackOutModule {
     private final TimerList<BlockPos> placed = new TimerList<>();
     private final List<Render> render = new ArrayList<>();
     private boolean support = false;
-    private Hand hand = null;
+    private InteractionHand hand = null;
     private int blocksLeft = 0;
     private int placesLeft = 0;
     private FindItemResult result = null;
@@ -359,13 +366,13 @@ public class SurroundPlus extends BlackOutModule {
 
         if (SettingUtils.shouldRotate(RotationType.Attacking) && !Managers.ROTATION.start(blocking.getBoundingBox(), priority - 0.1, RotationType.Attacking, Objects.hash(name + "attacking"))) return;
 
-        SettingUtils.swing(SwingState.Pre, SwingType.Attacking, Hand.MAIN_HAND);
-        sendPacket(PlayerInteractEntityC2SPacket.attack(blocking, mc.player.isSneaking()));
-        SettingUtils.swing(SwingState.Post, SwingType.Attacking, Hand.MAIN_HAND);
+        SettingUtils.swing(SwingState.Pre, SwingType.Attacking, InteractionHand.MAIN_HAND);
+        sendPacket(ServerboundInteractPacket.createAttackPacket(blocking, mc.player.isShiftKeyDown()));
+        SettingUtils.swing(SwingState.Post, SwingType.Attacking, InteractionHand.MAIN_HAND);
 
         if (SettingUtils.shouldRotate(RotationType.Attacking)) Managers.ROTATION.end(Objects.hash(name + "attacking"));
 
-        if (attackSwing.get()) clientSwing(attackHand.get(), Hand.MAIN_HAND);
+        if (attackSwing.get()) clientSwing(attackHand.get(), InteractionHand.MAIN_HAND);
 
         lastAttack = System.currentTimeMillis();
     }
@@ -374,15 +381,15 @@ public class SurroundPlus extends BlackOutModule {
         Entity crystal = null;
         double lowest = 1000;
 
-        for (Entity entity : mc.world.getEntities()) {
-            if (!(entity instanceof EndCrystalEntity)) continue;
+        for (Entity entity : mc.level.entitiesForRendering()) {
+            if (!(entity instanceof EndCrystal)) continue;
             if (mc.player.distanceTo(entity) > 5) continue;
             if (!SettingUtils.inAttackRange(entity.getBoundingBox())) continue;
 
             if (antiCev.get()) {
                 for (BlockPos pos : surroundBlocks) {
-                    if (entity.getBlockPos().equals(pos.up())) {
-                        double dmg = Math.max(10, BODamageUtils.crystalDamage(mc.player, mc.player.getBoundingBox(), entity.getEntityPos(), null, false));
+                    if (entity.blockPosition().equals(pos.above())) {
+                        double dmg = Math.max(10, BODamageUtils.crystalDamage(mc.player, mc.player.getBoundingBox(), entity.position(), null, false));
 
                         if (dmg < lowest) {
                             lowest = dmg;
@@ -393,9 +400,9 @@ public class SurroundPlus extends BlackOutModule {
             }
 
             for (BlockPos pos : alwaysAttack.get() ? surroundBlocks : valids) {
-                if (!Box.from(new BlockBox(pos)).intersects(entity.getBoundingBox())) continue;
+                if (!AABB.of(new BoundingBox(pos)).intersects(entity.getBoundingBox())) continue;
 
-                double dmg = BODamageUtils.crystalDamage(mc.player, mc.player.getBoundingBox(), entity.getEntityPos(), null, false);
+                double dmg = BODamageUtils.crystalDamage(mc.player, mc.player.getBoundingBox(), entity.position(), null, false);
                 if (dmg < lowest) {
                     crystal = entity;
                     lowest = dmg;
@@ -406,36 +413,36 @@ public class SurroundPlus extends BlackOutModule {
     }
 
     private void setBB() {
-        if (!centered && center.get() && mc.player.isOnGround() && (!phaseCenter.get() || !OLEPOSSUtils.inside(mc.player, mc.player.getBoundingBox().shrink(0.01, 0.01, 0.01)))) {
+        if (!centered && center.get() && mc.player.onGround() && (!phaseCenter.get() || !OLEPOSSUtils.inside(mc.player, mc.player.getBoundingBox().contract(0.01, 0.01, 0.01)))) {
             double targetX, targetZ;
 
             if (smartCenter.get()) {
-                targetX = MathHelper.clamp(mc.player.getX(), currentPos.getX() + 0.31, currentPos.getX() + 0.69);
-                targetZ = MathHelper.clamp(mc.player.getZ(), currentPos.getZ() + 0.31, currentPos.getZ() + 0.69);
+                targetX = Mth.clamp(mc.player.getX(), currentPos.getX() + 0.31, currentPos.getX() + 0.69);
+                targetZ = Mth.clamp(mc.player.getZ(), currentPos.getZ() + 0.31, currentPos.getZ() + 0.69);
             } else {
                 targetX = currentPos.getX() + 0.5;
                 targetZ = currentPos.getZ() + 0.5;
             }
 
-            double dist = new Vec3d(targetX, 0, targetZ).distanceTo(new Vec3d(mc.player.getX(), 0, mc.player.getZ()));
+            double dist = new Vec3(targetX, 0, targetZ).distanceTo(new Vec3(mc.player.getX(), 0, mc.player.getZ()));
 
             if (dist < 0.2873) {
-                sendPacket(new PlayerMoveC2SPacket.PositionAndOnGround(targetX, mc.player.getY(), targetZ, Managers.ON_GROUND.isOnGround(), false));
+                sendPacket(new ServerboundMovePlayerPacket.Pos(targetX, mc.player.getY(), targetZ, Managers.ON_GROUND.isOnGround(), false));
             }
 
             double x = mc.player.getX(), z = mc.player.getZ();
 
             for (int i = 0; i < Math.ceil(dist / 0.2873); i++) {
-                double yaw = Rotations.getYaw(new Vec3d(targetX, 0, targetZ)) + 90;
+                double yaw = Rotations.getYaw(new Vec3(targetX, 0, targetZ)) + 90;
 
                 x += Math.cos(Math.toRadians(yaw)) * 0.2873;
                 z += Math.sin(Math.toRadians(yaw)) * 0.2873;
 
-                sendPacket(new PlayerMoveC2SPacket.PositionAndOnGround(x, mc.player.getY(), z, Managers.ON_GROUND.isOnGround(), false));
+                sendPacket(new ServerboundMovePlayerPacket.Pos(x, mc.player.getY(), z, Managers.ON_GROUND.isOnGround(), false));
             }
 
-            mc.player.setPos(targetX, mc.player.getY(), targetZ);
-            mc.player.setBoundingBox(new Box(targetX - 0.3, mc.player.getY(), targetZ - 0.3, targetX + 0.3, mc.player.getY() + (mc.player.getBoundingBox().maxY - mc.player.getBoundingBox().minY), targetZ + 0.3));
+            mc.player.setPosRaw(targetX, mc.player.getY(), targetZ);
+            mc.player.setBoundingBox(new AABB(targetX - 0.3, mc.player.getY(), targetZ - 0.3, targetX + 0.3, mc.player.getY() + (mc.player.getBoundingBox().maxY - mc.player.getBoundingBox().minY), targetZ + 0.3));
 
             centered = true;
         }
@@ -489,7 +496,7 @@ public class SurroundPlus extends BlackOutModule {
         hand = getHand();
         switched = false;
 
-        valids.stream().filter(pos -> !EntityUtils.intersectsWithEntity(Box.from(new BlockBox(pos)), this::validEntity)).sorted(Comparator.comparingDouble(Rotations::getYaw)).forEach(this::place);
+        valids.stream().filter(pos -> !EntityUtils.intersectsWithEntity(AABB.of(new BoundingBox(pos)), this::validEntity)).sorted(Comparator.comparingDouble(Rotations::getYaw)).forEach(this::place);
 
         if (switched && hand == null) {
             switch (switchMode.get()) {
@@ -558,9 +565,9 @@ public class SurroundPlus extends BlackOutModule {
             return;
         }
 
-        placeBlock(hand == null ? Hand.MAIN_HAND : hand, data.pos().toCenterPos(), data.dir(), data.pos());
+        placeBlock(hand == null ? InteractionHand.MAIN_HAND : hand, data.pos().getCenter(), data.dir(), data.pos());
 
-        if (placeSwing.get()) clientSwing(placeHand.get(), hand == null ? Hand.MAIN_HAND : hand);
+        if (placeSwing.get()) clientSwing(placeHand.get(), hand == null ? InteractionHand.MAIN_HAND : hand);
 
         if (!packet.get()) {
             setBlock(pos);
@@ -588,12 +595,12 @@ public class SurroundPlus extends BlackOutModule {
     }
 
     private void setBlock(BlockPos pos) {
-        Item item = mc.player.getInventory().getStack(result.slot()).getItem();
+        Item item = mc.player.getInventory().getItem(result.slot()).getItem();
 
         if (!(item instanceof BlockItem block)) {return;}
 
-        mc.world.setBlockState(pos, block.getBlock().getDefaultState());
-        mc.world.playSound(mc.player, pos.getX(), pos.getY(), pos.getZ(), SoundEvents.BLOCK_STONE_PLACE, SoundCategory.BLOCKS, 1, 1);
+        mc.level.setBlockAndUpdate(pos, block.getBlock().defaultBlockState());
+        mc.level.playSound(mc.player, pos.getX(), pos.getY(), pos.getZ(), SoundEvents.STONE_PLACE, SoundSource.BLOCKS, 1, 1);
     }
 
     private void setSupport() {
@@ -603,7 +610,7 @@ public class SurroundPlus extends BlackOutModule {
         for (BlockPos pos : surroundBlocks) {
             if (!validBlock(pos)) {continue;}
 
-            double y = Rotations.getYaw(pos.toCenterPos());
+            double y = Rotations.getYaw(pos.getCenter());
 
             if (y < min) {
                 support = false;
@@ -614,7 +621,7 @@ public class SurroundPlus extends BlackOutModule {
         for (BlockPos pos : supportPositions) {
             if (!validBlock(pos)) {continue;}
 
-            double y = Rotations.getYaw(pos.toCenterPos());
+            double y = Rotations.getYaw(pos.getCenter());
 
             if (y < min) {
                 support = true;
@@ -635,12 +642,12 @@ public class SurroundPlus extends BlackOutModule {
         };
     }
 
-    private Hand getHand() {
+    private InteractionHand getHand() {
         if (valid(Managers.HOLDING.getStack())) {
-            return Hand.MAIN_HAND;
+            return InteractionHand.MAIN_HAND;
         }
-        if (valid(mc.player.getOffHandStack())) {
-            return Hand.OFF_HAND;
+        if (valid(mc.player.getOffhandItem())) {
+            return InteractionHand.OFF_HAND;
         }
         return null;
     }

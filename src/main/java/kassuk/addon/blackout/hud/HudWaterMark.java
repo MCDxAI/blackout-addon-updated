@@ -7,7 +7,7 @@ import meteordevelopment.meteorclient.systems.hud.HudElementInfo;
 import meteordevelopment.meteorclient.systems.hud.HudRenderer;
 import meteordevelopment.meteorclient.utils.render.color.Color;
 import meteordevelopment.meteorclient.utils.render.color.SettingColor;
-import net.minecraft.util.Identifier;
+import net.minecraft.resources.Identifier;
 
 /**
  * @author KassuK
@@ -46,7 +46,7 @@ public class HudWaterMark extends HudElement {
         .build()
     );
 
-    private final Identifier LOGO = Identifier.of("blackout", "logo.png");
+    private final Identifier LOGO = Identifier.fromNamespaceAndPath("blackout", "logo.png");
 
     public static final HudElementInfo<HudWaterMark> INFO = new HudElementInfo<>(BlackOut.HUD_BLACKOUT, "BlackoutWatermark", "The Blackout watermark.", HudWaterMark::new);
 

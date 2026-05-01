@@ -23,17 +23,17 @@ import meteordevelopment.meteorclient.utils.player.ChatUtils;
 import meteordevelopment.meteorclient.utils.player.InvUtils;
 import meteordevelopment.orbit.EventHandler;
 import meteordevelopment.orbit.EventPriority;
-import net.minecraft.client.gui.screen.DeathScreen;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.PotionContentsComponent;
-import net.minecraft.entity.effect.StatusEffectInstance;
-import net.minecraft.entity.effect.StatusEffects;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.network.packet.s2c.play.PlayerRespawnS2CPacket;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.client.gui.screens.DeathScreen;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.world.item.alchemy.PotionContents;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.network.protocol.game.ClientboundRespawnPacket;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.phys.Vec3;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -286,13 +286,13 @@ public class AutoPvp extends BlackOutModule {
 
     public static final String desc = "A setting for baritone. Updated on module activation.";
 
-    private PlayerEntity target = null;
+    private Player target = null;
     private boolean inRange = false;
 
     private int stuckTimer = 0;
     private int eatingSlot = -1;
     private BlockPos lastPos = null;
-    private final Map<PlayerEntity, Camp> camps = new HashMap<>();
+    private final Map<Player, Camp> camps = new HashMap<>();
 
     private long lastStep = 0;
     private long lastReverse = 0;
@@ -315,53 +315,53 @@ public class AutoPvp extends BlackOutModule {
 
     @EventHandler(priority = EventPriority.HIGHEST)
     private void onPacket(PacketEvent.Receive event) {
-        if (autoMessage.get() && event.packet instanceof PlayerRespawnS2CPacket)
+        if (autoMessage.get() && event.packet instanceof ClientboundRespawnPacket)
             ChatUtils.sendPlayerMsg(onSpawn.get());
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
     private void onMove(PlayerMoveEvent event) {
         if (!inRange || shouldSuicide) {
-            if (lastPos == null) lastPos = mc.player.getBlockPos();
+            if (lastPos == null) lastPos = mc.player.blockPosition();
 
-            if (mc.player.getBlockPos().equals(lastPos)) stuckTimer++;
+            if (mc.player.blockPosition().equals(lastPos)) stuckTimer++;
             else stuckTimer = 0;
 
 
-            lastPos = mc.player.getBlockPos();
+            lastPos = mc.player.blockPosition();
 
             if (path == null || path.path.isEmpty()) return;
 
-            move(event.movement, path.path.get(0).pos().toCenterPos());
+            move(event.movement, path.path.get(0).pos().getCenter());
             return;
         }
 
         if (surroundMove.get()) {
             BlockPos walkPos = getSurroundWalk();
 
-            if (walkPos != null) move(event.movement, walkPos.toCenterPos());
+            if (walkPos != null) move(event.movement, walkPos.getCenter());
         }
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
     private void onRender(Render3DEvent event) {
-        if (mc.player == null || mc.world == null) return;
+        if (mc.player == null || mc.level == null) return;
 
 
-        mc.world.getPlayers().forEach(player -> {
+        mc.level.players().forEach(player -> {
             if (camps.containsKey(player)) {
                 Camp camp = camps.get(player);
 
-                if (player.getBlockPos().equals(camp.pos)) return;
+                if (player.blockPosition().equals(camp.pos)) return;
 
                 camps.remove(player);
             }
 
-            camps.put(player, new Camp(player.getBlockPos(), System.currentTimeMillis()));
+            camps.put(player, new Camp(player.blockPosition(), System.currentTimeMillis()));
         });
 
-        if (mc.currentScreen instanceof DeathScreen && System.currentTimeMillis() - lastRespawn > 1000) {
-            mc.player.requestRespawn();
+        if (mc.screen instanceof DeathScreen && System.currentTimeMillis() - lastRespawn > 1000) {
+            mc.player.respawn();
             lastRespawn = System.currentTimeMillis();
         }
 
@@ -390,8 +390,8 @@ public class AutoPvp extends BlackOutModule {
 
         if (rotate.get()) {
             Managers.ROTATION.start(
-                RotationUtils.getYaw(mc.player.getEyePos(), target.getEyePos()),
-                RotationUtils.getPitch(mc.player.getEyePos(), target.getEyePos()),
+                RotationUtils.getYaw(mc.player.getEyePosition(), target.getEyePosition()),
+                RotationUtils.getPitch(mc.player.getEyePosition(), target.getEyePosition()),
                 priority, RotationType.Other, Objects.hash(name + "stare"));
         }
 
@@ -403,24 +403,24 @@ public class AutoPvp extends BlackOutModule {
 
         if (shouldSuicide) {
             if (baritone.get())
-                BaritoneAPI.getProvider().getPrimaryBaritone().getCustomGoalProcess().setGoalAndPath(new GoalRunAway(50, target.getBlockPos()));
-            else path = RaksuTone.runAway(3, target.getBlockPos());
+                BaritoneAPI.getProvider().getPrimaryBaritone().getCustomGoalProcess().setGoalAndPath(new GoalRunAway(50, target.blockPosition()));
+            else path = RaksuTone.runAway(3, target.blockPosition());
 
             return;
         }
 
         if (!inRange && (mc.player.getY() > 100 || baritone.get())) {
-            BaritoneAPI.getProvider().getPrimaryBaritone().getCustomGoalProcess().setGoalAndPath(new GoalNear(target.getBlockPos(), 3));
+            BaritoneAPI.getProvider().getPrimaryBaritone().getCustomGoalProcess().setGoalAndPath(new GoalNear(target.blockPosition(), 3));
             path = null;
         } else {
             BaritoneAPI.getProvider().getPrimaryBaritone().getCustomGoalProcess().setGoalAndPath(null);
 
             if (!baritone.get())
-                path = RaksuTone.getPath(3, target.getBlockPos());
+                path = RaksuTone.getPath(3, target.blockPosition());
         }
     }
 
-    private void move(Vec3d movement, Vec3d vec) {
+    private void move(Vec3 movement, Vec3 vec) {
         MovementUtils.moveTowards(movement, 0.2873, vec,
             System.currentTimeMillis() - lastStep > stepCooldown.get() * 1000 ? 2 : 0,
             System.currentTimeMillis() - lastReverse > rStepCooldown.get() * 1000 ? 3 : 0);
@@ -430,7 +430,7 @@ public class AutoPvp extends BlackOutModule {
     }
 
     private BlockPos getSurroundWalk() {
-        Hole hole = getHole(mc.player.getBlockPos());
+        Hole hole = getHole(mc.player.blockPosition());
 
         if (hole == null) return null;
 
@@ -439,15 +439,15 @@ public class AutoPvp extends BlackOutModule {
         for (BlockPos pos : hole.positions) {
             if (closest == null ||
                 (target != null &&
-                    pos.toCenterPos().distanceTo(target.getEntityPos()) <
-                        closest.toCenterPos().distanceTo(target.getEntityPos()))) {
+                    pos.getCenter().distanceTo(target.position()) <
+                        closest.getCenter().distanceTo(target.position()))) {
                 closest = pos;
             }
         }
         return closest;
     }
 
-    private boolean isCamper(PlayerEntity player) {
+    private boolean isCamper(Player player) {
         return antiCamp.get() && camps.containsKey(player) && System.currentTimeMillis() - camps.get(player).time > antiCampSeconds.get() * 1000;
     }
 
@@ -455,7 +455,7 @@ public class AutoPvp extends BlackOutModule {
         Predicate<ItemStack> food = getFood();
 
         if (food == null) {
-            if (eatingSlot > -1) mc.options.useKey.setPressed(false);
+            if (eatingSlot > -1) mc.options.keyUse.setDown(false);
             return;
         }
 
@@ -465,7 +465,7 @@ public class AutoPvp extends BlackOutModule {
 
         if (eatingSlot != slot || (!mc.player.isUsingItem())) {
             eatingSlot = slot;
-            mc.options.useKey.setPressed(true);
+            mc.options.keyUse.setDown(true);
             Utils.rightClick();
         }
     }
@@ -477,7 +477,7 @@ public class AutoPvp extends BlackOutModule {
         if (speedPotion.get() &&
             hp >= speedHealth.get() &&
             available(this::isSpeed) &&
-            !mc.player.hasStatusEffect(StatusEffects.SPEED))
+            !mc.player.hasEffect(MobEffects.SPEED))
             return this::isSpeed;
 
         if (chorus.get() &&
@@ -499,8 +499,8 @@ public class AutoPvp extends BlackOutModule {
     }
 
     private boolean isSpeed(ItemStack stack) {
-        for (StatusEffectInstance instance : stack.getOrDefault(DataComponentTypes.POTION_CONTENTS, PotionContentsComponent.DEFAULT).getEffects()) {
-            if (instance.getEffectType() == StatusEffects.SPEED)
+        for (MobEffectInstance instance : stack.getOrDefault(DataComponents.POTION_CONTENTS, PotionContents.EMPTY).getAllEffects()) {
+            if (instance.getEffect() == MobEffects.SPEED)
                 return true;
         }
         return false;
@@ -512,7 +512,7 @@ public class AutoPvp extends BlackOutModule {
         return goal == null ? Math.abs(mc.player.getBlockX() - target.getBlockX()) < 5 &&
             Math.abs(mc.player.getBlockZ() - target.getBlockZ()) < 5 &&
             Math.abs(mc.player.getBlockY() - target.getBlockY()) < 5 :
-            goal.isInGoal(mc.player.getBlockPos());
+            goal.isInGoal(mc.player.blockPosition());
     }
 
     private void command(String command) {
@@ -538,8 +538,8 @@ public class AutoPvp extends BlackOutModule {
 
     private int amountOf(Predicate<ItemStack> predicate) {
         int a = 0;
-        for (int i = 0; i < mc.player.getInventory().size(); i++) {
-            ItemStack stack = mc.player.getInventory().getStack(i);
+        for (int i = 0; i < mc.player.getInventory().getContainerSize(); i++) {
+            ItemStack stack = mc.player.getInventory().getItem(i);
 
             if (!predicate.test(stack)) continue;
 
@@ -549,9 +549,9 @@ public class AutoPvp extends BlackOutModule {
     }
 
     private void updateTarget() {
-        PlayerEntity closest = null;
+        Player closest = null;
 
-        for (PlayerEntity pl : mc.world.getPlayers()) {
+        for (Player pl : mc.level.players()) {
             if (pl == mc.player) continue;
 
             if (pl.isSpectator()) continue;
@@ -560,7 +560,7 @@ public class AutoPvp extends BlackOutModule {
 
             if (pl.getHealth() <= 0) continue;
 
-            if (antiBurrow.get() && OLEPOSSUtils.collidable(pl.getBlockPos())) continue;
+            if (antiBurrow.get() && OLEPOSSUtils.collidable(pl.blockPosition())) continue;
 
             if (isCamper(pl)) continue;
 
@@ -593,26 +593,26 @@ public class AutoPvp extends BlackOutModule {
         // DoubleX
         if (HoleUtils.getHole(pos, 1).type == HoleType.DoubleX) return HoleUtils.getHole(pos, 1);
 
-        if (HoleUtils.getHole(pos.add(-1, 0, 0), 1).type == HoleType.DoubleX)
-            return HoleUtils.getHole(pos.add(-1, 0, 0), 1);
+        if (HoleUtils.getHole(pos.offset(-1, 0, 0), 1).type == HoleType.DoubleX)
+            return HoleUtils.getHole(pos.offset(-1, 0, 0), 1);
 
         // DoubleZ
         if (HoleUtils.getHole(pos, 1).type == HoleType.DoubleZ) return HoleUtils.getHole(pos, 1);
 
-        if (HoleUtils.getHole(pos.add(0, 0, -1), 1).type == HoleType.DoubleZ)
-            return HoleUtils.getHole(pos.add(0, 0, -1), 1);
+        if (HoleUtils.getHole(pos.offset(0, 0, -1), 1).type == HoleType.DoubleZ)
+            return HoleUtils.getHole(pos.offset(0, 0, -1), 1);
 
         // Quad
         if (HoleUtils.getHole(pos, 1).type == HoleType.Quad) return HoleUtils.getHole(pos, 1);
 
-        if (HoleUtils.getHole(pos.add(-1, 0, -1), 1).type == HoleType.Quad)
-            return HoleUtils.getHole(pos.add(-1, 0, -1), 1);
+        if (HoleUtils.getHole(pos.offset(-1, 0, -1), 1).type == HoleType.Quad)
+            return HoleUtils.getHole(pos.offset(-1, 0, -1), 1);
 
-        if (HoleUtils.getHole(pos.add(-1, 0, 0), 1).type == HoleType.Quad)
-            return HoleUtils.getHole(pos.add(-1, 0, 0), 1);
+        if (HoleUtils.getHole(pos.offset(-1, 0, 0), 1).type == HoleType.Quad)
+            return HoleUtils.getHole(pos.offset(-1, 0, 0), 1);
 
-        if (HoleUtils.getHole(pos.add(0, 0, -1), 1).type == HoleType.Quad)
-            return HoleUtils.getHole(pos.add(0, 0, -1), 1);
+        if (HoleUtils.getHole(pos.offset(0, 0, -1), 1).type == HoleType.Quad)
+            return HoleUtils.getHole(pos.offset(0, 0, -1), 1);
 
         return null;
     }

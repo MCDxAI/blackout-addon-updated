@@ -4,7 +4,7 @@ import kassuk.addon.blackout.BlackOut;
 import kassuk.addon.blackout.BlackOutModule;
 import meteordevelopment.meteorclient.events.entity.player.PlayerMoveEvent;
 import meteordevelopment.meteorclient.events.world.TickEvent;
-import meteordevelopment.meteorclient.mixininterface.IVec3d;
+import meteordevelopment.meteorclient.mixininterface.IVec3;
 import meteordevelopment.meteorclient.settings.*;
 import meteordevelopment.meteorclient.systems.modules.Modules;
 import meteordevelopment.meteorclient.systems.modules.world.Timer;
@@ -101,7 +101,7 @@ public class FlightPlus extends BlackOutModule {
 
     @Override
     public void onActivate() {
-        if (mc.player != null && mc.world != null){
+        if (mc.player != null && mc.level != null){
             startY = mc.player.getY();
             Modules.get().get(Timer.class).setOverride(timer.get());
         }
@@ -109,15 +109,15 @@ public class FlightPlus extends BlackOutModule {
 
     @EventHandler
     private void onMove(PlayerMoveEvent event){
-        if (mc.player != null && mc.world != null){
-            double[] result = getYaw(mc.player.input.getMovementInput().y, mc.player.input.getMovementInput().x);
+        if (mc.player != null && mc.level != null){
+            double[] result = getYaw(mc.player.input.getMoveVector().y, mc.player.input.getMoveVector().x);
             float yaw = (float) result[0] + 90;
             double x = 0, y = tick % antiKickDelay.get() == 0 ? antiKickAmount.get() * -0.04 : 0, z = 0;
             if (flyMode.get().equals(FlightMode.Momentum)){
-                if (mc.options.jumpKey.isPressed() && y == 0){
+                if (mc.options.keyJump.isDown() && y == 0){
                     y = ySpeed.get();
                 }
-                else if (mc.options.sneakKey.isPressed()){
+                else if (mc.options.keyShift.isDown()){
                     y = -ySpeed.get();
                 }
                 if (result[1] == 1){
@@ -125,29 +125,29 @@ public class FlightPlus extends BlackOutModule {
                     z = Math.sin(Math.toRadians(yaw)) * speed.get();
 
                 }
-                ((IVec3d) event.movement).meteor$set(x, y, z);
+                ((IVec3) event.movement).meteor$set(x, y, z);
             }
             if (flyMode.get().equals(FlightMode.Jump)){
-                if (mc.options.jumpKey.wasPressed()){
-                    mc.player.jump();
+                if (mc.options.keyJump.consumeClick()){
+                    mc.player.jumpFromGround();
                     startY += 0.4;
                 }
-                if (mc.options.sneakKey.wasPressed() && !mc.options.sneakKey.isPressed()){
+                if (mc.options.keyShift.consumeClick() && !mc.options.keyShift.isDown()){
                     startY = mc.player.getY();
                 }
 
-                if (keepY.get() && mc.player.getY() <= startY && !mc.options.sneakKey.isPressed())
-                    mc.player.jump();
+                if (keepY.get() && mc.player.getY() <= startY && !mc.options.keyShift.isDown())
+                    mc.player.jumpFromGround();
                 if (result[1] == 1){
                     x = Math.cos(Math.toRadians(yaw)) * speed.get();
                     z = Math.sin(Math.toRadians(yaw)) * speed.get();
 
                 }
-                ((IVec3d) event.movement).meteor$setXZ(x, z);
+                ((IVec3) event.movement).meteor$setXZ(x, z);
             }
             if (flyMode.get().equals(FlightMode.Glide)){
-                if (!mc.player.isOnGround())
-                    ((IVec3d) event.movement).meteor$setY(-glideAmount.get());
+                if (!mc.player.onGround())
+                    ((IVec3) event.movement).meteor$setY(-glideAmount.get());
 
             }
         }
@@ -160,13 +160,13 @@ public class FlightPlus extends BlackOutModule {
 
     @Override
     public void onDeactivate(){
-        if (mc.player != null && mc.world != null){
+        if (mc.player != null && mc.level != null){
             Modules.get().get(Timer.class).setOverride(1);
         }
     }
 
     private double[] getYaw(double f, double s) {
-        double yaw = mc.player.getYaw();
+        double yaw = mc.player.getYRot();
         double move;
         if (f > 0) {
             move = 1;

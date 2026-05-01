@@ -1,9 +1,9 @@
 package kassuk.addon.blackout.utils;
 
-import meteordevelopment.meteorclient.mixininterface.IVec3d;
-import net.minecraft.entity.effect.StatusEffects;
-import net.minecraft.util.math.Box;
-import net.minecraft.util.math.Vec3d;
+import meteordevelopment.meteorclient.mixininterface.IVec3;
+import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 
 import static meteordevelopment.meteorclient.MeteorClient.mc;
 
@@ -15,21 +15,21 @@ public class MovementUtils {
         return Math.sin(Math.toRadians(yaw + 90)) * speed;
     }
     public static double getSpeed(double baseSpeed) {
-        if (mc.player.hasStatusEffect(StatusEffects.SPEED)) {
-            baseSpeed *= 1.2 + mc.player.getStatusEffect(StatusEffects.SPEED).getAmplifier() * 0.2;
+        if (mc.player.hasEffect(MobEffects.SPEED)) {
+            baseSpeed *= 1.2 + mc.player.getEffect(MobEffects.SPEED).getAmplifier() * 0.2;
         }
-        if (mc.player.hasStatusEffect(StatusEffects.SLOWNESS)) {
-            baseSpeed /= 1.2 + mc.player.getStatusEffect(StatusEffects.SLOWNESS).getAmplifier() * 0.2;
+        if (mc.player.hasEffect(MobEffects.SLOWNESS)) {
+            baseSpeed /= 1.2 + mc.player.getEffect(MobEffects.SLOWNESS).getAmplifier() * 0.2;
         }
-        if (mc.player.isSneaking()) {
+        if (mc.player.isShiftKeyDown()) {
             baseSpeed *= 0.3;
         }
         return baseSpeed;
     }
-    public static void moveTowards(Vec3d movement, double baseSpeed, Vec3d vec, int step, int reverseStep) {
+    public static void moveTowards(Vec3 movement, double baseSpeed, Vec3 vec, int step, int reverseStep) {
         double speed = getSpeed(baseSpeed);
 
-        double yaw = RotationUtils.getYaw(mc.player.getEntityPos(), vec);
+        double yaw = RotationUtils.getYaw(mc.player.position(), vec);
 
         double xm = xMovement(speed, yaw);
         double zm = zMovement(speed, yaw);
@@ -42,48 +42,48 @@ public class MovementUtils {
 
         y(movement, x, z, step, reverseStep);
 
-        ((IVec3d) movement).meteor$setXZ(x, z);
+        ((IVec3) movement).meteor$setXZ(x, z);
     }
 
-    private static void y(Vec3d movement, double x, double z, int step, int rev) {
+    private static void y(Vec3 movement, double x, double z, int step, int rev) {
         // Step
-        if (mc.player.isOnGround() &&
+        if (mc.player.onGround() &&
             !OLEPOSSUtils.inside(mc.player, mc.player.getBoundingBox()) &&
-            OLEPOSSUtils.inside(mc.player, mc.player.getBoundingBox().offset(x, 0, z))) {
+            OLEPOSSUtils.inside(mc.player, mc.player.getBoundingBox().move(x, 0, z))) {
 
-            double s = getStep(mc.player.getBoundingBox().offset(x, 0, z), step);
+            double s = getStep(mc.player.getBoundingBox().move(x, 0, z), step);
 
             if (s > 0) {
-                ((IVec3d) movement).meteor$setY(s);
-                mc.player.setVelocity(mc.player.getVelocity().x, 0, mc.player.getVelocity().z);
+                ((IVec3) movement).meteor$setY(s);
+                mc.player.setDeltaMovement(mc.player.getDeltaMovement().x, 0, mc.player.getDeltaMovement().z);
             }
             return;
         }
 
         // Reverse
-        if (mc.player.isOnGround() &&
-            !OLEPOSSUtils.inside(mc.player, mc.player.getBoundingBox().offset(x, -0.04, z))) {
+        if (mc.player.onGround() &&
+            !OLEPOSSUtils.inside(mc.player, mc.player.getBoundingBox().move(x, -0.04, z))) {
 
             double s = getReverse(mc.player.getBoundingBox(), rev);
 
             if (s > 0) {
-                ((IVec3d) movement).meteor$setY(-s);
-                mc.player.setVelocity(mc.player.getVelocity().x, 0, mc.player.getVelocity().z);
+                ((IVec3) movement).meteor$setY(-s);
+                mc.player.setDeltaMovement(mc.player.getDeltaMovement().x, 0, mc.player.getDeltaMovement().z);
             }
         }
     }
 
-    private static double getStep(Box box, int step) {
+    private static double getStep(AABB box, int step) {
         for (double i = 0; i <= step + 0.125; i += 0.125) {
-            if (!OLEPOSSUtils.inside(mc.player, box.offset(0, i, 0))) {
+            if (!OLEPOSSUtils.inside(mc.player, box.move(0, i, 0))) {
                 return i;
             }
         }
         return 0;
     }
-    private static double getReverse(Box box, int reverse) {
+    private static double getReverse(AABB box, int reverse) {
         for (double i = 0; i <= reverse; i += 0.125) {
-            if (OLEPOSSUtils.inside(mc.player, box.offset(0, -i - 0.125, 0))) {
+            if (OLEPOSSUtils.inside(mc.player, box.move(0, -i - 0.125, 0))) {
                 return i;
             }
         }

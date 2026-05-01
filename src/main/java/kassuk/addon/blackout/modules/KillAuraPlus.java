@@ -17,12 +17,12 @@ import meteordevelopment.meteorclient.utils.entity.DamageUtils;
 import meteordevelopment.meteorclient.utils.player.InvUtils;
 import meteordevelopment.meteorclient.utils.player.Rotations;
 import meteordevelopment.orbit.EventHandler;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.AxeItem;
-import net.minecraft.item.ItemStack;
-import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket;
-import net.minecraft.registry.tag.ItemTags;
-import net.minecraft.util.Hand;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.AxeItem;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.network.protocol.game.ServerboundInteractPacket;
+import net.minecraft.tags.ItemTags;
+import net.minecraft.world.InteractionHand;
 
 import java.util.Objects;
 
@@ -92,7 +92,7 @@ public class KillAuraPlus extends BlackOutModule {
     );
 
     private double timer = 0;
-    private PlayerEntity target = null;
+    private Player target = null;
 
     @EventHandler
     private void onRender(Render3DEvent event) {
@@ -107,7 +107,7 @@ public class KillAuraPlus extends BlackOutModule {
         boolean switched = false;
         switch (switchMode.get()) {
             case Disabled ->
-                switched = !onlyWeapon.get() || mc.player.getMainHandStack().isIn(ItemTags.SWORDS) || mc.player.getMainHandStack().getItem() instanceof AxeItem;
+                switched = !onlyWeapon.get() || mc.player.getMainHandItem().is(ItemTags.SWORDS) || mc.player.getMainHandItem().getItem() instanceof AxeItem;
             case Normal -> {
                 int slot = bestSlot(false);
                 if (slot >= 0) {
@@ -180,21 +180,21 @@ public class KillAuraPlus extends BlackOutModule {
     private void attackTarget() {
         timer = 0;
 
-        SettingUtils.swing(SwingState.Pre, SwingType.Attacking, Hand.MAIN_HAND);
+        SettingUtils.swing(SwingState.Pre, SwingType.Attacking, InteractionHand.MAIN_HAND);
 
-        sendPacket(PlayerInteractEntityC2SPacket.attack(target, mc.player.isSneaking()));
+        sendPacket(ServerboundInteractPacket.createAttackPacket(target, mc.player.isShiftKeyDown()));
 
-        SettingUtils.swing(SwingState.Post, SwingType.Attacking, Hand.MAIN_HAND);
-        if (swing.get()) clientSwing(swingHand.get(), Hand.MAIN_HAND);
+        SettingUtils.swing(SwingState.Post, SwingType.Attacking, InteractionHand.MAIN_HAND);
+        if (swing.get()) clientSwing(swingHand.get(), InteractionHand.MAIN_HAND);
     }
 
     private int bestSlot(boolean inventory) {
         int slot = -1;
         double hDmg = -1;
         double dmg;
-        for (int i = 0; i < (inventory ? mc.player.getInventory().size() + 1 : 9); i++) {
-            ItemStack stack = mc.player.getInventory().getStack(i);
-            if (onlyWeapon.get() && !(stack.getItem().getDefaultStack().isIn(ItemTags.SWORDS)) && !(stack.getItem() instanceof AxeItem)) {
+        for (int i = 0; i < (inventory ? mc.player.getInventory().getContainerSize() + 1 : 9); i++) {
+            ItemStack stack = mc.player.getInventory().getItem(i);
+            if (onlyWeapon.get() && !(stack.getItem().getDefaultInstance().is(ItemTags.SWORDS)) && !(stack.getItem() instanceof AxeItem)) {
                 continue;
             }
 
@@ -211,15 +211,15 @@ public class KillAuraPlus extends BlackOutModule {
         double value = 0;
         target = null;
 
-        mc.world.getPlayers().forEach(player -> {
+        mc.level.players().forEach(player -> {
             if (player.getHealth() <= 0 || player.isSpectator() || player.getHealth() + player.getAbsorptionAmount() > maxHp.get() || !SettingUtils.inAttackRange(player.getBoundingBox()) || player == mc.player || Friends.get().isFriend(player)) {
                 return;
             }
 
             double val = switch (targetMode.get()) {
                 case Health -> 10000 - player.getHealth() - player.getAbsorptionAmount();
-                case Angle -> 10000 - Math.abs(RotationUtils.yawAngle(mc.player.getYaw(), Rotations.getYaw(player)));
-                case Distance -> 10000 - mc.player.getEntityPos().distanceTo(player.getEntityPos());
+                case Angle -> 10000 - Math.abs(RotationUtils.yawAngle(mc.player.getYRot(), Rotations.getYaw(player)));
+                case Distance -> 10000 - mc.player.position().distanceTo(player.position());
             };
             if (val > value) {
                 target = player;

@@ -1,16 +1,16 @@
 package kassuk.addon.blackout.utils;
 
-import net.minecraft.block.BlockState;
-import net.minecraft.block.FluidBlock;
-import net.minecraft.block.StairsBlock;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Box;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.LiquidBlock;
+import net.minecraft.world.level.block.StairBlock;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 
 import static meteordevelopment.meteorclient.MeteorClient.mc;
 
 public class NCPRaytracer {
-    public static boolean raytrace(Vec3d from, Vec3d to, Box box) {
+    public static boolean raytrace(Vec3 from, Vec3 to, AABB box) {
         int lx = 0, ly = 0, lz = 0;
 
         for (float i = 0; i < 1; i += 0.001) {
@@ -30,7 +30,7 @@ public class NCPRaytracer {
 
                 BlockPos pos = new BlockPos(ix, iy, iz);
 
-                if (validForCheck(pos, mc.world.getBlockState(pos))) return false;
+                if (validForCheck(pos, mc.level.getBlockState(pos))) return false;
             }
 
             lx = ix;
@@ -46,10 +46,10 @@ public class NCPRaytracer {
 
     public static boolean validForCheck(BlockPos pos, BlockState state) {
         if (state.isSolid()) return true;
-        if (state.getBlock() instanceof FluidBlock) return false;
-        if (state.getBlock() instanceof StairsBlock) return false;
+        if (state.getBlock() instanceof LiquidBlock) return false;
+        if (state.getBlock() instanceof StairBlock) return false;
         if (state.hasBlockEntity()) return false;
 
-        return state.isFullCube(mc.world, pos);
+        return state.isCollisionShapeFullBlock(mc.level, pos);
     }
 }

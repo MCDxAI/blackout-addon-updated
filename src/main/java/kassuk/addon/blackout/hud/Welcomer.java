@@ -46,7 +46,7 @@ public class Welcomer extends HudElement {
 
     @Override
     public void render(HudRenderer renderer) {
-        if (mc.player == null || mc.world == null) {return;}
+        if (mc.player == null || mc.level == null) {return;}
 
         String text = "Welcome " + mc.player.getName().getString();
         setSize(renderer.textWidth(text, shadow.get(), scale.get()), renderer.textHeight(shadow.get(), scale.get()));

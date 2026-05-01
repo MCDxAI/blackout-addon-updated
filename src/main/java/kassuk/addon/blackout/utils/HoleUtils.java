@@ -1,8 +1,8 @@
 package kassuk.addon.blackout.utils;
 
 import kassuk.addon.blackout.enums.HoleType;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.core.BlockPos;
 
 /**
  * @author OLEPOSSU
@@ -67,40 +67,40 @@ public class HoleUtils {
     }
 
     static boolean isHole(BlockPos pos, int depth, boolean floor) {
-        if (floor && !isBlock(pos.down())) {
+        if (floor && !isBlock(pos.below())) {
             return false;
         }
 
         for (int i = 0; i < depth; i++) {
-            if (isBlock(pos.up(i))) {
+            if (isBlock(pos.above(i))) {
                 return false;
             }
         }
         return true;
     }
 
-    public static boolean inHole(PlayerEntity player) {
-        BlockPos pos = player.getBlockPos();
+    public static boolean inHole(Player player) {
+        BlockPos pos = player.blockPosition();
 
         if (getHole(pos, 1).type == HoleType.Single)
             return true;
 
         // DoubleX
         if (getHole(pos, 1).type == HoleType.DoubleX ||
-            getHole(pos.add(-1, 0, 0), 1).type == HoleType.DoubleX) {
+            getHole(pos.offset(-1, 0, 0), 1).type == HoleType.DoubleX) {
             return true;
         }
 
         // DoubleZ
         if (getHole(pos, 1).type == HoleType.DoubleZ ||
-            getHole(pos.add(0, 0, -1), 1).type == HoleType.DoubleZ) {
+            getHole(pos.offset(0, 0, -1), 1).type == HoleType.DoubleZ) {
             return true;
         }
 
         // Quad
         return getHole(pos, 1).type == HoleType.Quad ||
-            getHole(pos.add(-1, 0, -1), 1).type == HoleType.Quad ||
-            getHole(pos.add(-1, 0, 0), 1).type == HoleType.Quad ||
-            getHole(pos.add(0, 0, -1), 1).type == HoleType.Quad;
+            getHole(pos.offset(-1, 0, -1), 1).type == HoleType.Quad ||
+            getHole(pos.offset(-1, 0, 0), 1).type == HoleType.Quad ||
+            getHole(pos.offset(0, 0, -1), 1).type == HoleType.Quad;
     }
 }
