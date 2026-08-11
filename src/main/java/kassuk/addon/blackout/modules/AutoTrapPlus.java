@@ -553,10 +553,9 @@ public class AutoTrapPlus extends BlackOutModule {
     }
 
     private boolean crystalAt(BlockPos pos) {
-        for (Entity entity : mc.level.entitiesForRendering()) {
-            if (entity instanceof EndCrystal && entity.blockPosition().equals(pos)) {
-                return true;
-            }
+        for (Entity entity : mc.level.getEntities((Entity) null, new AABB(pos),
+            e -> e instanceof EndCrystal && e.blockPosition().equals(pos))) {
+            return true;
         }
         return false;
     }

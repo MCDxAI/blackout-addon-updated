@@ -443,10 +443,11 @@ public class Blocker extends BlackOutModule {
         Entity crystal = null;
         double lowest = 1000;
 
-        for (Entity entity : mc.level.entitiesForRendering()) {
-            if (!(entity instanceof EndCrystal)) continue;
-            if (mc.player.distanceTo(entity) > 5) continue;
-            if (!SettingUtils.inAttackRange(entity.getBoundingBox())) continue;
+        for (Entity entity : mc.level.getEntities(
+            (Entity) null, mc.player.getBoundingBox().inflate(5.0),
+            e -> e instanceof EndCrystal
+                && mc.player.distanceTo(e) <= 5
+                && SettingUtils.inAttackRange(e.getBoundingBox()))) {
 
             for (BlockPos pos : placePositions) {
                 if (!new AABB(pos).intersects(entity.getBoundingBox())) continue;

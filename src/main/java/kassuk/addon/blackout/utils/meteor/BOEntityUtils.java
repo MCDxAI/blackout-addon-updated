@@ -15,13 +15,13 @@ import static meteordevelopment.meteorclient.MeteorClient.mc;
 
 public class BOEntityUtils {
     public static boolean intersectsWithEntity(AABB box, Predicate<Entity> predicate, Map<AbstractClientPlayer, AABB> customBoxes) {
-        for (Entity entity : mc.level.entitiesForRendering()) {
-            AABB entityBox = entity instanceof Player && customBoxes.containsKey(entity)
-                ? customBoxes.get(entity)
-                : entity.getBoundingBox();
-            if (entityBox.intersects(box) && predicate.test(entity)) {
-                return true;
-            }
+        for (Entity entity : mc.level.getEntities((Entity) null, box, e -> {
+            AABB entityBox = e instanceof Player && customBoxes.containsKey(e)
+                ? customBoxes.get(e)
+                : e.getBoundingBox();
+            return entityBox.intersects(box) && predicate.test(e);
+        })) {
+            return true;
         }
         return false;
     }

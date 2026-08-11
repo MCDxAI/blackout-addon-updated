@@ -1053,10 +1053,9 @@ public class PistonCrystal extends BlackOutModule {
 
 
     private Entity crystalAt() {
-        for (Entity entity : mc.level.entitiesForRendering()) {
-            if (entity.blockPosition().equals(crystalPos)) {
-                return entity;
-            }
+        for (Entity entity : mc.level.getEntities((Entity) null, new AABB(crystalPos),
+            e -> e.blockPosition().equals(crystalPos))) {
+            return entity;
         }
         return null;
     }
