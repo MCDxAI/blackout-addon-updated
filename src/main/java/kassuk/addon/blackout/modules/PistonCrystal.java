@@ -29,7 +29,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
 import net.minecraft.network.protocol.game.ServerboundPlayerActionPacket;
-import net.minecraft.network.protocol.game.ServerboundInteractPacket;
+import net.minecraft.network.protocol.game.ServerboundAttackPacket;
 import net.minecraft.network.protocol.game.ServerboundMovePlayerPacket;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.level.block.AirBlock;
@@ -492,7 +492,7 @@ public class PistonCrystal extends BlackOutModule {
         if (System.currentTimeMillis() - lastAttack < 1000 / attackSpeed.get()) return;
 
         SettingUtils.swing(SwingState.Pre, SwingType.Attacking, InteractionHand.MAIN_HAND);
-        sendPacket(ServerboundInteractPacket.createAttackPacket(crystal, mc.player.isShiftKeyDown()));
+        sendPacket(new ServerboundAttackPacket(crystal.getId()));
         SettingUtils.swing(SwingState.Post, SwingType.Attacking, InteractionHand.MAIN_HAND);
 
         if (SettingUtils.shouldRotate(RotationType.Attacking)) Managers.ROTATION.end(Objects.hash(name + "attacking"));

@@ -39,7 +39,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.network.protocol.game.ServerboundInteractPacket;
+import net.minecraft.network.protocol.game.ServerboundAttackPacket;
 import net.minecraft.network.protocol.game.ServerboundMovePlayerPacket;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.sounds.SoundEvents;
@@ -366,7 +366,7 @@ public class SurroundPlus extends BlackOutModule {
         if (SettingUtils.shouldRotate(RotationType.Attacking) && !Managers.ROTATION.start(blocking.getBoundingBox(), priority - 0.1, RotationType.Attacking, Objects.hash(name + "attacking"))) return;
 
         SettingUtils.swing(SwingState.Pre, SwingType.Attacking, InteractionHand.MAIN_HAND);
-        sendPacket(ServerboundInteractPacket.createAttackPacket(blocking, mc.player.isShiftKeyDown()));
+        sendPacket(new ServerboundAttackPacket(blocking.getId()));
         SettingUtils.swing(SwingState.Post, SwingType.Attacking, InteractionHand.MAIN_HAND);
 
         if (SettingUtils.shouldRotate(RotationType.Attacking)) Managers.ROTATION.end(Objects.hash(name + "attacking"));
@@ -744,8 +744,8 @@ public class SurroundPlus extends BlackOutModule {
 
                 if (mc.level.getBlockState(p).getBlock().getExplosionResistance() > 600 && !p.equals(currentPos)) continue;
 
-                if (!insideBlocks.contains(pos.offset(x, 0, z).withY(currentPos.getY()))) {
-                    insideBlocks.add(pos.offset(x, 0, z).withY(currentPos.getY()));
+                if (!insideBlocks.contains(pos.offset(x, currentPos.getY() - pos.getY(), z))) {
+                    insideBlocks.add(pos.offset(x, currentPos.getY() - pos.getY(), z));
                 }
             }
         }

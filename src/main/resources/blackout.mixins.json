@@ -10,7 +10,6 @@
     "IClientboundMoveEntityPacket",
     "IClientboundRotateHeadPacket",
     "IClientboundEntityEventPacket",
-    "IInteractEntityC2SPacket",
     "IServerboundMovePlayerPacket",
     "IClipContext",
     "IClientboundSetCameraPacket",

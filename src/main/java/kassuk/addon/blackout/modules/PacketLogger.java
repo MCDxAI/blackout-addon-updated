@@ -14,6 +14,7 @@ import meteordevelopment.orbit.EventHandler;
 import meteordevelopment.orbit.EventPriority;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.PacketType;
 import net.minecraft.network.protocol.configuration.ServerboundFinishConfigurationPacket;
 import net.minecraft.network.protocol.handshake.ClientIntentionPacket;
 import net.minecraft.network.protocol.login.ServerboundLoginAcknowledgedPacket;
@@ -48,23 +49,23 @@ public class PacketLogger extends BlackOutModule {
     private final SettingGroup sgGeneral = settings.getDefaultGroup();
 
     // yoinked these settings from meteor
-    private final Setting<Set<Class<? extends Packet<?>>>> receivePackets = sgGeneral.add(new PacketListSetting.Builder()
+    private final Setting<Set<PacketType<? extends Packet<?>>>> receivePackets = sgGeneral.add(new PacketListSetting.Builder()
         .name("Receive")
         .description("Server-to-client packets to cancel.")
-        .filter(aClass -> PacketUtils.getS2CPackets().contains(aClass))
+        .filter(packetType -> PacketUtils.getClientboundPackets().contains(packetType))
         .build()
     );
 
-    private final Setting<Set<Class<? extends Packet<?>>>> sendPackets = sgGeneral.add(new PacketListSetting.Builder()
+    private final Setting<Set<PacketType<? extends Packet<?>>>> sendPackets = sgGeneral.add(new PacketListSetting.Builder()
         .name("Send")
         .description("Client-to-server packets to cancel.")
-        .filter(aClass -> PacketUtils.getC2SPackets().contains(aClass))
+        .filter(packetType -> PacketUtils.getServerboundPackets().contains(packetType))
         .build()
     );
 
     public void onSent(Packet<?> packet) {
         if (!isActive()) return;
-        if (sendPackets.get().contains(packet.getClass())) {
+        if (sendPackets.get().contains(packet.type())) {
             String message = packetMessage(packet);
 
             if (message == null) return;
@@ -74,7 +75,7 @@ public class PacketLogger extends BlackOutModule {
 
     @EventHandler(priority = EventPriority.HIGHEST + 1000000000)
     private void onReceive(PacketEvent.Receive event) {
-        if (receivePackets.get().contains(event.packet.getClass())) {
+        if (receivePackets.get().contains(event.packet.type())) {
             String message = packetMessage(event.packet);
 
             if (message == null) return;

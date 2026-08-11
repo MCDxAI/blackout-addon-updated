@@ -461,9 +461,9 @@ public class AutoCart extends BlackOutModule {
 
     private int countMinecartsAt(BlockPos pos) {
         AABB box = new AABB(pos).inflate(0.5);
-        return (int) mc.level.getEntities(null, box,
-            entity -> entity instanceof MinecartTNT && entity.isAlive()
-        ).size();
+        return (int) mc.level.getEntitiesOfClass(MinecartTNT.class, box).stream()
+            .filter(minecart -> minecart.isAlive())
+            .count();
     }
 
     private void placeRail(BlockPos pos) {

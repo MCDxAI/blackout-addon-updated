@@ -35,7 +35,7 @@ import net.minecraft.world.entity.boss.enderdragon.EndCrystal;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.network.protocol.game.ServerboundInteractPacket;
+import net.minecraft.network.protocol.game.ServerboundAttackPacket;
 import net.minecraft.network.protocol.game.ClientboundBlockDestructionPacket;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.sounds.SoundEvents;
@@ -431,7 +431,7 @@ public class Blocker extends BlackOutModule {
         if (SettingUtils.shouldRotate(RotationType.Attacking) && !Managers.ROTATION.start(blocking.getBoundingBox(), priority - 0.1, RotationType.Attacking, Objects.hash(name + "attacking"))) return;
 
         SettingUtils.swing(SwingState.Pre, SwingType.Attacking, InteractionHand.MAIN_HAND);
-        sendPacket(ServerboundInteractPacket.createAttackPacket(blocking, mc.player.isShiftKeyDown()));
+        sendPacket(new ServerboundAttackPacket(blocking.getId()));
         SettingUtils.swing(SwingState.Post, SwingType.Attacking, InteractionHand.MAIN_HAND);
 
         if (SettingUtils.shouldRotate(RotationType.Attacking)) Managers.ROTATION.end(Objects.hash(name + "attacking"));
@@ -545,7 +545,7 @@ public class Blocker extends BlackOutModule {
 
         if (!(item instanceof BlockItem block)) {return;}
 
-        mc.level.setBlock(pos, block.getBlock().defaultBlockState());
+        mc.level.setBlock(pos, block.getBlock().defaultBlockState(), 3);
         mc.level.playSound(mc.player, pos.getX(), pos.getY(), pos.getZ(), SoundEvents.STONE_PLACE, SoundSource.BLOCKS, 1, 1);
     }
 

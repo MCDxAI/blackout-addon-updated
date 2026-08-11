@@ -20,7 +20,7 @@ import meteordevelopment.orbit.EventHandler;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.AxeItem;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.network.protocol.game.ServerboundInteractPacket;
+import net.minecraft.network.protocol.game.ServerboundAttackPacket;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.world.InteractionHand;
 
@@ -182,7 +182,7 @@ public class KillAuraPlus extends BlackOutModule {
 
         SettingUtils.swing(SwingState.Pre, SwingType.Attacking, InteractionHand.MAIN_HAND);
 
-        sendPacket(ServerboundInteractPacket.createAttackPacket(target, mc.player.isShiftKeyDown()));
+        sendPacket(new ServerboundAttackPacket(target.getId()));
 
         SettingUtils.swing(SwingState.Post, SwingType.Attacking, InteractionHand.MAIN_HAND);
         if (swing.get()) clientSwing(swingHand.get(), InteractionHand.MAIN_HAND);

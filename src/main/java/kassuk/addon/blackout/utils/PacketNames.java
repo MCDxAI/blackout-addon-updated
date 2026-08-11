@@ -8,7 +8,6 @@ package kassuk.addon.blackout.utils;
 
 import com.mojang.authlib.properties.Property;
 import kassuk.addon.blackout.mixins.AccessorCompoundTag;
-import kassuk.addon.blackout.mixins.IInteractEntityC2SPacket;
 import net.minecraft.advancements.AdvancementHolder;
 import net.minecraft.network.protocol.common.*;
 import net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket;
@@ -239,14 +238,14 @@ public class PacketNames {
             StringBuilder builder = new StringBuilder("syncId: " + packet.containerId()
                 + " slot: " + packet.slotNum()
                 + " button: " + packet.buttonNum()
-                + " action: " + packet.clickType().name()
+                + " action: " + packet.containerInput().name()
                 + " revision: " + packet.stateId());
 
             builder.append(" modified: {");
             packet.changedSlots().forEach((i, stack) -> {
                 if (stack instanceof HashedStack.ActualItem impl) {
                     builder.append("\nslot ").append(i).append(": ")
-                        .append(impl.item().value().getName().getString())
+                        .append(impl.item().value().getName(new ItemStack(impl.item())).getString())
                         .append(" ").append(impl.count());
                 } else {
                     builder.append("\nslot ").append(i).append(": <empty or unknown>");
@@ -255,7 +254,7 @@ public class PacketNames {
             builder.append("\n} cursor: ");
 
             if (packet.carriedItem() instanceof HashedStack.ActualItem impl) {
-                builder.append(impl.item().value().getName().getString()).append(" ").append(impl.count());
+                builder.append(impl.item().value().getName(new ItemStack(impl.item())).getString()).append(" ").append(impl.count());
             } else {
                 builder.append("<empty>");
             }
@@ -275,7 +274,8 @@ public class PacketNames {
         c2s(ServerboundPlayerActionPacket.class, "PlayerAction", packet -> "action: " + packet.getAction().name() + "pos: " + packet.getPos().toShortString() + " direction: " + packet.getDirection().name() + " sequence: " + packet.getSequence());
         // FML // c2s(PlayerInputC2SPacket.class, "PlayerInput", packet -> "forward: " + packet.getForward() + " sideways: " + packet.getSideways() + " isJumping: " + packet.isJumping() + " isSneaking: " + packet.isSneaking());
         c2s(ServerboundUseItemOnPacket.class, "PlayerInteractBlock", packet -> "hand: " + packet.getHand().name() + " blockPos: " + packet.getHitResult().getBlockPos().toShortString() + " pos: " + packet.getHitResult().getLocation().toString() + " side: " + packet.getHitResult().getDirection() + " isInsideBlock: " + packet.getHitResult().isInside() + " type: " + packet.getHitResult().getType().name() + " sequence: " + packet.getSequence());
-        c2s(ServerboundInteractPacket.class, "PlayerInteractEntity", packet -> "id: " + ((IInteractEntityC2SPacket) packet).blackout$getId() + " type: " + ((IInteractEntityC2SPacket) packet).blackout$getAction().getType().name() + " isPlayerSneaking: " + packet.isUsingSecondaryAction());
+        c2s(ServerboundInteractPacket.class, "PlayerInteractEntity", packet -> "id: " + packet.entityId() + " hand: " + packet.hand() + " location: " + packet.location() + " isPlayerSneaking: " + packet.usingSecondaryAction());
+        c2s(ServerboundAttackPacket.class, "PlayerInteractAttack", packet -> "id: " + packet.entityId());
         c2s(ServerboundUseItemPacket.class, "PlayerInteractItem", packet -> "hand: " + packet.getHand().name() + " sequence: " + packet.getSequence());
 
         c2s(ServerboundMovePlayerPacket.PosRot.class, "PlayerMove Full", packet -> "x: " + packet.getX(0) + " y: " + packet.getY(0) + " z: " + packet.getZ(0) + " yaw: " + packet.getYRot(0) + " pitch: " + packet.getXRot(0) + " isOnGround: " + packet.isOnGround());
@@ -313,7 +313,7 @@ public class PacketNames {
         });
         c2s(ServerboundSetCommandBlockPacket.class, "UpdateCommandBlock", packet -> "command: " + packet.getCommand() + " pos: " + packet.getPos() + " isAlwaysActive: " + packet.isAutomatic() + " isConditional: " + packet.isConditional() + " shouldTrackOutput: " + packet.isTrackOutput() + " type: " + packet.getMode().name());
         c2s(ServerboundSetCommandMinecartPacket.class, "UpdateCommandBlockMinecart", packet -> "command: " + packet.getCommand() + " shouldTrackOutput: " + packet.isTrackOutput());
-        c2s(ServerboundChangeDifficultyPacket.class, "UpdateDifficulty", packet -> "difficulty: " + packet.difficulty().getKey());
+        c2s(ServerboundChangeDifficultyPacket.class, "UpdateDifficulty", packet -> "difficulty: " + packet.difficulty().getSerializedName());
         c2s(ServerboundLockDifficultyPacket.class, "UpdateDifficultyLock", packet -> "isDifficultyLocked: " + packet.isLocked());
         c2s(ServerboundSetJigsawBlockPacket.class, "UpdateJigsaw", packet -> "name: " + packet.getName().toString() + " pos: " + packet.getPos().toShortString() + " finalState: " + packet.getFinalState() + " jointType: " + packet.getJoint().getSerializedName() + " target: " + packet.getTarget().toString() + " pool: " + packet.getPool().toString() + " placementPriority: " + packet.getPlacementPriority() + " selectionPriority: " + packet.getSelectionPriority());
         c2s(ServerboundPlayerAbilitiesPacket.class, "UpdatePlayerAbilities", packet -> "isFlying: " + packet.isFlying());
@@ -469,7 +469,7 @@ public class PacketNames {
         s2c(ClientboundPlaceGhostRecipePacket.class, "CraftFailedResponse", packet -> "syncId: " + packet.containerId());
         s2c(ClientboundHurtAnimationPacket.class, "DamageTiltS2CPacket", packet -> "id: " + packet.id() + " yaw: " + packet.yaw());
         s2c(ClientboundPlayerCombatKillPacket.class, "DeathMessage", packet -> "playerId: " + packet.playerId() + " message: " + packet.message().getString());
-        s2c(ClientboundChangeDifficultyPacket.class, "Difficulty", packet -> "difficulty: " + packet.difficulty().getKey() + " isDifficultyLocked: " + packet.locked());
+        s2c(ClientboundChangeDifficultyPacket.class, "Difficulty", packet -> "difficulty: " + packet.difficulty().getSerializedName() + " isDifficultyLocked: " + packet.locked());
         s2c(ClientboundPlayerCombatEndPacket.class, "EndCombat");
         s2c(ClientboundPlayerCombatEnterPacket.class, "EnterCombat");
         s2c(ClientboundStartConfigurationPacket.class, "EnterReconfiguration");
@@ -506,7 +506,7 @@ public class PacketNames {
         });
         s2c(ClientboundSetEquipmentPacket.class, "EntityEquipmentUpdate", packet -> {
             StringBuilder builder = new StringBuilder("entityId: " + packet.getEntity() + " equipment: {");
-            packet.getSlots().forEach(pair -> builder.append("\n  type: ").append(pair.getFirst().getName()).append(" item: ").append(pair.getSecond().getItem().getName().getString()).append(" count: ").append(pair.getSecond().getCount()));
+            packet.getSlots().forEach(pair -> builder.append("\n  type: ").append(pair.getFirst().getName()).append(" item: ").append(pair.getSecond().getItem().getName(pair.getSecond()).getString()).append(" count: ").append(pair.getSecond().getCount()));
             builder.append("\n}");
             return builder.toString();
         });
@@ -531,7 +531,7 @@ public class PacketNames {
             builder.append("\n}");
             return builder.toString();
         });
-        s2c(ClientboundSetEntityMotionPacket.class, "EntityVelocityUpdate", packet -> "entityId: " + packet.getId() + " velocityX: " + packet.getMovement().x() + " velocityY: " + packet.getMovement().y() + " velocityZ: " + packet.getMovement().z());
+        s2c(ClientboundSetEntityMotionPacket.class, "EntityVelocityUpdate", packet -> "entityId: " + packet.id() + " velocityX: " + packet.movement().x() + " velocityY: " + packet.movement().y() + " velocityZ: " + packet.movement().z());
         s2c(ClientboundSetExperiencePacket.class, "ExperienceBarUpdate", packet -> "experience: " + packet.getExperienceLevel() + " barProgress: " + packet.getExperienceProgress() + " experienceLevel: " + packet.getTotalExperience());
         //s2c(ExperienceOrbSpawnS2CPacket.class, "ExperienceOrbSpawn", packet -> "entityId: " + packet.getEntityId() + " experience: " + packet.getExperience() + " x: " + packet.getX() + " y: " + packet.getY() + " z: " + packet.getZ());
 
@@ -559,10 +559,10 @@ public class PacketNames {
         s2c(ClientboundGameEventPacket.class, "GameStateChange", packet -> "value: " + packet.getParam());
         s2c(ClientboundSetHealthPacket.class, "HealthUpdate", packet -> "health: " + packet.getHealth() + " food: " + packet.getFood() + " saturation: " + packet.getSaturation());
         s2c(ClientboundContainerSetContentPacket.class, "Inventory", packet -> {
-            StringBuilder builder = new StringBuilder("syncId: " + packet.containerId() + " revision: " + packet.stateId() + "cursorStackItem: " + packet.carriedItem().getItem().getName().getString() + " cursorStackCount:" + packet.carriedItem().getCount() + " contents: {");
+            StringBuilder builder = new StringBuilder("syncId: " + packet.containerId() + " revision: " + packet.stateId() + "cursorStackItem: " + packet.carriedItem().getItem().getName(packet.carriedItem()).getString() + " cursorStackCount:" + packet.carriedItem().getCount() + " contents: {");
             for (int i = 0; i < packet.items().size(); i++) {
                 ItemStack stack = packet.items().get(i);
-                builder.append("\n  slot: ").append(i).append(" item: ").append(stack.getItem().getName().getString()).append(" count: ").append(stack.getCount());
+                builder.append("\n  slot: ").append(i).append(" item: ").append(stack.getItem().getName(stack).getString()).append(" count: ").append(stack.getCount());
             }
             builder.append("\n}");
             return builder.toString();
@@ -651,7 +651,7 @@ public class PacketNames {
         s2c(ClientboundResetScorePacket.class, "ScoreboardScoreReset", packet -> "objectiveName: " + packet.objectiveName() + " scoreHolderName: " + packet.owner());
         s2c(ClientboundSetScorePacket.class, "ScoreboardScoreUpdate", packet -> "objectiveName: " + packet.objectiveName() + " scoreHolderName: " + packet.owner() + " score: " + packet.score() + " display: " + packet.display().orElse(Component.nullToEmpty("null")).getString());
         s2c(ClientboundContainerSetDataPacket.class, "ScreenHandlerPropertyUpdate", packet -> "syncId: " + packet.getContainerId() + " propertyName: " + packet.getId() + " value: " + packet.getValue());
-        s2c(ClientboundContainerSetSlotPacket.class, "ScreenHandlerSlotUpdate", packet -> "syncId: " + packet.getContainerId() + " slot: " + packet.getSlot() + " revision: " + packet.getStateId() + " item: " + packet.getItem().getItem().getName() + " itemCount: " + packet.getItem().getCount());
+        s2c(ClientboundContainerSetSlotPacket.class, "ScreenHandlerSlotUpdate", packet -> "syncId: " + packet.getContainerId() + " slot: " + packet.getSlot() + " revision: " + packet.getStateId() + " item: " + packet.getItem().getItem().getName(packet.getItem()) + " itemCount: " + packet.getItem().getCount());
         s2c(ClientboundSelectAdvancementsTabPacket.class, "SelectAdvancementTab", packet -> "tabId: " + packet.getTab());
         s2c(ClientboundServerDataPacket.class, "ServerMetadata", packet -> "description: " + packet.motd().getString() + " favicon: " + (packet.iconBytes().isPresent() ? byteArrToString(packet.iconBytes().get()) : "null"));
         s2c(ClientboundSetCameraPacket.class, "SetCameraEntity");
@@ -661,8 +661,8 @@ public class PacketNames {
                 builder.append("\n  uses: " + offer.getUses() + " maxUses: " + offer.getMaxUses() + " demandBonus: " + offer.getDemand() + " hasBeenUsed: " + offer.needsRestock() + " disabled: " + offer.isOutOfStock() + " specialPrice: " + offer.getSpecialPriceDiff() + " merchantExperience: " + offer.getXp() + " shouldRewardPlayerExperience: " + offer.shouldRewardExp() + " firstBuyItem: " + offer.getItemCostA().item().getRegisteredName() + " secondBuyItem: ");
                 Optional<ItemCost> v = offer.getItemCostB();
                 builder.append(v.isPresent() ? v.get().item().getRegisteredName() : "null").append(" sellItem: ").append(offer.getResult().getHoverName().getString()).append(" sellItemCount: ").append(offer.getResult().getCount());
-                builder.append(" displayedFirstBuyItem: ").append(offer.getCostA().getItem().getName().getString()).append(" displayedFirstBuyItemCount: ").append(offer.getCostA().getCount()).append(" displayedSecondBuyItem: ").append(offer.getCostB().getItem().getName().getString()).append(" displayedSecondBuyItemCount: ").append(offer.getCostB().getCount());
-                builder.append(" originalFirstBuyItem: " + offer.getBaseCostA().getItem().getName().getString()).append(" originalFirstBuyItemCount: " + offer.getBaseCostA().getCount());
+                builder.append(" displayedFirstBuyItem: ").append(offer.getCostA().getItem().getName(offer.getCostA()).getString()).append(" displayedFirstBuyItemCount: ").append(offer.getCostA().getCount()).append(" displayedSecondBuyItem: ").append(offer.getCostB().getItem().getName(offer.getCostB()).getString()).append(" displayedSecondBuyItemCount: ").append(offer.getCostB().getCount());
+                builder.append(" originalFirstBuyItem: " + offer.getBaseCostA().getItem().getName(offer.getBaseCostA()).getString()).append(" originalFirstBuyItemCount: " + offer.getBaseCostA().getCount());
             });
             builder.append("\n}");
             return builder.toString();
@@ -744,7 +744,7 @@ public class PacketNames {
         s2c(ClientboundSetBorderWarningDistancePacket.class, "WorldBorderWarningBlocksChanged", packet -> "warningBlocks: " + packet.getWarningBlocks());
         s2c(ClientboundSetBorderWarningDelayPacket.class, "WorldBorderWarningTimeChanged", packet -> "warningTime: " + packet.getWarningDelay());
         s2c(ClientboundLevelEventPacket.class, "WorldEvent", packet -> "pos: " + packet.getPos().toShortString() + " data: " + packet.getData() + " eventId: " + packet.getType() + " isGlobal: " + packet.isGlobalEvent());
-        s2c(ClientboundSetTimePacket.class, "WorldTimeUpdate", packet -> "time: " + packet.gameTime() + " timeOfDay: " + packet.dayTime());
+        s2c(ClientboundSetTimePacket.class, "WorldTimeUpdate", packet -> "time: " + packet.gameTime());
 
         // query
         s2c(ClientboundPongResponsePacket.class, "PingResult", packet -> "startTime: " + packet.time());

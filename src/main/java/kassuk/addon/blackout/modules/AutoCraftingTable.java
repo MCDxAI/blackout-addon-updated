@@ -306,18 +306,18 @@ public class AutoCraftingTable extends BlackOutModule {
     private double value(BlockPos pos) {
         double val = 0;
         for (Direction dir : Direction.values()) {
-            val += getBlastRes(getBlock(pos.offset(dir)));
+            val += getBlastRes(getBlock(pos.relative(dir)));
         }
         return val;
     }
 
     private double getBlastRes(Block block) {
-        return block == Blocks.BEDROCK ? 1500 : block.getBlastResistance();
+        return block == Blocks.BEDROCK ? 1500 : block.getExplosionResistance();
     }
 
     private double distToEnemySQ(BlockPos pos) {
         double closest = Double.MAX_VALUE;
-        for (PlayerEntity player : mc.world.getPlayers()) {
+        for (Player player : mc.level.players()) {
             if (player == mc.player) {
                 continue;
             }
@@ -325,7 +325,7 @@ public class AutoCraftingTable extends BlackOutModule {
                 continue;
             }
 
-            double dist = player.getEyePos().distanceTo(Vec3d.ofCenter(pos));
+            double dist = player.getEyePosition().distanceTo(Vec3.atCenterOf(pos));
 
             if (dist < closest) {
                 closest = dist;
@@ -336,7 +336,7 @@ public class AutoCraftingTable extends BlackOutModule {
     }
 
     private Block getBlock(BlockPos pos) {
-        return mc.world.getBlockState(pos).getBlock();
+        return mc.level.getBlockState(pos).getBlock();
     }
 
     public enum SwitchMode {

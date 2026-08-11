@@ -232,21 +232,21 @@ public class RaytraceSettings extends BlackOutModule {
 
         switch (attackMode.get()) {
             case SinglePoint -> {
-                ((meteordevelopment.meteorclient.mixininterface.IClipContext) BODamageUtils.ClipContext).meteor$set(mc.player.getEyePosition(), new Vec3((box.minX + box.maxX) / 2f, box.minY + attackHeight.get(), (box.minZ + box.maxZ) / 2f), net.minecraft.world.level.ClipContext.Block.COLLIDER, net.minecraft.world.level.ClipContext.Fluid.NONE, mc.player);
+                ((meteordevelopment.meteorclient.mixininterface.IClipContext) BODamageUtils.raycastContext).meteor$set(mc.player.getEyePosition(), new Vec3((box.minX + box.maxX) / 2f, box.minY + attackHeight.get(), (box.minZ + box.maxZ) / 2f), net.minecraft.world.level.ClipContext.Block.COLLIDER, net.minecraft.world.level.ClipContext.Fluid.NONE, mc.player);
 
-                return BODamageUtils.raycast(BODamageUtils.ClipContext).getType() != HitResult.Type.BLOCK;
+                return BODamageUtils.raycast(BODamageUtils.raycastContext).getType() != HitResult.Type.BLOCK;
             }
             case DoublePoint -> {
-                ((meteordevelopment.meteorclient.mixininterface.IClipContext) BODamageUtils.ClipContext).meteor$set(mc.player.getEyePosition(), new Vec3((box.minX + box.maxX) / 2f, box.minY + attackHeight1.get(), (box.minZ + box.maxZ) / 2f), net.minecraft.world.level.ClipContext.Block.COLLIDER, net.minecraft.world.level.ClipContext.Fluid.NONE, mc.player);
-                if (BODamageUtils.raycast(BODamageUtils.ClipContext).getType() != HitResult.Type.BLOCK) {
+                ((meteordevelopment.meteorclient.mixininterface.IClipContext) BODamageUtils.raycastContext).meteor$set(mc.player.getEyePosition(), new Vec3((box.minX + box.maxX) / 2f, box.minY + attackHeight1.get(), (box.minZ + box.maxZ) / 2f), net.minecraft.world.level.ClipContext.Block.COLLIDER, net.minecraft.world.level.ClipContext.Fluid.NONE, mc.player);
+                if (BODamageUtils.raycast(BODamageUtils.raycastContext).getType() != HitResult.Type.BLOCK) {
                     return true;
                 }
 
-                ((meteordevelopment.meteorclient.mixininterface.IClipContext) BODamageUtils.ClipContext).meteor$set(mc.player.getEyePosition(), new Vec3((box.minX + box.maxX) / 2f, box.minY + attackHeight2.get(), (box.minZ + box.maxZ) / 2f), net.minecraft.world.level.ClipContext.Block.COLLIDER, net.minecraft.world.level.ClipContext.Fluid.NONE, mc.player);
-                return BODamageUtils.raycast(BODamageUtils.ClipContext).getType() != HitResult.Type.BLOCK;
+                ((meteordevelopment.meteorclient.mixininterface.IClipContext) BODamageUtils.raycastContext).meteor$set(mc.player.getEyePosition(), new Vec3((box.minX + box.maxX) / 2f, box.minY + attackHeight2.get(), (box.minZ + box.maxZ) / 2f), net.minecraft.world.level.ClipContext.Block.COLLIDER, net.minecraft.world.level.ClipContext.Fluid.NONE, mc.player);
+                return BODamageUtils.raycast(BODamageUtils.raycastContext).getType() != HitResult.Type.BLOCK;
             }
             case Exposure -> {
-                ((IVec3) vec).meteor$set(box.min, box.minY, box.minZ);
+                ((IVec3) vec).meteor$set(box.minX, box.minY, box.minZ);
                 double xw = box.maxX - box.minX;
                 double yh = box.maxY - box.minY;
                 double zw = box.maxZ - box.minZ;
@@ -293,7 +293,7 @@ public class RaytraceSettings extends BlackOutModule {
 
     private void updateContext() {
         if (ClipContext == null) {
-            ClipContext = new ClipContext(mc.player.getEyePosition(), null, ClipContext.Block.COLLIDER, ClipContext.Fluid.ANY, mc.player);
+            ClipContext = new net.minecraft.world.level.ClipContext(mc.player.getEyePosition(), null, net.minecraft.world.level.ClipContext.Block.COLLIDER, net.minecraft.world.level.ClipContext.Fluid.ANY, mc.player);
         } else {
             ((IClipContext) ClipContext).blackout$setFrom(mc.player.getEyePosition());
         }
