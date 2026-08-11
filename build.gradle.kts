@@ -21,6 +21,11 @@ repositories {
 
 dependencies {
     // Fabric
+    // MC 26.1.x ships de-obfuscated with Mojang official names, so Loom refuses an
+    // explicit officialMojangMappings() declaration: "Cannot use Mojang mappings in a
+    // non-obfuscated environment." The default (no mappings line) IS Mojang official —
+    // matching the mojmap-converted sources and the blackout.accesswidener (v2 official).
+    // Do NOT re-add a mappings(...) line; it cannot compile in this environment.
     minecraft(libs.minecraft)
     implementation(libs.fabric.loader)
 
