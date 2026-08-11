@@ -16,7 +16,5 @@ public interface IInteractEntityC2SPacket {
     @Accessor("entityId")
     int blackout$getId();
 
-    @Accessor("action")
-    ServerboundInteractPacket.Action blackout$getAction();
 }
 
