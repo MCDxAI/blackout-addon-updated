@@ -70,7 +70,7 @@ if (-not $SkipBuild) {
     Write-Step "Building harness jar ($($variantConfig.GradleTask)) ..."
     Push-Location $HarnessDir
     try {
-        & .\gradlew.bat $variantConfig.GradleTask --console=plain --no-daemon
+        & (Join-Path $HarnessDir "gradlew.bat") $variantConfig.GradleTask --console=plain --no-daemon
         if ($LASTEXITCODE -ne 0) { throw "Harness build failed (exit $LASTEXITCODE)." }
     }
     finally { Pop-Location }
@@ -97,8 +97,14 @@ if ($NoLaunch) { Write-Step "NoLaunch set -- staged only. Exiting."; return }
 # --- 3. launch blackout runClient detached ------------------------------------
 Write-Step "Launching BlackOut runClient (MC 26.1.2 + Meteor + BlackOut + harness) ..."
 # Start-Process so the client survives this script exiting.
+# NOTE: invoke the wrapper by FULL PATH. Agent/CI shells often set
+# NoDefaultCurrentDirectoryInExePath=1, which makes cmd.exe refuse to resolve a
+# bare `gradlew.bat` from the current directory ("is not recognized as an
+# internal or external command") even right after `cd /d` into the project.
+$gradlew = Join-Path $BlackoutDir "gradlew.bat"
+if (-not (Test-Path $gradlew)) { throw "Gradle wrapper not found: $gradlew" }
 Start-Process -FilePath "cmd.exe" `
-    -ArgumentList "/c","cd /d `"$BlackoutDir`" && gradlew.bat runClient --console=plain --no-daemon > `"$logPath`" 2>&1" `
+    -ArgumentList "/c","cd /d `"$BlackoutDir`" && `"$gradlew`" runClient --console=plain --no-daemon > `"$logPath`" 2>&1" `
     -WindowStyle Hidden -PassThru | Out-Null
 Write-Step "Client launching. Log: $logPath"
 
