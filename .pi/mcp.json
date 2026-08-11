@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "minecraft-dev": {
+      "command": "cmd.exe",
+      "args": [
+        "/c",
+        "node",
+        "./dist/index.js"
+      ],
+      "cwd": "C:\\Users\\coper\\Documents\\GitHub\\1mcp-servers\\minecraft-dev-mcp",
+      "env": {
+        "LOG_LEVEL": "INFO"
+      }
+    }
+  }
+}

@@ -36,6 +36,9 @@ remappedSrc/
 # libs (local dependencies - keep the directory but ignore jars, will be removed when baritone updates)
 libs/*.zip
 
+# references (local shallow clones of third-party addons — never committed)
+references/
+
 # MixinMCP auto-injected rules
 .cursor/rules/minecraft-mod-project.mdc
 .cursor/skills/mixin-writing/SKILL.md

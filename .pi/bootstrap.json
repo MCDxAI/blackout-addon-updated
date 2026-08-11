@@ -1,0 +1,129 @@
+{
+  "version": 1,
+  "createdAt": "2026-08-10T23:54:16.291Z",
+  "updatedAt": "2026-08-11T00:29:56.983Z",
+  "projectRoot": "C:\\Users\\coper\\Documents\\GitHub\\1meteor-addons-etc\\blackout-addon-updated",
+  "libraryRoot": "C:\\Users\\Coper\\Documents\\GitHub\\LLMTooling\\agent-skills",
+  "lastStatus": "updated",
+  "lastSummary": "Bootstrap complete for the BlackOut → Meteor/MC 26.1.x porting project. Brownfield Java/Fabric Loom project. Installed 6 library skills (meteor-addon, minecraft-fabric-dev, java-best-practices, spotless-java, best-practices, code-cleanup-final-pass) plus 1 author-created skill (minecraft-dev-mcp, documenting the 26 minecraft-dev MCP server tools from live schemas). Together with the pre-existing project-specific reference-addons skill, that's 8 project skills total. Generated 3 agents: port-engineer (primary, carries the dev/MCP/reference skills), mixin-mapping-specialist (owns mixin/Access-Widener/mapping validation against MC 1.21.11→26.1.2 via minecraft-dev MCP), and code-reviewer (Spotless + final-pass quality gate). All agents have full tool access and inherit the default model.",
+  "installedSkills": [
+    {
+      "archiveId": "best-practices-aeb2297148",
+      "skillName": "best-practices",
+      "archivePath": "C:\\Users\\Coper\\Documents\\GitHub\\LLMTooling\\agent-skills\\skills\\code-quality\\best-practices.skill",
+      "archiveRelativePath": "skills/code-quality/best-practices.skill",
+      "installedPath": "C:\\Users\\coper\\Documents\\GitHub\\1meteor-addons-etc\\blackout-addon-updated\\.pi\\skills\\best-practices",
+      "archiveMtimeMs": 1778106651291.0662,
+      "archiveSize": 7812,
+      "rootSkillPath": "SKILL.md",
+      "source": "library",
+      "installedAt": "2026-08-10T23:54:16.259Z"
+    },
+    {
+      "archiveId": "code-cleanup-final-pass-463d331577",
+      "skillName": "code-cleanup-final-pass",
+      "archivePath": "C:\\Users\\Coper\\Documents\\GitHub\\LLMTooling\\agent-skills\\skills\\code-quality\\code-cleanup-final-pass.skill",
+      "archiveRelativePath": "skills/code-quality/code-cleanup-final-pass.skill",
+      "installedPath": "C:\\Users\\coper\\Documents\\GitHub\\1meteor-addons-etc\\blackout-addon-updated\\.pi\\skills\\code-cleanup-final-pass",
+      "archiveMtimeMs": 1778106651291.0662,
+      "archiveSize": 4024,
+      "rootSkillPath": "SKILL.md",
+      "source": "library",
+      "installedAt": "2026-08-10T23:54:16.265Z"
+    },
+    {
+      "archiveId": "java-best-practices-a1d85dd5eb",
+      "skillName": "java-best-practices",
+      "archivePath": "C:\\Users\\Coper\\Documents\\GitHub\\LLMTooling\\agent-skills\\skills\\java-dev\\java-best-practices.skill",
+      "archiveRelativePath": "skills/java-dev/java-best-practices.skill",
+      "installedPath": "C:\\Users\\coper\\Documents\\GitHub\\1meteor-addons-etc\\blackout-addon-updated\\.pi\\skills\\java-best-practices",
+      "archiveMtimeMs": 1778106651318.5657,
+      "archiveSize": 15965,
+      "rootSkillPath": "SKILL.md",
+      "source": "library",
+      "installedAt": "2026-08-10T23:54:16.291Z"
+    },
+    {
+      "archiveId": "meteor-addon-9cac5a7d44",
+      "skillName": "meteor-addon",
+      "archivePath": "C:\\Users\\Coper\\Documents\\GitHub\\LLMTooling\\agent-skills\\skills\\game-dev\\meteor-addon.skill",
+      "archiveRelativePath": "skills/game-dev/meteor-addon.skill",
+      "installedPath": "C:\\Users\\coper\\Documents\\GitHub\\1meteor-addons-etc\\blackout-addon-updated\\.pi\\skills\\meteor-addon",
+      "archiveMtimeMs": 1778106651312.0662,
+      "archiveSize": 14758,
+      "rootSkillPath": "SKILL.md",
+      "source": "library",
+      "installedAt": "2026-08-10T23:54:16.283Z"
+    },
+    {
+      "archiveId": "minecraft-fabric-dev-56321a4178",
+      "skillName": "minecraft-fabric-dev",
+      "archivePath": "C:\\Users\\Coper\\Documents\\GitHub\\LLMTooling\\agent-skills\\skills\\game-dev\\minecraft-fabric-dev.skill",
+      "archiveRelativePath": "skills/game-dev/minecraft-fabric-dev.skill",
+      "installedPath": "C:\\Users\\coper\\Documents\\GitHub\\1meteor-addons-etc\\blackout-addon-updated\\.pi\\skills\\minecraft-fabric-dev",
+      "archiveMtimeMs": 1778106651312.0662,
+      "archiveSize": 8438,
+      "rootSkillPath": "SKILL.md",
+      "source": "library",
+      "installedAt": "2026-08-10T23:54:16.287Z"
+    },
+    {
+      "archiveId": "spotless-java-3feb5904a2",
+      "skillName": "spotless-java",
+      "archivePath": "C:\\Users\\Coper\\Documents\\GitHub\\LLMTooling\\agent-skills\\skills\\code-quality\\spotless-java.skill",
+      "archiveRelativePath": "skills/code-quality/spotless-java.skill",
+      "installedPath": "C:\\Users\\coper\\Documents\\GitHub\\1meteor-addons-etc\\blackout-addon-updated\\.pi\\skills\\spotless-java",
+      "archiveMtimeMs": 1778106651291.5662,
+      "archiveSize": 5438,
+      "rootSkillPath": "SKILL.md",
+      "source": "library",
+      "installedAt": "2026-08-10T23:54:16.273Z"
+    }
+  ],
+  "generatedAgents": [
+    {
+      "name": "code-reviewer",
+      "path": ".pi/agents/code-reviewer.md",
+      "generatedAt": "2026-08-11T00:29:56.983Z",
+      "skills": [
+        "java-best-practices",
+        "spotless-java",
+        "code-cleanup-final-pass",
+        "best-practices"
+      ],
+      "source": "bootstrap"
+    },
+    {
+      "name": "mixin-mapping-specialist",
+      "path": ".pi/agents/mixin-mapping-specialist.md",
+      "generatedAt": "2026-08-11T00:29:56.983Z",
+      "skills": [
+        "minecraft-dev-mcp",
+        "minecraft-fabric-dev"
+      ],
+      "source": "bootstrap"
+    },
+    {
+      "name": "port-engineer",
+      "path": ".pi/agents/port-engineer.md",
+      "generatedAt": "2026-08-11T00:29:56.983Z",
+      "skills": [
+        "meteor-addon",
+        "minecraft-fabric-dev",
+        "minecraft-dev-mcp",
+        "reference-addons",
+        "java-best-practices",
+        "best-practices"
+      ],
+      "source": "bootstrap"
+    }
+  ],
+  "migrationNotes": [
+    "No .claude agents or skills found — nothing to migrate.",
+    "Bootstrap agent-generation tools (bootstrap_generate_agents, bootstrap_update_manifest) required an explicit enable_bootstrap_tools activation mid-workflow before they became callable; the initial partial bootstrap toolset only exposed analyze/recommend/pick/install."
+  ],
+  "warnings": [
+    "mixin-mapping-specialist failed generation 3x with a transient 'Failed (exit 0)' error before succeeding on the 4th attempt; a stray placeholder mixin-specialist.md was created during diagnosis and has been deleted.",
+    "minecraft-dev-mcp skill was authored from the live MCP server's tool schemas during this bootstrap run; re-validate its references/tool-schemas.md if the minecraft-dev MCP server is updated upstream."
+  ]
+}
