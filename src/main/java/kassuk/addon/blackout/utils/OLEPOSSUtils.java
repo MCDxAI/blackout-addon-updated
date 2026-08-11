@@ -2,7 +2,6 @@ package kassuk.addon.blackout.utils;
 
 import kassuk.addon.blackout.mixins.IBlockSettings;
 import meteordevelopment.meteorclient.mixin.AbstractBlockAccessor;
-import net.minecraft.block.*;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.item.enchantment.ItemEnchantments;
@@ -16,7 +15,6 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.Identifier;
-import net.minecraft.util.math.*;
 import net.minecraft.world.level.block.AirBlock;
 import net.minecraft.world.level.block.BaseFireBlock;
 import net.minecraft.world.level.block.Block;

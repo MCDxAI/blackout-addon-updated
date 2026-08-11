@@ -44,7 +44,6 @@ import net.minecraft.network.protocol.game.ServerboundMovePlayerPacket;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.InteractionHand;
-import net.minecraft.util.math.*;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
@@ -670,20 +669,20 @@ public class SurroundPlus extends BlackOutModule {
                 continue;
             }
 
-            if (surroundBlocks.contains(pos.offset(dir)) || insideBlocks.contains(pos.offset(dir))) {continue;}
+            if (surroundBlocks.contains(pos.relative(dir)) || insideBlocks.contains(pos.relative(dir))) {continue;}
 
-            if (EntityUtils.intersectsWithEntity(Box.from(new BlockBox(pos.offset(dir))), entity -> entity instanceof PlayerEntity && !entity.isSpectator())) continue;
-            if (!SettingUtils.getPlaceData(pos.offset(dir)).valid()) continue;
-            if (!SettingUtils.inPlaceRange(pos.offset(dir))) continue;
+            if (EntityUtils.intersectsWithEntity(new AABB(pos.relative(dir)), entity -> entity instanceof Player && !entity.isSpectator())) continue;
+            if (!SettingUtils.getPlaceData(pos.relative(dir)).valid()) continue;
+            if (!SettingUtils.inPlaceRange(pos.relative(dir))) continue;
 
-            supportPositions.add(pos.offset(dir));
+            supportPositions.add(pos.relative(dir));
             return;
         }
     }
 
     private boolean hasSupport(BlockPos pos, boolean checkNext) {
         for (Direction dir : Direction.values()) {
-            if (supportPositions.contains(pos.offset(dir)) || (checkNext && hasSupport(pos.offset(dir), false))) {
+            if (supportPositions.contains(pos.relative(dir)) || (checkNext && hasSupport(pos.relative(dir), false))) {
                 return true;
             }
         }
@@ -694,7 +693,7 @@ public class SurroundPlus extends BlackOutModule {
         updateInsideBlocks();
         getSurroundBlocks();
 
-        insideBlocks.forEach(pos -> surroundBlocks.add(pos.down()));
+        insideBlocks.forEach(pos -> surroundBlocks.add(pos.below()));
     }
 
     private void updateInsideBlocks() {
@@ -703,21 +702,21 @@ public class SurroundPlus extends BlackOutModule {
         addBlocks(getPos(), getSize(mc.player));
 
         if (extend.get()) {
-            mc.world.getPlayers().stream().filter(player -> mc.player.distanceTo(player) < 5 && player != mc.player).sorted(Comparator.comparingDouble(player -> mc.player.distanceTo(player))).forEach(player -> {
+            mc.level.players().stream().filter(player -> mc.player.distanceTo(player) < 5 && player != mc.player).sorted(Comparator.comparingDouble(player -> mc.player.distanceTo(player))).forEach(player -> {
                 if (!intersects(player)) {
                     return;
                 }
 
-                addBlocks(player.getBlockPos(), getSize(player));
+                addBlocks(player.blockPosition(), getSize(player));
             });
         }
     }
 
-    private boolean intersects(PlayerEntity player) {
+    private boolean intersects(Player player) {
         getSurroundBlocks();
 
         for (BlockPos pos : surroundBlocks) {
-            if (player.getBoundingBox().intersects(Box.from(new BlockBox(pos)))) {
+            if (player.getBoundingBox().intersects(new AABB(pos))) {
                 return true;
             }
         }
@@ -729,10 +728,10 @@ public class SurroundPlus extends BlackOutModule {
         surroundBlocks.clear();
 
         insideBlocks.forEach(pos -> {
-            for (Direction dir : Direction.Type.HORIZONTAL) {
+            for (Direction dir : Direction.Plane.HORIZONTAL) {
 
-                if (!surroundBlocks.contains(pos.offset(dir)) && !insideBlocks.contains(pos.offset(dir))) {
-                    surroundBlocks.add(pos.offset(dir));
+                if (!surroundBlocks.contains(pos.relative(dir)) && !insideBlocks.contains(pos.relative(dir))) {
+                    surroundBlocks.add(pos.relative(dir));
                 }
             }
         });
@@ -741,23 +740,23 @@ public class SurroundPlus extends BlackOutModule {
     private void addBlocks(BlockPos pos, int[] size) {
         for (int x = size[0]; x <= size[1]; x++) {
             for (int z = size[2]; z <= size[3]; z++) {
-                BlockPos p = pos.add(x, 0, z);
+                BlockPos p = pos.offset(x, 0, z);
 
-                if (mc.world.getBlockState(p).getBlock().getBlastResistance() > 600 && !p.equals(currentPos)) continue;
+                if (mc.level.getBlockState(p).getBlock().getExplosionResistance() > 600 && !p.equals(currentPos)) continue;
 
-                if (!insideBlocks.contains(pos.add(x, 0, z).withY(currentPos.getY()))) {
-                    insideBlocks.add(pos.add(x, 0, z).withY(currentPos.getY()));
+                if (!insideBlocks.contains(pos.offset(x, 0, z).withY(currentPos.getY()))) {
+                    insideBlocks.add(pos.offset(x, 0, z).withY(currentPos.getY()));
                 }
             }
         }
     }
 
     private boolean validEntity(Entity entity) {
-        if (entity instanceof EndCrystalEntity && System.currentTimeMillis() - lastAttack < 100) {return false;}
+        if (entity instanceof EndCrystal && System.currentTimeMillis() - lastAttack < 100) {return false;}
         return !(entity instanceof ItemEntity);
     }
 
-    private int[] getSize(PlayerEntity player) {
+    private int[] getSize(Player player) {
         int[] size = new int[4];
 
         double x = player.getX() - player.getBlockX();

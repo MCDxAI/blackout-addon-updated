@@ -31,10 +31,9 @@ import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.InteractionHand;
-import net.minecraft.util.math.*;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.phys.AABB;
-
+import net.minecraft.world.phys.Vec3;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -407,20 +406,20 @@ public class SelfTrapPlus extends BlackOutModule {
 
             // 2 block support
             for (Direction dir : Direction.values()) {
-                if (!OLEPOSSUtils.replaceable(block.offset(dir)) || !SettingUtils.inPlaceRange(block.offset(dir))) {
+                if (!OLEPOSSUtils.replaceable(block.relative(dir)) || !SettingUtils.inPlaceRange(block.relative(dir))) {
                     continue;
                 }
 
-                Direction support2 = getSupport(block.offset(dir));
+                Direction support2 = getSupport(block.relative(dir));
 
                 if (support2 != null) {
                     render.add(new Render(block, false));
-                    render.add(new Render(block.offset(dir), true));
-                    render.add(new Render(block.offset(dir).offset(support2), true));
+                    render.add(new Render(block.relative(dir), true));
+                    render.add(new Render(block.relative(dir).relative(support2), true));
 
-                    if (!EntityUtils.intersectsWithEntity(Box.from(new BlockBox(block.offset(dir).offset(support2))), entity -> !entity.isSpectator() && !(entity instanceof ItemEntity)) &&
-                        !timers.contains(block.offset(dir).offset(support2))) {
-                        list.add(block.offset(dir).offset(support2));
+                    if (!EntityUtils.intersectsWithEntity(new AABB(block.relative(dir).relative(support2)), entity -> !entity.isSpectator() && !(entity instanceof ItemEntity)) &&
+                        !timers.contains(block.relative(dir).relative(support2))) {
+                        list.add(block.relative(dir).relative(support2));
                     }
                     return;
                 }
@@ -435,14 +434,14 @@ public class SelfTrapPlus extends BlackOutModule {
         int value = -1;
 
         for (Direction dir : Direction.values()) {
-            PlaceData data = onlyConfirmed.get() ? SettingUtils.getPlaceData(position.offset(dir)) : SettingUtils.getPlaceDataOR(position.offset(dir), placed::contains);
+            PlaceData data = onlyConfirmed.get() ? SettingUtils.getPlaceData(position.relative(dir)) : SettingUtils.getPlaceDataOR(position.relative(dir), placed::contains);
 
             if (!data.valid() || !SettingUtils.inPlaceRange(data.pos())) {
                 continue;
             }
 
-            if (!EntityUtils.intersectsWithEntity(Box.from(new BlockBox(position.offset(dir))), entity -> !entity.isSpectator() && entity.getType() != EntityType.ITEM)) {
-                double dist = mc.player.getEyePos().distanceTo(Vec3d.ofCenter(position.offset(dir)));
+            if (!EntityUtils.intersectsWithEntity(new AABB(position.relative(dir)), entity -> !entity.isSpectator() && entity.getType() != EntityType.ITEM)) {
+                double dist = mc.player.getEyePosition().distanceTo(Vec3.atCenterOf(position.relative(dir)));
 
                 if (dist < cDist || value < 2) {
                     value = 2;
@@ -451,8 +450,8 @@ public class SelfTrapPlus extends BlackOutModule {
                 }
             }
 
-            if (!EntityUtils.intersectsWithEntity(Box.from(new BlockBox(position.offset(dir))), entity -> !entity.isSpectator() && entity.getType() != EntityType.ITEM && entity.getType() != EntityType.END_CRYSTAL)) {
-                double dist = mc.player.getEyePos().distanceTo(Vec3d.ofCenter(position.offset(dir)));
+            if (!EntityUtils.intersectsWithEntity(new AABB(position.relative(dir)), entity -> !entity.isSpectator() && entity.getType() != EntityType.ITEM && entity.getType() != EntityType.END_CRYSTAL)) {
+                double dist = mc.player.getEyePosition().distanceTo(Vec3.atCenterOf(position.relative(dir)));
 
                 if (dist < cDist || value < 1) {
                     value = 1;
@@ -467,19 +466,19 @@ public class SelfTrapPlus extends BlackOutModule {
 
     private List<BlockPos> getBlocks(int[] size, boolean higher) {
         List<BlockPos> list = new ArrayList<>();
-        BlockPos pos = mc.player.getBlockPos().up(higher ? 2 : 1);
-        if (mc.player != null && mc.world != null) {
+        BlockPos pos = mc.player.blockPosition().above(higher ? 2 : 1);
+        if (mc.player != null && mc.level != null) {
             for (int x = size[0] - 1; x <= size[1] + 1; x++) {
                 for (int z = size[2] - 1; z <= size[3] + 1; z++) {
                     boolean isX = x == size[0] - 1 || x == size[1] + 1;
                     boolean isZ = z == size[2] - 1 || z == size[3] + 1;
-                    boolean ignore = isX && !isZ ? (!OLEPOSSUtils.replaceable(pos.add(OLEPOSSUtils.closerToZero(x), 0, z)) || placed.contains(pos.add(OLEPOSSUtils.closerToZero(x), 0, z))) :
-                        !isX && isZ && (!OLEPOSSUtils.replaceable(pos.add(x, 0, OLEPOSSUtils.closerToZero(z))) || placed.contains(pos.add(x, 0, OLEPOSSUtils.closerToZero(z))));
+                    boolean ignore = isX && !isZ ? (!OLEPOSSUtils.replaceable(pos.offset(OLEPOSSUtils.closerToZero(x), 0, z)) || placed.contains(pos.offset(OLEPOSSUtils.closerToZero(x), 0, z))) :
+                        !isX && isZ && (!OLEPOSSUtils.replaceable(pos.offset(x, 0, OLEPOSSUtils.closerToZero(z))) || placed.contains(pos.offset(x, 0, OLEPOSSUtils.closerToZero(z))));
                     BlockPos bPos = null;
                     if (eye() && isX != isZ && !ignore) {
-                        bPos = new BlockPos(x, pos.getY(), z).add(pos.getX(), 0, pos.getZ());
-                    } else if (top() && !isX && !isZ && OLEPOSSUtils.replaceable(pos.add(x, 0, z)) && !placed.contains(pos.add(x, 0, z))) {
-                        bPos = new BlockPos(x, pos.getY(), z).add(pos.getX(), 1, pos.getZ());
+                        bPos = new BlockPos(x, pos.getY(), z).offset(pos.getX(), 0, pos.getZ());
+                    } else if (top() && !isX && !isZ && OLEPOSSUtils.replaceable(pos.offset(x, 0, z)) && !placed.contains(pos.offset(x, 0, z))) {
+                        bPos = new BlockPos(x, pos.getY(), z).offset(pos.getX(), 1, pos.getZ());
                     }
                     if (bPos != null) {
                         list.add(bPos);
@@ -503,15 +502,15 @@ public class SelfTrapPlus extends BlackOutModule {
         int maxX = 0;
         int minZ = 0;
         int maxZ = 0;
-        if (mc.player != null && mc.world != null) {
-            Box box = mc.player.getBoundingBox();
-            if (box.intersects(Box.from(new BlockBox(pos.north())))) minZ--;
+        if (mc.player != null && mc.level != null) {
+            AABB box = mc.player.getBoundingBox();
+            if (box.intersects(new AABB(pos.north()))) minZ--;
 
-            if (box.intersects(Box.from(new BlockBox(pos.south())))) maxZ++;
+            if (box.intersects(new AABB(pos.south()))) maxZ++;
 
-            if (box.intersects(Box.from(new BlockBox(pos.west())))) minX--;
+            if (box.intersects(new AABB(pos.west()))) minX--;
 
-            if (box.intersects(Box.from(new BlockBox(pos.east())))) maxX++;
+            if (box.intersects(new AABB(pos.east()))) maxX++;
         }
         return new int[]{minX, maxX, minZ, maxZ};
     }

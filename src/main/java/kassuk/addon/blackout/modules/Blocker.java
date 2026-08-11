@@ -40,10 +40,9 @@ import net.minecraft.network.protocol.game.ClientboundBlockDestructionPacket;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.InteractionHand;
-import net.minecraft.util.math.*;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.phys.AABB;
-
+import net.minecraft.world.phys.Vec3;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -393,7 +392,7 @@ public class Blocker extends BlackOutModule {
                         if (!surroundFloorBottom.get() && dir == Direction.DOWN) continue;
                     }
 
-                    BlockPos pos = p.pos.offset(dir);
+                    BlockPos pos = p.pos.relative(dir);
 
                     if (!OLEPOSSUtils.replaceable(pos)) continue;
 
@@ -401,13 +400,13 @@ public class Blocker extends BlackOutModule {
                     if (!data.valid()) continue;
 
                     if (!SettingUtils.inPlaceRange(data.pos())) continue;
-                    if (EntityUtils.intersectsWithEntity(new Box(pos.getX(), pos.getY(), pos.getZ(), pos.getX() + 1, pos.getY() + 1, pos.getZ() + 1), this::validForIntersects)) continue;
+                    if (EntityUtils.intersectsWithEntity(new AABB(pos.getX(), pos.getY(), pos.getZ(), pos.getX() + 1, pos.getY() + 1, pos.getZ() + 1), this::validForIntersects)) continue;
 
                     placePositions.add(pos);
                 }
             }
             case 2, 3 -> {
-                BlockPos pos = p.pos.up();
+                BlockPos pos = p.pos.above();
 
                 if (!OLEPOSSUtils.replaceable(pos)) return;
 
@@ -415,7 +414,7 @@ public class Blocker extends BlackOutModule {
                 if (!data.valid()) return;
 
                 if (!SettingUtils.inPlaceRange(data.pos())) return;
-                if (EntityUtils.intersectsWithEntity(new Box(pos.getX(), pos.getY(), pos.getZ(), pos.getX() + 1, pos.getY() + 1, pos.getZ() + 1), this::validForIntersects)) return;
+                if (EntityUtils.intersectsWithEntity(new AABB(pos.getX(), pos.getY(), pos.getZ(), pos.getX() + 1, pos.getY() + 1, pos.getZ() + 1), this::validForIntersects)) return;
 
                 placePositions.add(pos);
             }
@@ -431,12 +430,12 @@ public class Blocker extends BlackOutModule {
         if (blocking == null) return;
         if (SettingUtils.shouldRotate(RotationType.Attacking) && !Managers.ROTATION.start(blocking.getBoundingBox(), priority - 0.1, RotationType.Attacking, Objects.hash(name + "attacking"))) return;
 
-        SettingUtils.swing(SwingState.Pre, SwingType.Attacking, Hand.MAIN_HAND);
-        sendPacket(PlayerInteractEntityC2SPacket.attack(blocking, mc.player.isSneaking()));
-        SettingUtils.swing(SwingState.Post, SwingType.Attacking, Hand.MAIN_HAND);
+        SettingUtils.swing(SwingState.Pre, SwingType.Attacking, InteractionHand.MAIN_HAND);
+        sendPacket(ServerboundInteractPacket.createAttackPacket(blocking, mc.player.isShiftKeyDown()));
+        SettingUtils.swing(SwingState.Post, SwingType.Attacking, InteractionHand.MAIN_HAND);
 
         if (SettingUtils.shouldRotate(RotationType.Attacking)) Managers.ROTATION.end(Objects.hash(name + "attacking"));
-        if (attackSwing.get()) clientSwing(attackHand.get(), Hand.MAIN_HAND);
+        if (attackSwing.get()) clientSwing(attackHand.get(), InteractionHand.MAIN_HAND);
 
         lastAttack = System.currentTimeMillis();
     }
@@ -445,15 +444,15 @@ public class Blocker extends BlackOutModule {
         Entity crystal = null;
         double lowest = 1000;
 
-        for (Entity entity : mc.world.getEntities()) {
-            if (!(entity instanceof EndCrystalEntity)) continue;
+        for (Entity entity : mc.level.entitiesForRendering()) {
+            if (!(entity instanceof EndCrystal)) continue;
             if (mc.player.distanceTo(entity) > 5) continue;
             if (!SettingUtils.inAttackRange(entity.getBoundingBox())) continue;
 
             for (BlockPos pos : placePositions) {
-                if (!Box.from(new BlockBox(pos)).intersects(entity.getBoundingBox())) continue;
+                if (!new AABB(pos).intersects(entity.getBoundingBox())) continue;
 
-                double dmg = BODamageUtils.crystalDamage(mc.player, mc.player.getBoundingBox(), entity.getEntityPos(), null, false);
+                double dmg = BODamageUtils.crystalDamage(mc.player, mc.player.getBoundingBox(), entity.position(), null, false);
                 if (dmg < lowest) {
                     crystal = entity;
                     lowest = dmg;
@@ -463,12 +462,12 @@ public class Blocker extends BlackOutModule {
         return crystal;
     }
 
-    private Hand getHand() {
+    private InteractionHand getHand() {
         if (valid(Managers.HOLDING.getStack())) {
-            return Hand.MAIN_HAND;
+            return InteractionHand.MAIN_HAND;
         }
-        if (valid(mc.player.getOffHandStack())) {
-            return Hand.OFF_HAND;
+        if (valid(mc.player.getOffhandItem())) {
+            return InteractionHand.OFF_HAND;
         }
         return null;
     }
@@ -528,9 +527,9 @@ public class Blocker extends BlackOutModule {
 
         if (!switched && hand == null) return;
 
-        placeBlock(hand == null ? Hand.MAIN_HAND : hand, data.pos().toCenterPos(), data.dir(), data.pos());
+        placeBlock(hand == null ? InteractionHand.MAIN_HAND : hand, data.pos().getCenter(), data.dir(), data.pos());
 
-        if (placeSwing.get()) clientSwing(placeHand.get(), hand == null ? Hand.MAIN_HAND : hand);
+        if (placeSwing.get()) clientSwing(placeHand.get(), hand == null ? InteractionHand.MAIN_HAND : hand);
 
         if (!packet.get()) setBlock(pos);
 
@@ -542,24 +541,24 @@ public class Blocker extends BlackOutModule {
     }
 
     private void setBlock(BlockPos pos) {
-        Item item = mc.player.getInventory().getStack(result.slot()).getItem();
+        Item item = mc.player.getInventory().getItem(result.slot()).getItem();
 
         if (!(item instanceof BlockItem block)) {return;}
 
-        mc.world.setBlockState(pos, block.getBlock().getDefaultState());
-        mc.world.playSound(mc.player, pos.getX(), pos.getY(), pos.getZ(), SoundEvents.BLOCK_STONE_PLACE, SoundCategory.BLOCKS, 1, 1);
+        mc.level.setBlock(pos, block.getBlock().defaultBlockState());
+        mc.level.playSound(mc.player, pos.getX(), pos.getY(), pos.getZ(), SoundEvents.STONE_PLACE, SoundSource.BLOCKS, 1, 1);
     }
 
     private boolean shouldProtect(ProtectBlock p) {
         BlockPos pos = p.pos;
         switch (p.type) {
             case 1 -> {
-                if (!OLEPOSSUtils.solid2(pos) || mc.world.getBlockState(pos).getBlock() == Blocks.BEDROCK) return false;
+                if (!OLEPOSSUtils.solid2(pos) || mc.level.getBlockState(pos).getBlock() == Blocks.BEDROCK) return false;
             }
             case 2, 3 -> {
-                if (mc.world.getBlockState(p.pos).getBlock() != Blocks.OBSIDIAN) return false;
-                if (!(mc.world.getBlockState(p.pos.up()).getBlock() instanceof AirBlock)) return false;
-                if (oldVer.get() && !(mc.world.getBlockState(p.pos.up(2)).getBlock() instanceof AirBlock)) return false;
+                if (mc.level.getBlockState(p.pos).getBlock() != Blocks.OBSIDIAN) return false;
+                if (!(mc.level.getBlockState(p.pos.above()).getBlock() instanceof AirBlock)) return false;
+                if (oldVer.get() && !(mc.level.getBlockState(p.pos.above(2)).getBlock() instanceof AirBlock)) return false;
             }
         }
 
@@ -572,7 +571,7 @@ public class Blocker extends BlackOutModule {
 
         if (onlyHole.get() && !HoleUtils.inHole(mc.player)) return;
 
-        BlockPos e = BlockPos.ofFloored(mc.player.getX(), mc.player.getBoundingBox().maxY, mc.player.getZ());
+        BlockPos e = BlockPos.containing(mc.player.getX(), mc.player.getBoundingBox().maxY, mc.player.getZ());
         BlockPos pos = new BlockPos(mc.player.getBlockX(), (int) Math.round(mc.player.getY()), mc.player.getBlockZ());
         int[] size = new int[4];
 
@@ -594,7 +593,7 @@ public class Blocker extends BlackOutModule {
 
         updateSurround(pos, size);
         if (trapCev.get()) updateEyes(e, size);
-        if (cev.get()) updateTop(e.up());
+        if (cev.get()) updateTop(e.above());
     }
 
     private void updateTop(BlockPos pos) {
@@ -604,7 +603,7 @@ public class Blocker extends BlackOutModule {
     private void updateEyes(BlockPos pos, int[] size) {
         for (int x = size[0] - 1; x <= size[1] + 1; x++) {
             for (int z = size[2] - 1; z <= size[3] + 1; z++) {
-                if (!(x == size[0] - 1 || x == size[1] + 1) || !(z == size[2] - 1 || z == size[3] + 1)) toProtect.add(new ProtectBlock(pos.add(x, 0, z), 2));
+                if (!(x == size[0] - 1 || x == size[1] + 1) || !(z == size[2] - 1 || z == size[3] + 1)) toProtect.add(new ProtectBlock(pos.offset(x, 0, z), 2));
             }
         }
     }
@@ -619,16 +618,16 @@ public class Blocker extends BlackOutModule {
 
                     if (by) {
                         if (!bx && !bz) {
-                            toProtect.add(new ProtectBlock(pos.add(x, y, z), 0));
+                            toProtect.add(new ProtectBlock(pos.offset(x, y, z), 0));
                         }
-                    } else if (!bx || !bz) toProtect.add(new ProtectBlock(pos.add(x, y, z), 1));
+                    } else if (!bx || !bz) toProtect.add(new ProtectBlock(pos.offset(x, y, z), 1));
                 }
             }
         }
     }
 
     private boolean validForIntersects(Entity entity) {
-        return !(entity instanceof ItemEntity) && !(entity instanceof EndCrystalEntity);
+        return !(entity instanceof ItemEntity) && !(entity instanceof EndCrystal);
     }
 
     private boolean damageCheck(BlockPos blockPos, int type) {
@@ -639,10 +638,10 @@ public class Blocker extends BlackOutModule {
                 for (int x = -2; x <= 2; x++) {
                     for (int y = -2; y <= 2; y++) {
                         for (int z = -2; z <= 2; z++) {
-                            BlockPos pos = blockPos.add(x, y, z);
+                            BlockPos pos = blockPos.offset(x, y, z);
 
-                            if (!(mc.world.getBlockState(pos).getBlock() instanceof AirBlock)) continue;
-                            if (oldVer.get() && !(mc.world.getBlockState(pos.up()).getBlock() instanceof AirBlock)) continue;
+                            if (!(mc.level.getBlockState(pos).getBlock() instanceof AirBlock)) continue;
+                            if (oldVer.get() && !(mc.level.getBlockState(pos.above()).getBlock() instanceof AirBlock)) continue;
 
                             double self = BODamageUtils.crystalDamage(mc.player, mc.player.getBoundingBox(), feet(pos), blockPos, true);
                             if (self >= maxDmg.get()) return true;
@@ -651,10 +650,10 @@ public class Blocker extends BlackOutModule {
                 }
             }
             case 2, 3 -> {
-                if (!(mc.world.getBlockState(blockPos).getBlock() instanceof AirBlock)) return false;
-                if (oldVer.get() && !(mc.world.getBlockState(blockPos.up()).getBlock() instanceof AirBlock)) return false;
+                if (!(mc.level.getBlockState(blockPos).getBlock() instanceof AirBlock)) return false;
+                if (oldVer.get() && !(mc.level.getBlockState(blockPos.above()).getBlock() instanceof AirBlock)) return false;
 
-                double self = BODamageUtils.crystalDamage(mc.player, mc.player.getBoundingBox(), feet(blockPos.up()), blockPos, true);
+                double self = BODamageUtils.crystalDamage(mc.player, mc.player.getBoundingBox(), feet(blockPos.above()), blockPos, true);
                 if (self >= maxDmg.get()) return true;
             }
         }
@@ -662,8 +661,8 @@ public class Blocker extends BlackOutModule {
         return false;
     }
 
-    private Vec3d feet(BlockPos pos) {
-        return new Vec3d(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5);
+    private Vec3 feet(BlockPos pos) {
+        return new Vec3(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5);
     }
 
     private boolean contains() {

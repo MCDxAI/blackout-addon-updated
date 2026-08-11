@@ -14,7 +14,6 @@ import meteordevelopment.meteorclient.utils.player.PlayerUtils;
 import meteordevelopment.orbit.EventHandler;
 import meteordevelopment.orbit.EventPriority;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
-import net.minecraft.item.*;
 import net.minecraft.network.protocol.game.ServerboundPlayerActionPacket;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.core.BlockPos;
