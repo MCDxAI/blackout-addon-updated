@@ -1,5 +1,8 @@
 package kassuk.addon.blackout.modules;
 
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Random;
 import kassuk.addon.blackout.BlackOut;
 import kassuk.addon.blackout.BlackOutModule;
 import meteordevelopment.meteorclient.events.packets.PacketEvent;
@@ -9,90 +12,102 @@ import meteordevelopment.meteorclient.systems.friends.Friends;
 import meteordevelopment.meteorclient.utils.player.ChatUtils;
 import meteordevelopment.orbit.EventHandler;
 import meteordevelopment.orbit.EventPriority;
+import net.minecraft.network.protocol.game.ClientboundEntityEventPacket;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.network.protocol.game.ClientboundEntityEventPacket;
-
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Random;
 
 /**
  * @author OLEPOSSU
  */
-
 public class AutoEz extends BlackOutModule {
-    public AutoEz() {
-        super(BlackOut.BLACKOUT, "Auto EZ", "Sends message after enemy dies (too EZ nn's).");
-    }
+  public AutoEz() {
+    super(BlackOut.BLACKOUT, "Auto EZ", "Sends message after enemy dies (too EZ nn's).");
+  }
 
-    private final SettingGroup sgGeneral = settings.getDefaultGroup();
-    private final SettingGroup sgKill = settings.createGroup("Kill");
-    private final SettingGroup sgPop = settings.createGroup("Pop");
+  private final SettingGroup sgGeneral = settings.getDefaultGroup();
+  private final SettingGroup sgKill = settings.createGroup("Kill");
+  private final SettingGroup sgPop = settings.createGroup("Pop");
 
-    //--------------------General--------------------//
-    private final Setting<Double> range = sgGeneral.add(new DoubleSetting.Builder()
-        .name("Enemy Range")
-        .description("Only send message if enemy died inside this range.")
-        .defaultValue(25)
-        .min(0)
-        .sliderRange(0, 50)
-        .build()
-    );
-    private final Setting<Integer> tickDelay = sgGeneral.add(new IntSetting.Builder()
-        .name("Delay")
-        .description("How many ticks to wait between sending messages.")
-        .defaultValue(50)
-        .min(0)
-        .sliderRange(0, 100)
-        .build()
-    );
+  // --------------------General--------------------//
+  private final Setting<Double> range =
+      sgGeneral.add(
+          new DoubleSetting.Builder()
+              .name("Enemy Range")
+              .description("Only send message if enemy died inside this range.")
+              .defaultValue(25)
+              .min(0)
+              .sliderRange(0, 50)
+              .build());
+  private final Setting<Integer> tickDelay =
+      sgGeneral.add(
+          new IntSetting.Builder()
+              .name("Delay")
+              .description("How many ticks to wait between sending messages.")
+              .defaultValue(50)
+              .min(0)
+              .sliderRange(0, 100)
+              .build());
 
-    //--------------------Kill--------------------//
-    private final Setting<Boolean> kill = sgKill.add(new BoolSetting.Builder()
-        .name("Kill")
-        .description("Should we send a message when enemy dies")
-        .defaultValue(true)
-        .build()
-    );
-    private final Setting<MessageMode> killMsgMode = sgKill.add(new EnumSetting.Builder<MessageMode>()
-        .name("Kill Message Mode")
-        .description("What kind of messages to send.")
-        .defaultValue(MessageMode.Blackout)
-        .build()
-    );
-    private final Setting<List<String>> killMessages = sgKill.add(new StringListSetting.Builder()
-        .name("Kill Messages")
-        .description("Messages to send when killing an enemy with blackout message mode on")
-        .defaultValue(List.of("Fucked by BlackOut!", "BlackOut on top", "BlackOut strong", "BlackOut gayming"))
-        .visible(() -> killMsgMode.get() == MessageMode.Blackout)
-        .build()
-    );
+  // --------------------Kill--------------------//
+  private final Setting<Boolean> kill =
+      sgKill.add(
+          new BoolSetting.Builder()
+              .name("Kill")
+              .description("Should we send a message when enemy dies")
+              .defaultValue(true)
+              .build());
+  private final Setting<MessageMode> killMsgMode =
+      sgKill.add(
+          new EnumSetting.Builder<MessageMode>()
+              .name("Kill Message Mode")
+              .description("What kind of messages to send.")
+              .defaultValue(MessageMode.Blackout)
+              .build());
+  private final Setting<List<String>> killMessages =
+      sgKill.add(
+          new StringListSetting.Builder()
+              .name("Kill Messages")
+              .description("Messages to send when killing an enemy with blackout message mode on")
+              .defaultValue(
+                  List.of(
+                      "Fucked by BlackOut!",
+                      "BlackOut on top",
+                      "BlackOut strong",
+                      "BlackOut gayming"))
+              .visible(() -> killMsgMode.get() == MessageMode.Blackout)
+              .build());
 
-    //--------------------Pop--------------------//
-    private final Setting<Boolean> pop = sgPop.add(new BoolSetting.Builder()
-        .name("Pop")
-        .description("Should we send a message when enemy pops a totem")
-        .defaultValue(true)
-        .build()
-    );
-    private final Setting<List<String>> popMessages = sgPop.add(new StringListSetting.Builder()
-        .name("Pop Messages")
-        .description("Messages to send when popping an enemy")
-        .defaultValue(List.of("I love it when you pop <NAME>", "Music to my ears <NAME>", "Pop pop pop wont stop till you drop <NAME>"))
-        .build()
-    );
+  // --------------------Pop--------------------//
+  private final Setting<Boolean> pop =
+      sgPop.add(
+          new BoolSetting.Builder()
+              .name("Pop")
+              .description("Should we send a message when enemy pops a totem")
+              .defaultValue(true)
+              .build());
+  private final Setting<List<String>> popMessages =
+      sgPop.add(
+          new StringListSetting.Builder()
+              .name("Pop Messages")
+              .description("Messages to send when popping an enemy")
+              .defaultValue(
+                  List.of(
+                      "I love it when you pop <NAME>",
+                      "Music to my ears <NAME>",
+                      "Pop pop pop wont stop till you drop <NAME>"))
+              .build());
 
-    private final Random r = new Random();
-    private int lastNum;
-    private int lastPop;
-    private boolean lastState;
-    private String name = null;
-    private final List<Message> messageQueue = new LinkedList<>();
-    private int timer = 0;
+  private final Random r = new Random();
+  private int lastNum;
+  private int lastPop;
+  private boolean lastState;
+  private String name = null;
+  private final List<Message> messageQueue = new LinkedList<>();
+  private int timer = 0;
 
-    // credits to exhibition for these messages
-    private final String[] exhibobo = new String[]{
+  // credits to exhibition for these messages
+  private final String[] exhibobo =
+      new String[] {
         "Wow, you just died in a block game %s",
         "%s died in a block game lmfao.",
         "%s died for using an android device. LOL",
@@ -262,8 +277,9 @@ public class AutoEz extends BlackOutModule {
         "%s You got died from the best client in the game, now with Infinite Sprint bypass",
         "%s you're so fat, that your bellybutton reaches your house 20 minutes before you do",
         "%s your dick is so small, that you bang cheerios"
-    };
-    private final String[] noclue = new String[]{
+      };
+  private final String[] noclue =
+      new String[] {
         "Yeah, these niggas say, I’ll catch a foul, what do they know?",
         "Just tryna score a point in the end zone",
         "Didn’t ask your opinion, nigga who the fuck are you?",
@@ -276,118 +292,122 @@ public class AutoEz extends BlackOutModule {
         "Your bitch come back to my place, I do the most",
         "Break their net, with the rolex, that two-tone",
         "Mobbin' with a thick bitch, might be a redbone",
-    };
+      };
 
-    @Override
-    public void onActivate() {
-        super.onActivate();
-        lastState = false;
-        lastNum = -1;
-    }
+  @Override
+  public void onActivate() {
+    super.onActivate();
+    lastState = false;
+    lastNum = -1;
+  }
 
-    @Override
-    public String getInfoString() {
-        return killMsgMode.get().name();
-    }
+  @Override
+  public String getInfoString() {
+    return killMsgMode.get().name();
+  }
 
-    @EventHandler(priority = EventPriority.HIGHEST)
-    private void onTick(TickEvent.Pre event) {
-        timer++;
-        if (mc.player != null && mc.level != null) {
-            if (anyDead(range.get()) && kill.get()) {
-                if (!lastState) {
-                    lastState = true;
-                    sendKillMessage();
-                }
-            } else lastState = false;
-
-            if (timer >= tickDelay.get() && !messageQueue.isEmpty()) {
-                Message msg = messageQueue.get(0);
-                ChatUtils.sendPlayerMsg(msg.message);
-                timer = 0;
-
-                if (msg.kill) messageQueue.clear();
-                else messageQueue.remove(0);
-            }
+  @EventHandler(priority = EventPriority.HIGHEST)
+  private void onTick(TickEvent.Pre event) {
+    timer++;
+    if (mc.player != null && mc.level != null) {
+      if (anyDead(range.get()) && kill.get()) {
+        if (!lastState) {
+          lastState = true;
+          sendKillMessage();
         }
-    }
+      } else lastState = false;
 
-    @EventHandler
-    private void onReceive(PacketEvent.Receive event) {
-        if (event.packet instanceof ClientboundEntityEventPacket packet) {
-            // Pop
-            if (packet.getEventId() == 35) {
-                Entity entity = packet.getEntity(mc.level);
-                if (pop.get() && mc.player != null && mc.level != null && entity instanceof Player) {
-                    if (entity != mc.player && !Friends.get().isFriend((Player) entity) &&
-                        mc.player.position().distanceTo(entity.position()) <= range.get()) {
-                        sendPopMessage(entity.getName().getString());
-                    }
-                }
-            }
+      if (timer >= tickDelay.get() && !messageQueue.isEmpty()) {
+        Message msg = messageQueue.get(0);
+        ChatUtils.sendPlayerMsg(msg.message);
+        timer = 0;
+
+        if (msg.kill) messageQueue.clear();
+        else messageQueue.remove(0);
+      }
+    }
+  }
+
+  @EventHandler
+  private void onReceive(PacketEvent.Receive event) {
+    if (event.packet instanceof ClientboundEntityEventPacket packet) {
+      // Pop
+      if (packet.getEventId() == 35) {
+        Entity entity = packet.getEntity(mc.level);
+        if (pop.get() && mc.player != null && mc.level != null && entity instanceof Player) {
+          if (entity != mc.player
+              && !Friends.get().isFriend((Player) entity)
+              && mc.player.position().distanceTo(entity.position()) <= range.get()) {
+            sendPopMessage(entity.getName().getString());
+          }
         }
+      }
     }
+  }
 
-    @SuppressWarnings("DataFlowIssue")
-    private boolean anyDead(double range) {
-        for (Player pl : mc.level.players()) {
-            if (pl != mc.player && !Friends.get().isFriend(pl) && pl.position().distanceTo(mc.player.position()) <= range
-                && pl.getHealth() <= 0) {
-                name = pl.getName().getString();
-                return true;
-            }
+  @SuppressWarnings("DataFlowIssue")
+  private boolean anyDead(double range) {
+    for (Player pl : mc.level.players()) {
+      if (pl != mc.player
+          && !Friends.get().isFriend(pl)
+          && pl.position().distanceTo(mc.player.position()) <= range
+          && pl.getHealth() <= 0) {
+        name = pl.getName().getString();
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private void sendKillMessage() {
+    switch (killMsgMode.get()) {
+      case Exhibition -> {
+        int num = r.nextInt(0, exhibobo.length);
+        if (num == lastNum) {
+          num = num < exhibobo.length - 1 ? num + 1 : 0;
         }
-        return false;
-    }
+        lastNum = num;
+        messageQueue.add(
+            0, new Message(exhibobo[num].replace("%s", name == null ? "You" : name), true));
+      }
 
-    private void sendKillMessage() {
-        switch (killMsgMode.get()) {
-            case Exhibition -> {
-                int num = r.nextInt(0, exhibobo.length);
-                if (num == lastNum) {
-                    num = num < exhibobo.length - 1 ? num + 1 : 0;
-                }
-                lastNum = num;
-                messageQueue.add(0, new Message(exhibobo[num].replace("%s", name == null ? "You" : name), true));
-            }
+      case Blackout -> {
+        if (!killMessages.get().isEmpty()) {
+          int num = r.nextInt(0, killMessages.get().size());
+          if (num == lastNum) num = num < killMessages.get().size() - 1 ? num + 1 : 0;
 
-            case Blackout -> {
-                if (!killMessages.get().isEmpty()) {
-                    int num = r.nextInt(0, killMessages.get().size());
-                    if (num == lastNum) num = num < killMessages.get().size() - 1 ? num + 1 : 0;
-
-                    lastNum = num;
-                    messageQueue.add(0, new Message(killMessages.get().get(num), true));
-                }
-            }
-            case NoClue -> {
-                int num = r.nextInt(0, noclue.length);
-                if (num == lastNum) {
-                    num = num < noclue.length - 1 ? num + 1 : 0;
-                }
-                lastNum = num;
-                messageQueue.add(0, new Message(noclue[num].replace("%s", name == null ? "You" : name), true));
-            }
+          lastNum = num;
+          messageQueue.add(0, new Message(killMessages.get().get(num), true));
         }
-    }
-
-    private void sendPopMessage(String name) {
-        if (!popMessages.get().isEmpty()) {
-            int num = r.nextInt(0, popMessages.get().size() - 1);
-            if (num == lastPop) {
-                num = num < popMessages.get().size() - 1 ? num + 1 : 0;
-            }
-            lastPop = num;
-            messageQueue.add(new Message(popMessages.get().get(num).replace("<NAME>", name), false));
+      }
+      case NoClue -> {
+        int num = r.nextInt(0, noclue.length);
+        if (num == lastNum) {
+          num = num < noclue.length - 1 ? num + 1 : 0;
         }
+        lastNum = num;
+        messageQueue.add(
+            0, new Message(noclue[num].replace("%s", name == null ? "You" : name), true));
+      }
     }
+  }
 
-    private record Message(String message, boolean kill) {
+  private void sendPopMessage(String name) {
+    if (!popMessages.get().isEmpty()) {
+      int num = r.nextInt(0, popMessages.get().size() - 1);
+      if (num == lastPop) {
+        num = num < popMessages.get().size() - 1 ? num + 1 : 0;
+      }
+      lastPop = num;
+      messageQueue.add(new Message(popMessages.get().get(num).replace("<NAME>", name), false));
     }
+  }
 
-    public enum MessageMode {
-        Blackout,
-        Exhibition,
-        NoClue,
-    }
+  private record Message(String message, boolean kill) {}
+
+  public enum MessageMode {
+    Blackout,
+    Exhibition,
+    NoClue,
+  }
 }

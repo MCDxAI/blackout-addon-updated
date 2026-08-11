@@ -14,11 +14,15 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(Connection.class)
 public class MixinConnection {
-    @Unique private PacketLogger packetLogger = null;
+  @Unique private PacketLogger packetLogger = null;
 
-    @Inject(method = "doSendPacket", at = @At("HEAD"))
-    private void onSent(Packet<?> packet, @Nullable ChannelFutureListener channelFutureListener, boolean flush, CallbackInfo ci) {
-        if (packetLogger == null) packetLogger = Modules.get().get(PacketLogger.class);
-        else if (packetLogger.isActive()) packetLogger.onSent(packet);
-    }
+  @Inject(method = "doSendPacket", at = @At("HEAD"))
+  private void onSent(
+      Packet<?> packet,
+      @Nullable ChannelFutureListener channelFutureListener,
+      boolean flush,
+      CallbackInfo ci) {
+    if (packetLogger == null) packetLogger = Modules.get().get(PacketLogger.class);
+    else if (packetLogger.isActive()) packetLogger.onSent(packet);
+  }
 }

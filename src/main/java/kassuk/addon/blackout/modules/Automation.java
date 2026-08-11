@@ -10,71 +10,73 @@ import meteordevelopment.meteorclient.settings.Setting;
 import meteordevelopment.meteorclient.settings.SettingGroup;
 import meteordevelopment.meteorclient.systems.modules.Modules;
 import meteordevelopment.orbit.EventHandler;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.entity.player.Player;
 
 /**
  * @author OLEPOSSU
  */
-
 public class Automation extends BlackOutModule {
-    public Automation() {
-        super(BlackOut.BLACKOUT, "Automation", "Automatically enables modules in certain situations.");
+  public Automation() {
+    super(BlackOut.BLACKOUT, "Automation", "Automatically enables modules in certain situations.");
+  }
+
+  private final SettingGroup sgGeneral = settings.getDefaultGroup();
+
+  private final Setting<Boolean> holeSurround =
+      sgGeneral.add(
+          new BoolSetting.Builder()
+              .name("Hole Surround")
+              .description("Enables surround when you enter a hole.")
+              .defaultValue(true)
+              .build());
+
+  private BlockPos lastPos = null;
+  private SurroundPlus surround = null;
+
+  @EventHandler
+  private void onRender(Render3DEvent event) {
+
+    if (mc.player == null || mc.level == null) {
+      return;
     }
 
-    private final SettingGroup sgGeneral = settings.getDefaultGroup();
-
-    private final Setting<Boolean> holeSurround = sgGeneral.add(new BoolSetting.Builder()
-        .name("Hole Surround")
-        .description("Enables surround when you enter a hole.")
-        .defaultValue(true)
-        .build()
-    );
-
-    private BlockPos lastPos = null;
-    private SurroundPlus surround = null;
-
-    @EventHandler
-    private void onRender(Render3DEvent event) {
-
-        if (mc.player == null || mc.level == null) {return;}
-
-        if (surround == null) {
-            surround = Modules.get().get(SurroundPlus.class);
-        }
-
-        if (!mc.player.blockPosition().equals(lastPos) && inAHole(mc.player)) {
-            if (holeSurround.get() && !surround.isActive()) {
-                surround.toggle();
-                surround.sendToggledMsg("enabled by Automation");
-            }
-        }
-
-        lastPos = mc.player.blockPosition();
+    if (surround == null) {
+      surround = Modules.get().get(SurroundPlus.class);
     }
 
-    private boolean inAHole(Player player) {
-        BlockPos pos = player.blockPosition();
-
-        if (HoleUtils.getHole(pos, 1).type == HoleType.Single) {
-            return true;
-        }
-        // DoubleX
-        if (HoleUtils.getHole(pos, 1).type == HoleType.DoubleX ||
-            HoleUtils.getHole(pos.offset(-1, 0, 0), 1).type == HoleType.DoubleX) {
-            return true;
-        }
-
-        // DoubleZ
-        if (HoleUtils.getHole(pos, 1).type == HoleType.DoubleZ ||
-            HoleUtils.getHole(pos.offset(0, 0, -1), 1).type == HoleType.DoubleZ) {
-            return true;
-        }
-
-        // Quad
-        return HoleUtils.getHole(pos, 1).type == HoleType.Quad ||
-            HoleUtils.getHole(pos.offset(-1, 0, -1), 1).type == HoleType.Quad ||
-            HoleUtils.getHole(pos.offset(-1, 0, 0), 1).type == HoleType.Quad ||
-            HoleUtils.getHole(pos.offset(0, 0, -1), 1).type == HoleType.Quad;
+    if (!mc.player.blockPosition().equals(lastPos) && inAHole(mc.player)) {
+      if (holeSurround.get() && !surround.isActive()) {
+        surround.toggle();
+        surround.sendToggledMsg("enabled by Automation");
+      }
     }
+
+    lastPos = mc.player.blockPosition();
+  }
+
+  private boolean inAHole(Player player) {
+    BlockPos pos = player.blockPosition();
+
+    if (HoleUtils.getHole(pos, 1).type == HoleType.Single) {
+      return true;
+    }
+    // DoubleX
+    if (HoleUtils.getHole(pos, 1).type == HoleType.DoubleX
+        || HoleUtils.getHole(pos.offset(-1, 0, 0), 1).type == HoleType.DoubleX) {
+      return true;
+    }
+
+    // DoubleZ
+    if (HoleUtils.getHole(pos, 1).type == HoleType.DoubleZ
+        || HoleUtils.getHole(pos.offset(0, 0, -1), 1).type == HoleType.DoubleZ) {
+      return true;
+    }
+
+    // Quad
+    return HoleUtils.getHole(pos, 1).type == HoleType.Quad
+        || HoleUtils.getHole(pos.offset(-1, 0, -1), 1).type == HoleType.Quad
+        || HoleUtils.getHole(pos.offset(-1, 0, 0), 1).type == HoleType.Quad
+        || HoleUtils.getHole(pos.offset(0, 0, -1), 1).type == HoleType.Quad;
+  }
 }

@@ -9,27 +9,23 @@ import net.minecraft.network.protocol.game.ServerboundMovePlayerPacket;
 /**
  * @author OLEPOSSU
  */
-
 public class OnGroundManager {
 
-    private boolean onGround;
+  private boolean onGround;
 
-    public OnGroundManager() {
-        MeteorClient.EVENT_BUS.subscribe(this);
-        this.onGround = false;
-    }
+  public OnGroundManager() {
+    MeteorClient.EVENT_BUS.subscribe(this);
+    this.onGround = false;
+  }
 
-    @EventHandler(priority = EventPriority.HIGHEST)
-    private void onPacket(PacketEvent.Send event) {
-        if (event.packet instanceof ServerboundMovePlayerPacket) {
-            onGround = ((ServerboundMovePlayerPacket) event.packet).isOnGround();
-        }
+  @EventHandler(priority = EventPriority.HIGHEST)
+  private void onPacket(PacketEvent.Send event) {
+    if (event.packet instanceof ServerboundMovePlayerPacket) {
+      onGround = ((ServerboundMovePlayerPacket) event.packet).isOnGround();
     }
+  }
 
-    public boolean isOnGround() {
-        return onGround;
-    }
+  public boolean isOnGround() {
+    return onGround;
+  }
 }
-
-
-

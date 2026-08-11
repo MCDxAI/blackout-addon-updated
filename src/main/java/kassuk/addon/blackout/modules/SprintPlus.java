@@ -15,61 +15,63 @@ import meteordevelopment.orbit.EventPriority;
 /**
  * @author KassuK
  */
-
 public class SprintPlus extends BlackOutModule {
-    public SprintPlus() {
-        super(BlackOut.BLACKOUT, "Sprint+", "Non shit sprint!");
+  public SprintPlus() {
+    super(BlackOut.BLACKOUT, "Sprint+", "Non shit sprint!");
+  }
+
+  private final SettingGroup sgGeneral = settings.getDefaultGroup();
+
+  public final Setting<SprintMode> sprintMode =
+      sgGeneral.add(
+          new EnumSetting.Builder<SprintMode>()
+              .name("Mode")
+              .description("The method of sprinting.")
+              .defaultValue(SprintMode.Vanilla)
+              .build());
+  public final Setting<Boolean> hungerCheck =
+      sgGeneral.add(
+          new BoolSetting.Builder()
+              .name("HungerCheck")
+              .description("Should we check if we have enough hunger to sprint")
+              .defaultValue(true)
+              .build());
+
+  @EventHandler(priority = EventPriority.HIGHEST)
+  private void onTick(TickEvent.Pre event) {
+    if (ScaffoldPlus.shouldStopSprinting && Modules.get().isActive(ScaffoldPlus.class)) {
+      return;
     }
 
-    private final SettingGroup sgGeneral = settings.getDefaultGroup();
-
-    public final Setting<SprintMode> sprintMode = sgGeneral.add(new EnumSetting.Builder<SprintMode>()
-        .name("Mode")
-        .description("The method of sprinting.")
-        .defaultValue(SprintMode.Vanilla)
-        .build()
-    );
-    public final Setting <Boolean> hungerCheck = sgGeneral.add(new BoolSetting.Builder()
-        .name("HungerCheck")
-        .description("Should we check if we have enough hunger to sprint")
-        .defaultValue(true)
-        .build()
-    );
-
-    @EventHandler(priority = EventPriority.HIGHEST)
-    private void onTick(TickEvent.Pre event) {
-        if (ScaffoldPlus.shouldStopSprinting && Modules.get().isActive(ScaffoldPlus.class)) {return;}
-
-        if (mc.player != null && mc.level != null) {
-            if (hungerCheck.get()) {
-                if (mc.player.getFoodData().getFoodLevel() < 6) {
-                    mc.player.setSprinting(false);
-                    return;
-                }
-            }
-            switch (sprintMode.get()) {
-                case Vanilla -> {
-                    if (mc.options.keyUp.isDown()) mc.player.setSprinting(true);
-                }
-                case Omni -> {
-                    if (PlayerUtils.isMoving()) {
-                        mc.player.setSprinting(true);
-                    }
-                }
-                case Rage -> mc.player.setSprinting(true);
-            }
+    if (mc.player != null && mc.level != null) {
+      if (hungerCheck.get()) {
+        if (mc.player.getFoodData().getFoodLevel() < 6) {
+          mc.player.setSprinting(false);
+          return;
         }
+      }
+      switch (sprintMode.get()) {
+        case Vanilla -> {
+          if (mc.options.keyUp.isDown()) mc.player.setSprinting(true);
+        }
+        case Omni -> {
+          if (PlayerUtils.isMoving()) {
+            mc.player.setSprinting(true);
+          }
+        }
+        case Rage -> mc.player.setSprinting(true);
+      }
     }
+  }
 
-    @Override
-    public void onDeactivate() {
-        if (mc.player != null && mc.level != null)
-            mc.player.setSprinting(false);
-    }
+  @Override
+  public void onDeactivate() {
+    if (mc.player != null && mc.level != null) mc.player.setSprinting(false);
+  }
 
-    public enum SprintMode {
-        Vanilla,
-        Omni,
-        Rage
-    }
+  public enum SprintMode {
+    Vanilla,
+    Omni,
+    Rage
+  }
 }

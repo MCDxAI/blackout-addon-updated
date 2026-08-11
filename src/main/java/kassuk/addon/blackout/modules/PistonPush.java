@@ -1,5 +1,8 @@
 package kassuk.addon.blackout.modules;
 
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.Objects;
 import kassuk.addon.blackout.BlackOut;
 import kassuk.addon.blackout.BlackOutModule;
 import kassuk.addon.blackout.enums.HoleType;
@@ -19,580 +22,654 @@ import meteordevelopment.meteorclient.utils.render.color.SettingColor;
 import meteordevelopment.orbit.EventHandler;
 import meteordevelopment.orbit.EventPriority;
 import net.minecraft.client.player.AbstractClientPlayer;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.network.protocol.game.ServerboundMovePlayerPacket;
+import net.minecraft.network.protocol.game.ServerboundPlayerActionPacket;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
-import net.minecraft.network.protocol.game.ServerboundPlayerActionPacket;
-import net.minecraft.network.protocol.game.ServerboundMovePlayerPacket;
-import net.minecraft.world.InteractionHand;
+import net.minecraft.world.level.block.AirBlock;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.FireBlock;
 import net.minecraft.world.level.block.RedstoneTorchBlock;
+import net.minecraft.world.level.block.TorchBlock;
 import net.minecraft.world.level.block.piston.PistonBaseBlock;
 import net.minecraft.world.level.block.piston.PistonHeadBlock;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
-import net.minecraft.core.BlockPos;
 import net.minecraft.world.phys.AABB;
-import net.minecraft.core.Direction;
-
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.TorchBlock;
-import net.minecraft.world.level.block.AirBlock;
-import net.minecraft.world.level.block.FireBlock;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.Objects;
 
 /**
  * @author OLEPOSSU
  */
-
 public class PistonPush extends BlackOutModule {
-    public PistonPush() {
-        super(BlackOut.BLACKOUT, "Piston Push", "Pushes people out of their safe holes.");
+  public PistonPush() {
+    super(BlackOut.BLACKOUT, "Piston Push", "Pushes people out of their safe holes.");
+  }
+
+  private final SettingGroup sgGeneral = settings.getDefaultGroup();
+  private final SettingGroup sgDelay = settings.createGroup("Delay");
+  private final SettingGroup sgSwing = settings.createGroup("Swing");
+  private final SettingGroup sgRender = settings.createGroup("Render");
+
+  // --------------------General--------------------//
+  private final Setting<Boolean> pauseEat = addPauseEat(sgGeneral);
+  private final Setting<Redstone> redstone =
+      sgGeneral.add(
+          new EnumSetting.Builder<Redstone>()
+              .name("Redstone")
+              .description("What kind of redstone to use.")
+              .defaultValue(Redstone.Torch)
+              .build());
+  private final Setting<Boolean> onlyHole =
+      sgSwing.add(
+          new BoolSetting.Builder()
+              .name("Only Hole")
+              .description("Toggles when enemy moves.")
+              .defaultValue(true)
+              .build());
+  private final Setting<Boolean> toggleMove =
+      sgSwing.add(
+          new BoolSetting.Builder()
+              .name("Toggle Move")
+              .description("Toggles when enemy moves.")
+              .defaultValue(true)
+              .build());
+  private final Setting<SwitchMode> pistonSwitch =
+      sgGeneral.add(
+          new EnumSetting.Builder<SwitchMode>()
+              .name("Piston Switch")
+              .description("Method of switching. Silent is the most reliable.")
+              .defaultValue(SwitchMode.Silent)
+              .build());
+  private final Setting<SwitchMode> redstoneSwitch =
+      sgGeneral.add(
+          new EnumSetting.Builder<SwitchMode>()
+              .name("Redstone Switch")
+              .description("Method of switching. Silent is the most reliable.")
+              .defaultValue(SwitchMode.Silent)
+              .build());
+
+  // --------------------Delay--------------------//
+  private final Setting<Double> prDelay =
+      sgDelay.add(
+          new DoubleSetting.Builder()
+              .name("Piston > Redstone")
+              .description("How many seconds to wait between placing piston and redstone.")
+              .defaultValue(0)
+              .min(0)
+              .sliderRange(0, 20)
+              .build());
+  private final Setting<Double> rmDelay =
+      sgDelay.add(
+          new DoubleSetting.Builder()
+              .name("Redstone > Mine")
+              .description(
+                  "How many seconds to wait between placing redstone and starting to mine it.")
+              .defaultValue(0.2)
+              .min(0)
+              .sliderRange(0, 20)
+              .build());
+  private final Setting<Double> mpDelay =
+      sgDelay.add(
+          new DoubleSetting.Builder()
+              .name("Mine > Piston")
+              .description(
+                  "How many seconds to wait after mining the redstone before starting a new cycle.")
+              .defaultValue(0.2)
+              .min(0)
+              .sliderRange(0, 20)
+              .build());
+
+  // --------------------Swing--------------------//
+  private final Setting<Boolean> pistonSwing =
+      sgSwing.add(
+          new BoolSetting.Builder()
+              .name("Piston Swing")
+              .description("Renders swing animation when placing a piston.")
+              .defaultValue(true)
+              .build());
+  private final Setting<SwingHand> pistonHand =
+      sgSwing.add(
+          new EnumSetting.Builder<SwingHand>()
+              .name("Piston Swing Hand")
+              .description("Which hand should be swung.")
+              .defaultValue(SwingHand.RealHand)
+              .visible(pistonSwing::get)
+              .build());
+  private final Setting<Boolean> redstoneSwing =
+      sgSwing.add(
+          new BoolSetting.Builder()
+              .name("Piston Swing")
+              .description("Renders swing animation when placing redstone.")
+              .defaultValue(true)
+              .build());
+  private final Setting<SwingHand> redstoneHand =
+      sgSwing.add(
+          new EnumSetting.Builder<SwingHand>()
+              .name("Redstone Swing Hand")
+              .description("Which hand should be swung.")
+              .defaultValue(SwingHand.RealHand)
+              .visible(redstoneSwing::get)
+              .build());
+
+  // --------------------Render--------------------//
+  private final Setting<ShapeMode> pistonShape =
+      sgRender.add(
+          new EnumSetting.Builder<ShapeMode>()
+              .name("Piston Shape Mode")
+              .description("Which parts should be rendered.")
+              .defaultValue(ShapeMode.Both)
+              .build());
+  private final Setting<SettingColor> psColor =
+      sgRender.add(
+          new ColorSetting.Builder()
+              .name("Piston Side Color")
+              .description(BlackOut.COLOR)
+              .defaultValue(new SettingColor(255, 255, 255, 50))
+              .build());
+  private final Setting<SettingColor> plColor =
+      sgRender.add(
+          new ColorSetting.Builder()
+              .name("Piston Line Color")
+              .description(BlackOut.COLOR)
+              .defaultValue(new SettingColor(255, 255, 255, 255))
+              .build());
+  private final Setting<ShapeMode> redstoneShape =
+      sgRender.add(
+          new EnumSetting.Builder<ShapeMode>()
+              .name("Redstone Shape Mode")
+              .description("Which parts should be rendered.")
+              .defaultValue(ShapeMode.Both)
+              .build());
+  private final Setting<SettingColor> rsColor =
+      sgRender.add(
+          new ColorSetting.Builder()
+              .name("Redstone Side Color")
+              .description(BlackOut.COLOR)
+              .defaultValue(new SettingColor(255, 0, 0, 50))
+              .build());
+  private final Setting<SettingColor> rlColor =
+      sgRender.add(
+          new ColorSetting.Builder()
+              .name("Redstone Line Color")
+              .description(BlackOut.COLOR)
+              .defaultValue(new SettingColor(255, 0, 0, 255))
+              .build());
+
+  private long pistonTime = 0;
+  private long redstoneTime = 0;
+  private long mineTime = 0;
+  private boolean minedThisTick = false;
+
+  private boolean pistonPlaced = false;
+  private boolean redstonePlaced = false;
+  private boolean mined = false;
+
+  private BlockPos pistonPos = null;
+  private BlockPos redstonePos = null;
+  private Direction pistonDir = null;
+  private PlaceData pistonData = null;
+  private PlaceData redstoneData = null;
+
+  private BlockPos lastPiston = null;
+  private BlockPos lastRedstone = null;
+  private Direction lastDirection = null;
+
+  private BlockPos startPos = null;
+  private BlockPos currentPos = null;
+
+  @Override
+  public void onActivate() {
+    lastPiston = null;
+    lastRedstone = null;
+    lastDirection = null;
+    startPos = null;
+    redstonePlaced = false;
+    pistonPlaced = false;
+    mined = false;
+  }
+
+  @EventHandler(priority = EventPriority.HIGHEST)
+  private void onTick(TickEvent.Pre event) {
+    minedThisTick = false;
+  }
+
+  @EventHandler(priority = EventPriority.HIGHEST)
+  private void onRender(Render3DEvent event) {
+    if (mc.player == null || mc.level == null) return;
+
+    if (startPos != null && toggleMove.get()) {
+      if (!startPos.equals(currentPos)) {
+        toggle();
+        sendToggledMsg("enemy moved");
+        return;
+      }
     }
 
-    private final SettingGroup sgGeneral = settings.getDefaultGroup();
-    private final SettingGroup sgDelay = settings.createGroup("Delay");
-    private final SettingGroup sgSwing = settings.createGroup("Swing");
-    private final SettingGroup sgRender = settings.createGroup("Render");
+    update();
 
-    //--------------------General--------------------//
-    private final Setting<Boolean> pauseEat = addPauseEat(sgGeneral);
-    private final Setting<Redstone> redstone = sgGeneral.add(new EnumSetting.Builder<Redstone>()
-        .name("Redstone")
-        .description("What kind of redstone to use.")
-        .defaultValue(Redstone.Torch)
-        .build()
-    );
-    private final Setting<Boolean> onlyHole = sgSwing.add(new BoolSetting.Builder()
-        .name("Only Hole")
-        .description("Toggles when enemy moves.")
-        .defaultValue(true)
-        .build()
-    );
-    private final Setting<Boolean> toggleMove = sgSwing.add(new BoolSetting.Builder()
-        .name("Toggle Move")
-        .description("Toggles when enemy moves.")
-        .defaultValue(true)
-        .build()
-    );
-    private final Setting<SwitchMode> pistonSwitch = sgGeneral.add(new EnumSetting.Builder<SwitchMode>()
-        .name("Piston Switch")
-        .description("Method of switching. Silent is the most reliable.")
-        .defaultValue(SwitchMode.Silent)
-        .build()
-    );
-    private final Setting<SwitchMode> redstoneSwitch = sgGeneral.add(new EnumSetting.Builder<SwitchMode>()
-        .name("Redstone Switch")
-        .description("Method of switching. Silent is the most reliable.")
-        .defaultValue(SwitchMode.Silent)
-        .build()
-    );
-
-    //--------------------Delay--------------------//
-    private final Setting<Double> prDelay = sgDelay.add(new DoubleSetting.Builder()
-        .name("Piston > Redstone")
-        .description("How many seconds to wait between placing piston and redstone.")
-        .defaultValue(0)
-        .min(0)
-        .sliderRange(0, 20)
-        .build()
-    );
-    private final Setting<Double> rmDelay = sgDelay.add(new DoubleSetting.Builder()
-        .name("Redstone > Mine")
-        .description("How many seconds to wait between placing redstone and starting to mine it.")
-        .defaultValue(0.2)
-        .min(0)
-        .sliderRange(0, 20)
-        .build()
-    );
-    private final Setting<Double> mpDelay = sgDelay.add(new DoubleSetting.Builder()
-        .name("Mine > Piston")
-        .description("How many seconds to wait after mining the redstone before starting a new cycle.")
-        .defaultValue(0.2)
-        .min(0)
-        .sliderRange(0, 20)
-        .build()
-    );
-
-    //--------------------Swing--------------------//
-    private final Setting<Boolean> pistonSwing = sgSwing.add(new BoolSetting.Builder()
-        .name("Piston Swing")
-        .description("Renders swing animation when placing a piston.")
-        .defaultValue(true)
-        .build()
-    );
-    private final Setting<SwingHand> pistonHand = sgSwing.add(new EnumSetting.Builder<SwingHand>()
-        .name("Piston Swing Hand")
-        .description("Which hand should be swung.")
-        .defaultValue(SwingHand.RealHand)
-        .visible(pistonSwing::get)
-        .build()
-    );
-    private final Setting<Boolean> redstoneSwing = sgSwing.add(new BoolSetting.Builder()
-        .name("Piston Swing")
-        .description("Renders swing animation when placing redstone.")
-        .defaultValue(true)
-        .build()
-    );
-    private final Setting<SwingHand> redstoneHand = sgSwing.add(new EnumSetting.Builder<SwingHand>()
-        .name("Redstone Swing Hand")
-        .description("Which hand should be swung.")
-        .defaultValue(SwingHand.RealHand)
-        .visible(redstoneSwing::get)
-        .build()
-    );
-
-    //--------------------Render--------------------//
-    private final Setting<ShapeMode> pistonShape = sgRender.add(new EnumSetting.Builder<ShapeMode>()
-        .name("Piston Shape Mode")
-        .description("Which parts should be rendered.")
-        .defaultValue(ShapeMode.Both)
-        .build()
-    );
-    private final Setting<SettingColor> psColor = sgRender.add(new ColorSetting.Builder()
-        .name("Piston Side Color")
-        .description(BlackOut.COLOR)
-        .defaultValue(new SettingColor(255, 255, 255, 50))
-        .build()
-    );
-    private final Setting<SettingColor> plColor = sgRender.add(new ColorSetting.Builder()
-        .name("Piston Line Color")
-        .description(BlackOut.COLOR)
-        .defaultValue(new SettingColor(255, 255, 255, 255))
-        .build()
-    );
-    private final Setting<ShapeMode> redstoneShape = sgRender.add(new EnumSetting.Builder<ShapeMode>()
-        .name("Redstone Shape Mode")
-        .description("Which parts should be rendered.")
-        .defaultValue(ShapeMode.Both)
-        .build()
-    );
-    private final Setting<SettingColor> rsColor = sgRender.add(new ColorSetting.Builder()
-        .name("Redstone Side Color")
-        .description(BlackOut.COLOR)
-        .defaultValue(new SettingColor(255, 0, 0, 50))
-        .build()
-    );
-    private final Setting<SettingColor> rlColor = sgRender.add(new ColorSetting.Builder()
-        .name("Redstone Line Color")
-        .description(BlackOut.COLOR)
-        .defaultValue(new SettingColor(255, 0, 0, 255))
-        .build()
-    );
-
-    private long pistonTime = 0;
-    private long redstoneTime = 0;
-    private long mineTime = 0;
-    private boolean minedThisTick = false;
-
-    private boolean pistonPlaced = false;
-    private boolean redstonePlaced = false;
-    private boolean mined = false;
-
-    private BlockPos pistonPos = null;
-    private BlockPos redstonePos = null;
-    private Direction pistonDir = null;
-    private PlaceData pistonData = null;
-    private PlaceData redstoneData = null;
-
-    private BlockPos lastPiston = null;
-    private BlockPos lastRedstone = null;
-    private Direction lastDirection = null;
-
-    private BlockPos startPos = null;
-    private BlockPos currentPos = null;
-
-    @Override
-    public void onActivate() {
-        lastPiston = null;
-        lastRedstone = null;
-        lastDirection = null;
-        startPos = null;
-        redstonePlaced = false;
-        pistonPlaced = false;
-        mined = false;
+    if (pistonPos == null) {
+      lastPiston = null;
+      lastRedstone = redstonePos;
+      lastDirection = pistonDir;
+      return;
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST)
-    private void onTick(TickEvent.Pre event) {
-        minedThisTick = false;
+    event.renderer.box(getBox(pistonPos), psColor.get(), plColor.get(), pistonShape.get(), 0);
+    event.renderer.box(getBox(redstonePos), rsColor.get(), rlColor.get(), redstoneShape.get(), 0);
+
+    if ((System.currentTimeMillis() - mineTime > mpDelay.get() * 1000
+            && redstonePlaced
+            && pistonPlaced
+            && mined)
+        || !pistonPos.equals(lastPiston)
+        || !redstonePos.equals(lastRedstone)
+        || !pistonDir.equals(lastDirection)) {
+      redstonePlaced = false;
+      pistonPlaced = false;
+      mined = false;
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST)
-    private void onRender(Render3DEvent event) {
-        if (mc.player == null || mc.level == null) return;
+    lastPiston = pistonPos;
+    lastRedstone = redstonePos;
+    lastDirection = pistonDir;
 
-        if (startPos != null && toggleMove.get()) {
-            if (!startPos.equals(currentPos)) {
-                toggle();
-                sendToggledMsg("enemy moved");
-                return;
-            }
-        }
+    if (pauseEat.get() && mc.player.isUsingItem()) return;
 
-        update();
+    placePiston();
+    placeRedstone();
+    mineUpdate();
+  }
 
-        if (pistonPos == null) {
-            lastPiston = null;
-            lastRedstone = redstonePos;
-            lastDirection = pistonDir;
-            return;
-        }
+  private void placePiston() {
+    if (pistonPlaced) return;
 
-        event.renderer.box(getBox(pistonPos), psColor.get(), plColor.get(), pistonShape.get(), 0);
-        event.renderer.box(getBox(redstonePos), rsColor.get(), rlColor.get(), redstoneShape.get(), 0);
+    InteractionHand hand = getHand(Items.PISTON);
+    boolean available = hand != null;
 
-        if ((System.currentTimeMillis() - mineTime > mpDelay.get() * 1000 && redstonePlaced && pistonPlaced && mined) || !pistonPos.equals(lastPiston) || !redstonePos.equals(lastRedstone) || !pistonDir.equals(lastDirection)) {
-            redstonePlaced = false;
-            pistonPlaced = false;
-            mined = false;
-        }
-
-        lastPiston = pistonPos;
-        lastRedstone = redstonePos;
-        lastDirection = pistonDir;
-
-        if (pauseEat.get() && mc.player.isUsingItem()) return;
-
-        placePiston();
-        placeRedstone();
-        mineUpdate();
+    if (!available) {
+      switch (pistonSwitch.get()) {
+        case Silent -> available = InvUtils.findInHotbar(Items.PISTON).found();
+        case PickSilent, InvSwitch -> available = InvUtils.find(Items.PISTON).found();
+      }
     }
 
-    private void placePiston() {
-        if (pistonPlaced) return;
-
-        InteractionHand hand = getHand(Items.PISTON);
-        boolean available = hand != null;
-
-        if (!available) {
-            switch (pistonSwitch.get()) {
-                case Silent -> available = InvUtils.findInHotbar(Items.PISTON).found();
-                case PickSilent, InvSwitch -> available = InvUtils.find(Items.PISTON).found();
-            }
-        }
-
-        if (!available) {
-            return;
-        }
-
-        if (!mc.player.onGround()) return;
-        if (EntityUtils.intersectsWithEntity(AABB.of(new BoundingBox(pistonPos)), entity -> !entity.isSpectator() && !(entity instanceof ItemEntity))) return;
-        if (SettingUtils.shouldRotate(RotationType.BlockPlace) && !Managers.ROTATION.start(pistonData.pos(), priority, RotationType.BlockPlace, Objects.hash(name + "piston"))) return;
-        sendPacket(new ServerboundMovePlayerPacket.Rot(pistonDir.get2DDataValue(), Managers.ROTATION.lastDir[1], Managers.ON_GROUND.isOnGround(), false));
-
-        boolean switched = false;
-
-        if (hand == null) {
-            switch (pistonSwitch.get()) {
-                case Silent -> {
-                    InvUtils.swap(InvUtils.findInHotbar(Items.PISTON).slot(), true);
-                    switched = true;
-                }
-                case PickSilent -> switched = BOInvUtils.pickSwitch(InvUtils.find(Items.PISTON).slot());
-                case InvSwitch -> switched = BOInvUtils.invSwitch(InvUtils.find(Items.PISTON).slot());
-            }
-        }
-
-        if (hand == null && !switched) {
-            return;
-        }
-
-        hand = hand == null ? InteractionHand.MAIN_HAND : hand;
-
-        placeBlock(hand, pistonData.pos().getCenter(), pistonData.dir(), pistonData.pos());
-
-        if (SettingUtils.shouldRotate(RotationType.BlockPlace)) Managers.ROTATION.end(Objects.hash(name + "piston"));
-        pistonTime = System.currentTimeMillis();
-        pistonPlaced = true;
-
-        if (pistonSwing.get()) clientSwing(pistonHand.get(), hand);
-
-        if (switched) {
-            switch (pistonSwitch.get()) {
-                case Silent -> InvUtils.swapBack();
-                case PickSilent -> BOInvUtils.pickSwapBack();
-                case InvSwitch -> BOInvUtils.swapBack();
-            }
-        }
+    if (!available) {
+      return;
     }
 
-    private void placeRedstone() {
-        if (!pistonPlaced || redstonePlaced) return;
-        if (System.currentTimeMillis() - pistonTime < prDelay.get() * 1000) return;
+    if (!mc.player.onGround()) return;
+    if (EntityUtils.intersectsWithEntity(
+        AABB.of(new BoundingBox(pistonPos)),
+        entity -> !entity.isSpectator() && !(entity instanceof ItemEntity))) return;
+    if (SettingUtils.shouldRotate(RotationType.BlockPlace)
+        && !Managers.ROTATION.start(
+            pistonData.pos(), priority, RotationType.BlockPlace, Objects.hash(name + "piston")))
+      return;
+    sendPacket(
+        new ServerboundMovePlayerPacket.Rot(
+            pistonDir.get2DDataValue(),
+            Managers.ROTATION.lastDir[1],
+            Managers.ON_GROUND.isOnGround(),
+            false));
 
-        InteractionHand hand = getHand(redstone.get().i);
-        boolean available = hand != null;
+    boolean switched = false;
 
-        if (!available) {
-            switch (redstoneSwitch.get()) {
-                case Silent -> available = InvUtils.findInHotbar(redstone.get().i).found();
-                case PickSilent, InvSwitch -> available = InvUtils.find(redstone.get().i).found();
-            }
+    if (hand == null) {
+      switch (pistonSwitch.get()) {
+        case Silent -> {
+          InvUtils.swap(InvUtils.findInHotbar(Items.PISTON).slot(), true);
+          switched = true;
         }
-
-        if (!available) {
-            return;
-        }
-
-        if (SettingUtils.shouldRotate(RotationType.BlockPlace) && !Managers.ROTATION.start(redstoneData.pos(), priority, RotationType.BlockPlace, Objects.hash(name + "redstone"))) return;
-
-        boolean switched = false;
-
-        if (hand == null) {
-            switch (redstoneSwitch.get()) {
-                case Silent -> {
-                    InvUtils.swap(InvUtils.findInHotbar(redstone.get().i).slot(), true);
-                    switched = true;
-                }
-                case PickSilent -> switched = BOInvUtils.pickSwitch(InvUtils.find(redstone.get().i).slot());
-                case InvSwitch -> switched = BOInvUtils.invSwitch(InvUtils.find(redstone.get().i).slot());
-            }
-        }
-
-        if (hand == null && !switched) {
-            return;
-        }
-
-        hand = hand == null ? InteractionHand.MAIN_HAND : hand;
-
-        placeBlock(hand, redstoneData.pos().getCenter(), redstoneData.dir(), redstoneData.pos());
-
-        if (SettingUtils.shouldRotate(RotationType.BlockPlace)) Managers.ROTATION.end(Objects.hash(name + "redstone"));
-        redstonePlaced = true;
-        redstoneTime = System.currentTimeMillis();
-
-        if (redstoneSwing.get()) clientSwing(redstoneHand.get(), hand);
-
-        if (switched) {
-            switch (redstoneSwitch.get()) {
-                case Silent -> InvUtils.swapBack();
-                case PickSilent -> BOInvUtils.pickSwapBack();
-                case InvSwitch -> BOInvUtils.swapBack();
-            }
-        }
+        case PickSilent -> switched = BOInvUtils.pickSwitch(InvUtils.find(Items.PISTON).slot());
+        case InvSwitch -> switched = BOInvUtils.invSwitch(InvUtils.find(Items.PISTON).slot());
+      }
     }
 
-    private AABB getBox(BlockPos pos) {
-        return new AABB(pos.getX(), pos.getY(), pos.getZ(), pos.getX() + 1, pos.getY() + 1, pos.getZ() + 1);
+    if (hand == null && !switched) {
+      return;
     }
 
-    private void mineUpdate() {
-        if (!pistonPlaced || !redstonePlaced) return;
-        if (minedThisTick) return;
-        if (System.currentTimeMillis() - redstoneTime < rmDelay.get() * 1000) return;
+    hand = hand == null ? InteractionHand.MAIN_HAND : hand;
 
-        if (redstonePos == null) {
-            return;
-        }
+    placeBlock(hand, pistonData.pos().getCenter(), pistonData.dir(), pistonData.pos());
 
-        if (redstone.get() == Redstone.Torch && !(mc.level.getBlockState(redstonePos).getBlock() instanceof RedstoneTorchBlock)) {
-            return;
-        }
-        if (redstone.get() == Redstone.Block && mc.level.getBlockState(redstonePos).getBlock() != Blocks.REDSTONE_BLOCK) {
-            return;
-        }
+    if (SettingUtils.shouldRotate(RotationType.BlockPlace))
+      Managers.ROTATION.end(Objects.hash(name + "piston"));
+    pistonTime = System.currentTimeMillis();
+    pistonPlaced = true;
 
-        if (Modules.get().isActive(AutoMine.class) && redstonePos.equals(Modules.get().get(AutoMine.class).targetPos())) {
-            return;
-        }
+    if (pistonSwing.get()) clientSwing(pistonHand.get(), hand);
 
-        AutoMine autoMine = Modules.get().get(AutoMine.class);
+    if (switched) {
+      switch (pistonSwitch.get()) {
+        case Silent -> InvUtils.swapBack();
+        case PickSilent -> BOInvUtils.pickSwapBack();
+        case InvSwitch -> BOInvUtils.swapBack();
+      }
+    }
+  }
 
-        if (autoMine.isActive()) {
-            if (redstonePos.equals(autoMine.targetPos())) return;
+  private void placeRedstone() {
+    if (!pistonPlaced || redstonePlaced) return;
+    if (System.currentTimeMillis() - pistonTime < prDelay.get() * 1000) return;
 
-            autoMine.onStart(redstonePos);
-        } else {
-            Direction mineDir = SettingUtils.getPlaceOnDirection(redstonePos);
+    InteractionHand hand = getHand(redstone.get().i);
+    boolean available = hand != null;
 
-            if (mineDir != null) {
-                sendPacket(new ServerboundPlayerActionPacket(ServerboundPlayerActionPacket.Action.START_DESTROY_BLOCK, redstonePos, mineDir));
-                sendPacket(new ServerboundPlayerActionPacket(ServerboundPlayerActionPacket.Action.STOP_DESTROY_BLOCK, redstonePos, mineDir));
-            }
-        }
-
-        if (!mined) mineTime = System.currentTimeMillis();
-
-        mined = true;
-        minedThisTick = true;
+    if (!available) {
+      switch (redstoneSwitch.get()) {
+        case Silent -> available = InvUtils.findInHotbar(redstone.get().i).found();
+        case PickSilent, InvSwitch -> available = InvUtils.find(redstone.get().i).found();
+      }
     }
 
-    private void update() {
-        pistonPos = null;
-
-        for (AbstractClientPlayer player : mc.level.players()) {
-
-            if (Friends.get().isFriend(player)) continue;
-            if (player == mc.player) continue;
-            if (mc.player.distanceTo(player) > 10) continue;
-            if (player.getHealth() <= 0) continue;
-            if (player.isSpectator()) continue;
-            if (!OLEPOSSUtils.solid2(player.blockPosition()) && onlyHole.get() && HoleUtils.getHole(player.blockPosition(), true, true, false, 1, true).type == HoleType.NotHole) return;
-
-            updatePos(player);
-            if (pistonPos != null) return;
-        }
+    if (!available) {
+      return;
     }
 
-    private void updatePos(Player player) {
-        BlockPos eyePos = BlockPos.containing(player.getEyePosition());
+    if (SettingUtils.shouldRotate(RotationType.BlockPlace)
+        && !Managers.ROTATION.start(
+            redstoneData.pos(), priority, RotationType.BlockPlace, Objects.hash(name + "redstone")))
+      return;
 
-        if (OLEPOSSUtils.solid2(eyePos.above())) return;
+    boolean switched = false;
 
-        for (Direction dir : Direction.Plane.HORIZONTAL.stream().sorted(Comparator.comparingDouble(d -> eyePos.relative(d).getCenter().distanceTo(mc.player.getEyePosition()))).toList()) {
-            resetPos();
-
-            BlockPos pos = eyePos.relative(dir);
-            if (!upCheck(pos)) continue;
-
-            if (!OLEPOSSUtils.replaceable(pos) && !(mc.level.getBlockState(pos).getBlock() instanceof PistonBaseBlock) && mc.level.getBlockState(pos).getBlock() != Blocks.MOVING_PISTON) continue;
-            if (OLEPOSSUtils.solid2(eyePos.relative(dir.getOpposite()))) continue;
-            if (OLEPOSSUtils.solid2(eyePos.relative(dir.getOpposite()).above())) continue;
-            if (!OLEPOSSUtils.solid2(eyePos.relative(dir.getOpposite()).below())) continue;
-
-            PlaceData data = SettingUtils.getPlaceData(pos);
-            if (data == null || !data.valid()) continue;
-
-            pistonData = data;
-            pistonDir = dir;
-            updateRedstone(pos);
-
-            if (redstonePos == null) continue;
-
-            if (startPos == null) {
-                startPos = player.blockPosition();
-            }
-            currentPos = player.blockPosition();
-            pistonPos = pos;
-            return;
+    if (hand == null) {
+      switch (redstoneSwitch.get()) {
+        case Silent -> {
+          InvUtils.swap(InvUtils.findInHotbar(redstone.get().i).slot(), true);
+          switched = true;
         }
+        case PickSilent -> switched = BOInvUtils.pickSwitch(InvUtils.find(redstone.get().i).slot());
+        case InvSwitch -> switched = BOInvUtils.invSwitch(InvUtils.find(redstone.get().i).slot());
+      }
     }
 
-    private void updateRedstone(BlockPos pos) {
-        if (redstone.get() == Redstone.Torch) {
-            for (Direction direction : Arrays.stream(Direction.values()).sorted(Comparator.comparingDouble(i -> pos.relative(i).getCenter().distanceTo(mc.player.getEyePosition()))).toList()) {
-                if (direction == pistonDir.getOpposite() || direction == Direction.DOWN || direction == Direction.UP) continue;
+    if (hand == null && !switched) {
+      return;
+    }
 
-                BlockPos position = pos.relative(direction);
+    hand = hand == null ? InteractionHand.MAIN_HAND : hand;
 
-                if (!OLEPOSSUtils.replaceable(position) && !(mc.level.getBlockState(position).getBlock() instanceof RedstoneTorchBlock)) {
-                    continue;
-                }
+    placeBlock(hand, redstoneData.pos().getCenter(), redstoneData.dir(), redstoneData.pos());
 
-                redstoneData = SettingUtils.getPlaceDataAND(position, d -> {
-                    if (d == Direction.UP && !OLEPOSSUtils.solid(position.below())) {
-                        return false;
-                    }
-                    return direction != d.getOpposite();
-                }, b -> {
-                    if (pos.equals(b)) {
-                        return false;
-                    }
-                    if (mc.level.getBlockState(b).getBlock() instanceof TorchBlock) {
-                        return false;
-                    }
-                    return !(mc.level.getBlockState(b).getBlock() instanceof PistonBaseBlock) && !(mc.level.getBlockState(b).getBlock() instanceof PistonHeadBlock);
+    if (SettingUtils.shouldRotate(RotationType.BlockPlace))
+      Managers.ROTATION.end(Objects.hash(name + "redstone"));
+    redstonePlaced = true;
+    redstoneTime = System.currentTimeMillis();
+
+    if (redstoneSwing.get()) clientSwing(redstoneHand.get(), hand);
+
+    if (switched) {
+      switch (redstoneSwitch.get()) {
+        case Silent -> InvUtils.swapBack();
+        case PickSilent -> BOInvUtils.pickSwapBack();
+        case InvSwitch -> BOInvUtils.swapBack();
+      }
+    }
+  }
+
+  private AABB getBox(BlockPos pos) {
+    return new AABB(
+        pos.getX(), pos.getY(), pos.getZ(), pos.getX() + 1, pos.getY() + 1, pos.getZ() + 1);
+  }
+
+  private void mineUpdate() {
+    if (!pistonPlaced || !redstonePlaced) return;
+    if (minedThisTick) return;
+    if (System.currentTimeMillis() - redstoneTime < rmDelay.get() * 1000) return;
+
+    if (redstonePos == null) {
+      return;
+    }
+
+    if (redstone.get() == Redstone.Torch
+        && !(mc.level.getBlockState(redstonePos).getBlock() instanceof RedstoneTorchBlock)) {
+      return;
+    }
+    if (redstone.get() == Redstone.Block
+        && mc.level.getBlockState(redstonePos).getBlock() != Blocks.REDSTONE_BLOCK) {
+      return;
+    }
+
+    if (Modules.get().isActive(AutoMine.class)
+        && redstonePos.equals(Modules.get().get(AutoMine.class).targetPos())) {
+      return;
+    }
+
+    AutoMine autoMine = Modules.get().get(AutoMine.class);
+
+    if (autoMine.isActive()) {
+      if (redstonePos.equals(autoMine.targetPos())) return;
+
+      autoMine.onStart(redstonePos);
+    } else {
+      Direction mineDir = SettingUtils.getPlaceOnDirection(redstonePos);
+
+      if (mineDir != null) {
+        sendPacket(
+            new ServerboundPlayerActionPacket(
+                ServerboundPlayerActionPacket.Action.START_DESTROY_BLOCK, redstonePos, mineDir));
+        sendPacket(
+            new ServerboundPlayerActionPacket(
+                ServerboundPlayerActionPacket.Action.STOP_DESTROY_BLOCK, redstonePos, mineDir));
+      }
+    }
+
+    if (!mined) mineTime = System.currentTimeMillis();
+
+    mined = true;
+    minedThisTick = true;
+  }
+
+  private void update() {
+    pistonPos = null;
+
+    for (AbstractClientPlayer player : mc.level.players()) {
+
+      if (Friends.get().isFriend(player)) continue;
+      if (player == mc.player) continue;
+      if (mc.player.distanceTo(player) > 10) continue;
+      if (player.getHealth() <= 0) continue;
+      if (player.isSpectator()) continue;
+      if (!OLEPOSSUtils.solid2(player.blockPosition())
+          && onlyHole.get()
+          && HoleUtils.getHole(player.blockPosition(), true, true, false, 1, true).type
+              == HoleType.NotHole) return;
+
+      updatePos(player);
+      if (pistonPos != null) return;
+    }
+  }
+
+  private void updatePos(Player player) {
+    BlockPos eyePos = BlockPos.containing(player.getEyePosition());
+
+    if (OLEPOSSUtils.solid2(eyePos.above())) return;
+
+    for (Direction dir :
+        Direction.Plane.HORIZONTAL.stream()
+            .sorted(
+                Comparator.comparingDouble(
+                    d -> eyePos.relative(d).getCenter().distanceTo(mc.player.getEyePosition())))
+            .toList()) {
+      resetPos();
+
+      BlockPos pos = eyePos.relative(dir);
+      if (!upCheck(pos)) continue;
+
+      if (!OLEPOSSUtils.replaceable(pos)
+          && !(mc.level.getBlockState(pos).getBlock() instanceof PistonBaseBlock)
+          && mc.level.getBlockState(pos).getBlock() != Blocks.MOVING_PISTON) continue;
+      if (OLEPOSSUtils.solid2(eyePos.relative(dir.getOpposite()))) continue;
+      if (OLEPOSSUtils.solid2(eyePos.relative(dir.getOpposite()).above())) continue;
+      if (!OLEPOSSUtils.solid2(eyePos.relative(dir.getOpposite()).below())) continue;
+
+      PlaceData data = SettingUtils.getPlaceData(pos);
+      if (data == null || !data.valid()) continue;
+
+      pistonData = data;
+      pistonDir = dir;
+      updateRedstone(pos);
+
+      if (redstonePos == null) continue;
+
+      if (startPos == null) {
+        startPos = player.blockPosition();
+      }
+      currentPos = player.blockPosition();
+      pistonPos = pos;
+      return;
+    }
+  }
+
+  private void updateRedstone(BlockPos pos) {
+    if (redstone.get() == Redstone.Torch) {
+      for (Direction direction :
+          Arrays.stream(Direction.values())
+              .sorted(
+                  Comparator.comparingDouble(
+                      i -> pos.relative(i).getCenter().distanceTo(mc.player.getEyePosition())))
+              .toList()) {
+        if (direction == pistonDir.getOpposite()
+            || direction == Direction.DOWN
+            || direction == Direction.UP) continue;
+
+        BlockPos position = pos.relative(direction);
+
+        if (!OLEPOSSUtils.replaceable(position)
+            && !(mc.level.getBlockState(position).getBlock() instanceof RedstoneTorchBlock)) {
+          continue;
+        }
+
+        redstoneData =
+            SettingUtils.getPlaceDataAND(
+                position,
+                d -> {
+                  if (d == Direction.UP && !OLEPOSSUtils.solid(position.below())) {
+                    return false;
+                  }
+                  return direction != d.getOpposite();
+                },
+                b -> {
+                  if (pos.equals(b)) {
+                    return false;
+                  }
+                  if (mc.level.getBlockState(b).getBlock() instanceof TorchBlock) {
+                    return false;
+                  }
+                  return !(mc.level.getBlockState(b).getBlock() instanceof PistonBaseBlock)
+                      && !(mc.level.getBlockState(b).getBlock() instanceof PistonHeadBlock);
                 });
 
-                if (redstoneData.valid() && SettingUtils.inPlaceRange(redstoneData.pos()) && SettingUtils.inMineRange(position)) {
-                    redstonePos = position;
-                    return;
-                }
-            }
-            redstonePos = null;
-            return;
+        if (redstoneData.valid()
+            && SettingUtils.inPlaceRange(redstoneData.pos())
+            && SettingUtils.inMineRange(position)) {
+          redstonePos = position;
+          return;
         }
-
-        for (Direction direction : Arrays.stream(Direction.values()).sorted(Comparator.comparingDouble(i -> pos.relative(i).getCenter().distanceTo(mc.player.getEyePosition()))).toList()) {
-            if (direction == pistonDir.getOpposite() || direction == Direction.DOWN) {
-                continue;
-            }
-
-            BlockPos position = pos.relative(direction);
-
-            if (!OLEPOSSUtils.replaceable(position) && mc.level.getBlockState(position).getBlock() != Blocks.REDSTONE_BLOCK) {
-                continue;
-            }
-            if (EntityUtils.intersectsWithEntity(new AABB(position), entity -> !entity.isSpectator() && entity instanceof Player)) {
-                continue;
-            }
-
-            redstoneData = SettingUtils.getPlaceDataOR(position, pos::equals);
-
-            if (redstoneData.valid()) {
-                redstonePos = position;
-                return;
-            }
-        }
-        redstonePos = null;
+      }
+      redstonePos = null;
+      return;
     }
 
-    private boolean upCheck(BlockPos pos) {
-        double dx = mc.player.getEyePosition().x - pos.getX() - 0.5;
-        double dz = mc.player.getEyePosition().z - pos.getZ() - 0.5;
+    for (Direction direction :
+        Arrays.stream(Direction.values())
+            .sorted(
+                Comparator.comparingDouble(
+                    i -> pos.relative(i).getCenter().distanceTo(mc.player.getEyePosition())))
+            .toList()) {
+      if (direction == pistonDir.getOpposite() || direction == Direction.DOWN) {
+        continue;
+      }
 
+      BlockPos position = pos.relative(direction);
 
-        return Math.sqrt(dx * dx + dz * dz) > Math.abs(mc.player.getEyePosition().y - pos.getY() - 0.5);
+      if (!OLEPOSSUtils.replaceable(position)
+          && mc.level.getBlockState(position).getBlock() != Blocks.REDSTONE_BLOCK) {
+        continue;
+      }
+      if (EntityUtils.intersectsWithEntity(
+          new AABB(position), entity -> !entity.isSpectator() && entity instanceof Player)) {
+        continue;
+      }
+
+      redstoneData = SettingUtils.getPlaceDataOR(position, pos::equals);
+
+      if (redstoneData.valid()) {
+        redstonePos = position;
+        return;
+      }
+    }
+    redstonePos = null;
+  }
+
+  private boolean upCheck(BlockPos pos) {
+    double dx = mc.player.getEyePosition().x - pos.getX() - 0.5;
+    double dz = mc.player.getEyePosition().z - pos.getZ() - 0.5;
+
+    return Math.sqrt(dx * dx + dz * dz) > Math.abs(mc.player.getEyePosition().y - pos.getY() - 0.5);
+  }
+
+  private boolean isRedstone(BlockPos pos) {
+    return mc.level.getBlockState(pos).isSignalSource();
+  }
+
+  private boolean blocked(BlockPos pos) {
+    Block b = mc.level.getBlockState(pos).getBlock();
+    if (b == Blocks.MOVING_PISTON) {
+      return false;
+    }
+    if (b == Blocks.PISTON_HEAD) {
+      return false;
+    }
+    if (b == Blocks.REDSTONE_TORCH) {
+      return false;
+    }
+    if (b instanceof FireBlock) {
+      return false;
     }
 
-    private boolean isRedstone(BlockPos pos) {
-        return mc.level.getBlockState(pos).isSignalSource();
+    return !(mc.level.getBlockState(pos).getBlock() instanceof AirBlock);
+  }
+
+  private InteractionHand getHand(Item item) {
+    return Managers.HOLDING.isHolding(item)
+        ? InteractionHand.MAIN_HAND
+        : mc.player.getOffhandItem().getItem() == item ? InteractionHand.OFF_HAND : null;
+  }
+
+  private void resetPos() {
+    pistonPos = null;
+    redstonePos = null;
+
+    pistonDir = null;
+    pistonData = null;
+    redstoneData = null;
+  }
+
+  public enum SwitchMode {
+    Disabled,
+    Silent,
+    PickSilent,
+    InvSwitch
+  }
+
+  public enum Redstone {
+    Torch(Items.REDSTONE_TORCH, Blocks.REDSTONE_TORCH),
+    Block(Items.REDSTONE_BLOCK, Blocks.REDSTONE_BLOCK);
+
+    public final Item i;
+    public final Block b;
+
+    Redstone(Item i, Block b) {
+      this.i = i;
+      this.b = b;
     }
-
-    private boolean blocked(BlockPos pos) {
-        Block b = mc.level.getBlockState(pos).getBlock();
-        if (b == Blocks.MOVING_PISTON) {
-            return false;
-        }
-        if (b == Blocks.PISTON_HEAD) {
-            return false;
-        }
-        if (b == Blocks.REDSTONE_TORCH) {
-            return false;
-        }
-        if (b instanceof FireBlock) {
-            return false;
-        }
-
-        return !(mc.level.getBlockState(pos).getBlock() instanceof AirBlock);
-    }
-
-    private InteractionHand getHand(Item item) {
-        return Managers.HOLDING.isHolding(item) ? InteractionHand.MAIN_HAND :
-            mc.player.getOffhandItem().getItem() == item ? InteractionHand.OFF_HAND :
-                null;
-    }
-
-    private void resetPos() {
-        pistonPos = null;
-        redstonePos = null;
-
-        pistonDir = null;
-        pistonData = null;
-        redstoneData = null;
-    }
-
-    public enum SwitchMode {
-        Disabled,
-        Silent,
-        PickSilent,
-        InvSwitch
-    }
-
-
-    public enum Redstone {
-        Torch(Items.REDSTONE_TORCH, Blocks.REDSTONE_TORCH),
-        Block(Items.REDSTONE_BLOCK, Blocks.REDSTONE_BLOCK);
-
-        public final Item i;
-        public final Block b;
-
-        Redstone(Item i, Block b) {
-            this.i = i;
-            this.b = b;
-        }
-    }
+  }
 }

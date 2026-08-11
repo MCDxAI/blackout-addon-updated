@@ -13,39 +13,40 @@ import net.minecraft.client.gui.screens.DeathScreen;
 /**
  * @author OLEPOSSU
  */
-
 public class Suicide extends BlackOutModule {
-    public Suicide() {
-        super(BlackOut.BLACKOUT, "Suicide", "Kills yourself. Recommended.");
+  public Suicide() {
+    super(BlackOut.BLACKOUT, "Suicide", "Kills yourself. Recommended.");
+  }
+
+  private final SettingGroup sgGeneral = settings.getDefaultGroup();
+
+  public final Setting<Boolean> disableDeath =
+      sgGeneral.add(
+          new BoolSetting.Builder()
+              .name("Disable On Death")
+              .description("Disables the module on death.")
+              .defaultValue(true)
+              .build());
+  public final Setting<Boolean> enableCA =
+      sgGeneral.add(
+          new BoolSetting.Builder()
+              .name("Enable Auto Crystal")
+              .description("Enables auto crystal when enabled.")
+              .defaultValue(true)
+              .build());
+
+  @Override
+  public void onActivate() {
+    if (enableCA.get() && !Modules.get().isActive(AutoCrystalPlus.class)) {
+      Modules.get().get(AutoCrystalPlus.class).toggle();
     }
+  }
 
-    private final SettingGroup sgGeneral = settings.getDefaultGroup();
-
-    public final Setting<Boolean> disableDeath = sgGeneral.add(new BoolSetting.Builder()
-        .name("Disable On Death")
-        .description("Disables the module on death.")
-        .defaultValue(true)
-        .build()
-    );
-    public final Setting<Boolean> enableCA = sgGeneral.add(new BoolSetting.Builder()
-        .name("Enable Auto Crystal")
-        .description("Enables auto crystal when enabled.")
-        .defaultValue(true)
-        .build()
-    );
-
-    @Override
-    public void onActivate() {
-        if (enableCA.get() && !Modules.get().isActive(AutoCrystalPlus.class)) {
-            Modules.get().get(AutoCrystalPlus.class).toggle();
-        }
+  @EventHandler(priority = 6969)
+  private void onDeath(OpenScreenEvent event) {
+    if (event.screen instanceof DeathScreen && disableDeath.get()) {
+      toggle();
+      sendDisableMsg("died");
     }
-
-    @EventHandler(priority = 6969)
-    private void onDeath(OpenScreenEvent event) {
-        if (event.screen instanceof DeathScreen && disableDeath.get()) {
-            toggle();
-            sendDisableMsg("died");
-        }
-    }
+  }
 }

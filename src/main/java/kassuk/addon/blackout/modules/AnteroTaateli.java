@@ -1,5 +1,6 @@
 package kassuk.addon.blackout.modules;
 
+import java.util.Random;
 import kassuk.addon.blackout.BlackOut;
 import kassuk.addon.blackout.BlackOutModule;
 import meteordevelopment.meteorclient.events.world.TickEvent;
@@ -12,40 +13,39 @@ import meteordevelopment.meteorclient.utils.player.ChatUtils;
 import meteordevelopment.orbit.EventHandler;
 import net.minecraft.world.entity.player.Player;
 
-import java.util.Random;
-
-
 /**
  * @author KassuK
  */
-
 public class AnteroTaateli extends BlackOutModule {
-    public AnteroTaateli() {
-        super(BlackOut.BLACKOUT, "Auto Andrew Tate", "What colour is your bugatti?");
-    }
+  public AnteroTaateli() {
+    super(BlackOut.BLACKOUT, "Auto Andrew Tate", "What colour is your bugatti?");
+  }
 
-    private final SettingGroup sgGeneral = settings.getDefaultGroup();
+  private final SettingGroup sgGeneral = settings.getDefaultGroup();
 
-    private final Setting<Boolean> iFriends = sgGeneral.add(new BoolSetting.Builder()
-        .name("Ignore Friends")
-        .description("Doesn't send messages targeted to friends.")
-        .defaultValue(true)
-        .build()
-    );
-    private final Setting<Double> delay = sgGeneral.add(new DoubleSetting.Builder()
-        .name("Delay")
-        .description("Tick delay between messages.")
-        .defaultValue(50)
-        .min(0)
-        .sliderRange(0, 100)
-        .build()
-    );
+  private final Setting<Boolean> iFriends =
+      sgGeneral.add(
+          new BoolSetting.Builder()
+              .name("Ignore Friends")
+              .description("Doesn't send messages targeted to friends.")
+              .defaultValue(true)
+              .build());
+  private final Setting<Double> delay =
+      sgGeneral.add(
+          new DoubleSetting.Builder()
+              .name("Delay")
+              .description("Tick delay between messages.")
+              .defaultValue(50)
+              .min(0)
+              .sliderRange(0, 100)
+              .build());
 
-    private double timer = 0;
-    private final Random r = new Random();
-    private int lastIndex = 0;
+  private double timer = 0;
+  private final Random r = new Random();
+  private int lastIndex = 0;
 
-    private final String[] messages = new String[]{
+  private final String[] messages =
+      new String[] {
         "Hey brokies top G here.",
         "Top G drinks sparkling water and breathes air.",
         "I hate dead people all you do is fucking laying down like pussies.",
@@ -64,48 +64,46 @@ public class AnteroTaateli extends BlackOutModule {
         "There was a guy who looked at me obviously trying to hurt my dignity so i pulled out my RPG and obliterated that fucker",
         "Being rich is even better than you imagine it to be.",
         "Your a fucking brokie!",
+      };
 
-    };
-
-    @EventHandler
-    private void onTick(TickEvent.Pre event) {
-        timer++;
-        if (mc.player != null && mc.level != null) {
-            Player bugatti = getClosest();
-            if (timer >= delay.get() && bugatti != null) {
-                timer = 0;
-                ChatUtils.sendPlayerMsg(getMessage(bugatti));
-            }
-        }
+  @EventHandler
+  private void onTick(TickEvent.Pre event) {
+    timer++;
+    if (mc.player != null && mc.level != null) {
+      Player bugatti = getClosest();
+      if (timer >= delay.get() && bugatti != null) {
+        timer = 0;
+        ChatUtils.sendPlayerMsg(getMessage(bugatti));
+      }
     }
+  }
 
-    private String getMessage(Player pl) {
-        int index = r.nextInt(0, messages.length);
-        String msg = messages[index];
-        if (index == lastIndex) {
-            if (index >= messages.length - 1) {
-                index = 0;
-            }  else
-                index ++;
-        }
-        lastIndex = index;
-        return msg.replace("<NAME>", pl.getName().getString());
+  private String getMessage(Player pl) {
+    int index = r.nextInt(0, messages.length);
+    String msg = messages[index];
+    if (index == lastIndex) {
+      if (index >= messages.length - 1) {
+        index = 0;
+      } else index++;
     }
+    lastIndex = index;
+    return msg.replace("<NAME>", pl.getName().getString());
+  }
 
-    private Player getClosest() {
-        Player closest = null;
-        float distance = -1;
-        if (!mc.level.players().isEmpty()) {
-            for (Player player : mc.level.players()) {
-                if (player != mc.player && (!iFriends.get() || !Friends.get().isFriend(player))) {
-                    if (closest == null || mc.player.position().distanceTo(player.position()) < distance) {
-                        closest = player;
-                        assert mc.player != null;
-                        distance = (float) mc.player.position().distanceTo(player.position());
-                    }
-                }
-            }
+  private Player getClosest() {
+    Player closest = null;
+    float distance = -1;
+    if (!mc.level.players().isEmpty()) {
+      for (Player player : mc.level.players()) {
+        if (player != mc.player && (!iFriends.get() || !Friends.get().isFriend(player))) {
+          if (closest == null || mc.player.position().distanceTo(player.position()) < distance) {
+            closest = player;
+            assert mc.player != null;
+            distance = (float) mc.player.position().distanceTo(player.position());
+          }
         }
-        return closest;
+      }
     }
+    return closest;
+  }
 }

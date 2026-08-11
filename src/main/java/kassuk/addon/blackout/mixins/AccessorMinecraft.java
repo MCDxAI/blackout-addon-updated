@@ -6,6 +6,6 @@ import org.spongepowered.asm.mixin.gen.Accessor;
 
 @Mixin(Minecraft.class)
 public interface AccessorMinecraft {
-    @Accessor("rightClickDelay")
-    void blackout$setRightClickDelay(int itemUseCooldown);
+  @Accessor("rightClickDelay")
+  void blackout$setRightClickDelay(int itemUseCooldown);
 }

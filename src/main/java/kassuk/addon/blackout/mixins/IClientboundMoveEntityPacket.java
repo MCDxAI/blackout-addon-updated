@@ -6,6 +6,6 @@ import org.spongepowered.asm.mixin.gen.Accessor;
 
 @Mixin(ClientboundMoveEntityPacket.class)
 public interface IClientboundMoveEntityPacket {
-    @Accessor("entityId")
-    int blackout$getEntityId();
+  @Accessor("entityId")
+  int blackout$getEntityId();
 }

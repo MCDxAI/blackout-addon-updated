@@ -7,6 +7,6 @@ import org.spongepowered.asm.mixin.gen.Accessor;
 
 @Mixin(ClientPacketListener.class)
 public interface ComponentHasherNetworkHandlerAccessor {
-    @Accessor("decoratedHashOpsGenerator")
-    HashedPatchMap.HashGenerator getDecoratedHashOpsGenerator();
+  @Accessor("decoratedHashOpsGenerator")
+  HashedPatchMap.HashGenerator getDecoratedHashOpsGenerator();
 }

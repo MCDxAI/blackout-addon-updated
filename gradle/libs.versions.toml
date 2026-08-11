@@ -6,6 +6,7 @@ minecraft = "26.1.2"
 fabric-loader = "0.19.2"
 
 loom = "1.15-SNAPSHOT"
+spotless = "8.9.0"
 
 meteor = "26.1.2-SNAPSHOT"
 
@@ -22,4 +23,5 @@ baritone = "meteordevelopment:baritone:26.1-SNAPSHOT"
 
 [plugins]
 fabric-loom = { id = "net.fabricmc.fabric-loom", version.ref = "loom" }
+spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
 

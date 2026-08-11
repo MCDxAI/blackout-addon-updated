@@ -1,5 +1,6 @@
 plugins {
     alias(libs.plugins.fabric.loom)
+    alias(libs.plugins.spotless)
 }
 
 base {
@@ -70,5 +71,15 @@ tasks {
     java {
         sourceCompatibility = JavaVersion.VERSION_25
         targetCompatibility = JavaVersion.VERSION_25
+    }
+}
+
+spotless {
+    java {
+        target("src/main/java/**/*.java")
+        googleJavaFormat()
+
+        trimTrailingWhitespace()
+        endWithNewline()
     }
 }

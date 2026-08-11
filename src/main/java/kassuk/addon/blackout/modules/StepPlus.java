@@ -1,5 +1,6 @@
 package kassuk.addon.blackout.modules;
 
+import java.util.List;
 import kassuk.addon.blackout.BlackOut;
 import kassuk.addon.blackout.BlackOutModule;
 import kassuk.addon.blackout.utils.OLEPOSSUtils;
@@ -7,165 +8,236 @@ import meteordevelopment.meteorclient.settings.BoolSetting;
 import meteordevelopment.meteorclient.settings.DoubleSetting;
 import meteordevelopment.meteorclient.settings.Setting;
 import meteordevelopment.meteorclient.settings.SettingGroup;
-import net.minecraft.world.entity.Entity;
 import net.minecraft.network.protocol.game.ServerboundMovePlayerPacket;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-import java.util.List;
-
 /**
  * @author OLEPOSSU
  */
-
 public class StepPlus extends BlackOutModule {
-    public StepPlus() {
-        super(BlackOut.BLACKOUT, "Step+", "Step but works.");
-    }
+  public StepPlus() {
+    super(BlackOut.BLACKOUT, "Step+", "Step but works.");
+  }
 
-    private final SettingGroup sgGeneral = settings.getDefaultGroup();
+  private final SettingGroup sgGeneral = settings.getDefaultGroup();
 
-    public final Setting<Boolean> slow = sgGeneral.add(new BoolSetting.Builder()
-        .name("Slow")
-        .description("Moves up slowly to prevent lagbacks.")
-        .defaultValue(false)
-        .build()
-    );
-    private final Setting<Boolean> strict = sgGeneral.add(new BoolSetting.Builder()
-        .name("Strict")
-        .description("Strict 2b2tpvp step.")
-        .defaultValue(false)
-        .build()
-    );
-    public final Setting<Double> height = sgGeneral.add(new DoubleSetting.Builder()
-        .name("Height")
-        .description("Starts stepping if target block can be reached in x movement ticks.")
-        .defaultValue(2.5)
-        .min(0.6)
-        .sliderRange(0.6, 2.5)
-        .visible(() -> !strict.get())
-        .build()
-    );
-    public final Setting<Double> cooldown = sgGeneral.add(new DoubleSetting.Builder()
-        .name("Cooldown")
-        .description("Waits x seconds between steps.")
-        .defaultValue(0.25)
-        .min(0)
-        .sliderRange(0, 1)
-        .build()
-    );
+  public final Setting<Boolean> slow =
+      sgGeneral.add(
+          new BoolSetting.Builder()
+              .name("Slow")
+              .description("Moves up slowly to prevent lagbacks.")
+              .defaultValue(false)
+              .build());
+  private final Setting<Boolean> strict =
+      sgGeneral.add(
+          new BoolSetting.Builder()
+              .name("Strict")
+              .description("Strict 2b2tpvp step.")
+              .defaultValue(false)
+              .build());
+  public final Setting<Double> height =
+      sgGeneral.add(
+          new DoubleSetting.Builder()
+              .name("Height")
+              .description("Starts stepping if target block can be reached in x movement ticks.")
+              .defaultValue(2.5)
+              .min(0.6)
+              .sliderRange(0.6, 2.5)
+              .visible(() -> !strict.get())
+              .build());
+  public final Setting<Double> cooldown =
+      sgGeneral.add(
+          new DoubleSetting.Builder()
+              .name("Cooldown")
+              .description("Waits x seconds between steps.")
+              .defaultValue(0.25)
+              .min(0)
+              .sliderRange(0, 1)
+              .build());
 
-    public boolean stepping = false;
+  public boolean stepping = false;
 
-    double targetY = 0;
+  double targetY = 0;
 
-    public int index = 0;
-    public double[] currentOffsets = null;
-    public long lastStep = 0;
+  public int index = 0;
+  public double[] currentOffsets = null;
+  public long lastStep = 0;
 
-    public void onActivate() {
-        index = 0;
-        stepping = false;
-        currentOffsets = null;
-        targetY = 0;
-    }
+  public void onActivate() {
+    index = 0;
+    stepping = false;
+    currentOffsets = null;
+    targetY = 0;
+  }
 
-    public void slowStep(Entity entity, Vec3 movement, CallbackInfoReturnable<Vec3> cir) {
-        AABB box = entity.getBoundingBox();
-        List<VoxelShape> list = entity.level().getEntityCollisions(entity, box.expandTowards(movement));
-        Vec3 vec3d = movement.lengthSqr() == 0.0 ? movement : Entity.collideBoundingBox(entity, movement, box, entity.level(), list);
+  public void slowStep(Entity entity, Vec3 movement, CallbackInfoReturnable<Vec3> cir) {
+    AABB box = entity.getBoundingBox();
+    List<VoxelShape> list = entity.level().getEntityCollisions(entity, box.expandTowards(movement));
+    Vec3 vec3d =
+        movement.lengthSqr() == 0.0
+            ? movement
+            : Entity.collideBoundingBox(entity, movement, box, entity.level(), list);
 
-        if ((movement.x != vec3d.x || movement.z != vec3d.z) || stepping) {
-            if (entity.onGround() && !stepping && System.currentTimeMillis() - lastStep > cooldown.get() * 1000) {
-                Vec3 vec3d2 = Entity.collideBoundingBox(entity, new Vec3(movement.x, height.get(), movement.z), box, entity.level(), list);
-                Vec3 vec3d3 = Entity.collideBoundingBox(entity, new Vec3(0.0, height.get(), 0.0), box.expandTowards(movement.x, 0.0, movement.z), entity.level(), list);
-                if (vec3d3.y < height.get()) {
-                    Vec3 vec3d4 = Entity.collideBoundingBox(entity, new Vec3(movement.x, 0.0, movement.z), box.move(vec3d3), entity.level(), list).add(vec3d3);
-                    if (vec3d4.horizontalDistanceSqr() > vec3d2.horizontalDistanceSqr()) {
-                        vec3d2 = vec3d4;
-                    }
-                }
-
-                if (vec3d2.horizontalDistanceSqr() > vec3d.horizontalDistanceSqr()) {
-                    Vec3 vec = vec3d2.add(Entity.collideBoundingBox(entity, new Vec3(0.0, -vec3d2.y + movement.y, 0.0), box.move(vec3d2), entity.level(), list));
-
-                    double[] o = getOffsets(vec.y);
-
-                    if (o != null) {
-                        lastStep = System.currentTimeMillis();
-                        currentOffsets = o;
-                        targetY = mc.player.getY() + vec.y;
-                        stepping = true;
-                        index = -1;
-                    }
-                }
-            }
-
-            if (stepping && currentOffsets != null) {
-                index++;
-                double offset = 0;
-                if (index < currentOffsets.length) {
-                    offset = currentOffsets[index];
-                }
-
-                if (index >= currentOffsets.length) {
-                    if (!strict.get()) {
-                        offset = targetY - mc.player.getY();
-                    }
-                    stepping = false;
-                }
-
-                Vec3 vec3d4;
-                if (!strict.get() || index > 1) {
-                    Vec3 vec3d3 = Entity.collideBoundingBox(entity, new Vec3(0, offset, 0), box.expandTowards(0, 0.0, 0), entity.level(), list);
-                    vec3d4 = Entity.collideBoundingBox(entity, new Vec3(movement.x, 0.0, movement.z), box.move(vec3d3), entity.level(), list).add(vec3d3);
-                } else {
-                    vec3d4 = Entity.collideBoundingBox(entity, new Vec3(0, offset, 0), box.expandTowards(0, 0.0, 0), entity.level(), list);
-                }
-
-                cir.setReturnValue(vec3d4);
-                return;
-            }
+    if ((movement.x != vec3d.x || movement.z != vec3d.z) || stepping) {
+      if (entity.onGround()
+          && !stepping
+          && System.currentTimeMillis() - lastStep > cooldown.get() * 1000) {
+        Vec3 vec3d2 =
+            Entity.collideBoundingBox(
+                entity, new Vec3(movement.x, height.get(), movement.z), box, entity.level(), list);
+        Vec3 vec3d3 =
+            Entity.collideBoundingBox(
+                entity,
+                new Vec3(0.0, height.get(), 0.0),
+                box.expandTowards(movement.x, 0.0, movement.z),
+                entity.level(),
+                list);
+        if (vec3d3.y < height.get()) {
+          Vec3 vec3d4 =
+              Entity.collideBoundingBox(
+                      entity,
+                      new Vec3(movement.x, 0.0, movement.z),
+                      box.move(vec3d3),
+                      entity.level(),
+                      list)
+                  .add(vec3d3);
+          if (vec3d4.horizontalDistanceSqr() > vec3d2.horizontalDistanceSqr()) {
+            vec3d2 = vec3d4;
+          }
         }
 
-        cir.setReturnValue(vec3d);
-    }
+        if (vec3d2.horizontalDistanceSqr() > vec3d.horizontalDistanceSqr()) {
+          Vec3 vec =
+              vec3d2.add(
+                  Entity.collideBoundingBox(
+                      entity,
+                      new Vec3(0.0, -vec3d2.y + movement.y, 0.0),
+                      box.move(vec3d2),
+                      entity.level(),
+                      list));
 
-    public double[] getOffsets(double step) {
-        if (strict.get()) {
-            if (step > 0.6 && step <= 1.000001) {
-                // by me (OLEPOSSU)
-                return new double[]{0.424, 0.33712, 0.25197759999999997};
-            }
-            return null;
+          double[] o = getOffsets(vec.y);
+
+          if (o != null) {
+            lastStep = System.currentTimeMillis();
+            currentOffsets = o;
+            targetY = mc.player.getY() + vec.y;
+            stepping = true;
+            index = -1;
+          }
         }
+      }
 
-        // By Doogie13
-        if (step > 2.019) {
-            return new double[]{0.425, 0.39599999999999996, -0.122, -0.09999999999999998, 0.42300000000000004, 0.3500000000000001, 0.2799999999999998, 0.21700000000000008, 0.15000000000000013, -0.10000000000000009};
-        } else if (step > 1.5) {
-            return new double[]{0.42, 0.36000000000000004, -0.15000000000000002, -0.12, 0.39, 0.30999999999999994, 0.24, -0.020000000000000018};
-        } else if (step > 1.015) {
-            return new double[]{0.42, 0.3332, 0.25680000000000003, 0.08299999999999996, -0.07800000000000007};
-        } else if (step > 0.6) {
-            return new double[]{0.42, 0.3332};
-        }
-        return null;
-    }
-
-    public void step(double[] offsets) {
-        if (offsets == null) return;
+      if (stepping && currentOffsets != null) {
+        index++;
         double offset = 0;
-        for (double v : offsets) {
-            offset += v;
-            sendPacket(new ServerboundMovePlayerPacket.Pos(mc.player.getX(), mc.player.getY() + offset, mc.player.getZ(), false, false));
+        if (index < currentOffsets.length) {
+          offset = currentOffsets[index];
         }
-        lastStep = System.currentTimeMillis();
+
+        if (index >= currentOffsets.length) {
+          if (!strict.get()) {
+            offset = targetY - mc.player.getY();
+          }
+          stepping = false;
+        }
+
+        Vec3 vec3d4;
+        if (!strict.get() || index > 1) {
+          Vec3 vec3d3 =
+              Entity.collideBoundingBox(
+                  entity,
+                  new Vec3(0, offset, 0),
+                  box.expandTowards(0, 0.0, 0),
+                  entity.level(),
+                  list);
+          vec3d4 =
+              Entity.collideBoundingBox(
+                      entity,
+                      new Vec3(movement.x, 0.0, movement.z),
+                      box.move(vec3d3),
+                      entity.level(),
+                      list)
+                  .add(vec3d3);
+        } else {
+          vec3d4 =
+              Entity.collideBoundingBox(
+                  entity,
+                  new Vec3(0, offset, 0),
+                  box.expandTowards(0, 0.0, 0),
+                  entity.level(),
+                  list);
+        }
+
+        cir.setReturnValue(vec3d4);
+        return;
+      }
     }
 
-    private boolean i(AABB b) {
-        return OLEPOSSUtils.inside(mc.player, b);
+    cir.setReturnValue(vec3d);
+  }
+
+  public double[] getOffsets(double step) {
+    if (strict.get()) {
+      if (step > 0.6 && step <= 1.000001) {
+        // by me (OLEPOSSU)
+        return new double[] {0.424, 0.33712, 0.25197759999999997};
+      }
+      return null;
     }
+
+    // By Doogie13
+    if (step > 2.019) {
+      return new double[] {
+        0.425,
+        0.39599999999999996,
+        -0.122,
+        -0.09999999999999998,
+        0.42300000000000004,
+        0.3500000000000001,
+        0.2799999999999998,
+        0.21700000000000008,
+        0.15000000000000013,
+        -0.10000000000000009
+      };
+    } else if (step > 1.5) {
+      return new double[] {
+        0.42,
+        0.36000000000000004,
+        -0.15000000000000002,
+        -0.12,
+        0.39,
+        0.30999999999999994,
+        0.24,
+        -0.020000000000000018
+      };
+    } else if (step > 1.015) {
+      return new double[] {
+        0.42, 0.3332, 0.25680000000000003, 0.08299999999999996, -0.07800000000000007
+      };
+    } else if (step > 0.6) {
+      return new double[] {0.42, 0.3332};
+    }
+    return null;
+  }
+
+  public void step(double[] offsets) {
+    if (offsets == null) return;
+    double offset = 0;
+    for (double v : offsets) {
+      offset += v;
+      sendPacket(
+          new ServerboundMovePlayerPacket.Pos(
+              mc.player.getX(), mc.player.getY() + offset, mc.player.getZ(), false, false));
+    }
+    lastStep = System.currentTimeMillis();
+  }
+
+  private boolean i(AABB b) {
+    return OLEPOSSUtils.inside(mc.player, b);
+  }
 }

@@ -1,5 +1,6 @@
 package kassuk.addon.blackout.modules;
 
+import java.util.Objects;
 import kassuk.addon.blackout.BlackOut;
 import kassuk.addon.blackout.BlackOutModule;
 import kassuk.addon.blackout.enums.RotationType;
@@ -17,232 +18,269 @@ import meteordevelopment.meteorclient.utils.entity.DamageUtils;
 import meteordevelopment.meteorclient.utils.player.InvUtils;
 import meteordevelopment.meteorclient.utils.player.Rotations;
 import meteordevelopment.orbit.EventHandler;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.AxeItem;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.network.protocol.game.ServerboundAttackPacket;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.world.InteractionHand;
-
-import java.util.Objects;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.AxeItem;
+import net.minecraft.world.item.ItemStack;
 
 /**
  * @author OLEPOSSU
  */
-
 public class KillAuraPlus extends BlackOutModule {
-    public KillAuraPlus() {
-        super(BlackOut.BLACKOUT, "Kill Aura+", "Better kill aura. Made for crystal pvp.");
+  public KillAuraPlus() {
+    super(BlackOut.BLACKOUT, "Kill Aura+", "Better kill aura. Made for crystal pvp.");
+  }
+
+  private final SettingGroup sgGeneral = settings.getDefaultGroup();
+
+  private final Setting<TargetMode> targetMode =
+      sgGeneral.add(
+          new EnumSetting.Builder<TargetMode>()
+              .name("Target Mode")
+              .description("Which opponent should be targeted.")
+              .defaultValue(TargetMode.Health)
+              .build());
+  private final Setting<Integer> maxHp =
+      sgGeneral.add(
+          new IntSetting.Builder()
+              .name("Max HP")
+              .description("Target's health must be under this value.")
+              .defaultValue(36)
+              .min(0)
+              .sliderMax(36)
+              .build());
+  private final Setting<Double> delay =
+      sgGeneral.add(
+          new DoubleSetting.Builder()
+              .name("Delay")
+              .description("Delay that will be used for hits.")
+              .defaultValue(0.500)
+              .min(0)
+              .sliderMax(1)
+              .build());
+  private final Setting<RotationMode> rotationMode =
+      sgGeneral.add(
+          new EnumSetting.Builder<RotationMode>()
+              .name("Rotation mode")
+              .description(
+                  "When should we rotate. Only active if attack rotations are enabled in rotation settings.")
+              .defaultValue(RotationMode.OnHit)
+              .build());
+  private final Setting<SwitchMode> switchMode =
+      sgGeneral.add(
+          new EnumSetting.Builder<SwitchMode>()
+              .name("Switch mode")
+              .description("Should be set to disabled.")
+              .defaultValue(SwitchMode.Disabled)
+              .build());
+  private final Setting<Boolean> onlyWeapon =
+      sgGeneral.add(
+          new BoolSetting.Builder()
+              .name("Only Weapon")
+              .description("Only attacks with a weapon.")
+              .defaultValue(true)
+              .build());
+  private final Setting<Boolean> swing =
+      sgGeneral.add(
+          new BoolSetting.Builder()
+              .name("Swing")
+              .description("Renders swing animation when attacking an entity.")
+              .defaultValue(true)
+              .build());
+  private final Setting<SwingHand> swingHand =
+      sgGeneral.add(
+          new EnumSetting.Builder<SwingHand>()
+              .name("Swing Hand")
+              .description("Which hand should be swung.")
+              .defaultValue(SwingHand.RealHand)
+              .visible(swing::get)
+              .build());
+
+  private double timer = 0;
+  private Player target = null;
+
+  @EventHandler
+  private void onRender(Render3DEvent event) {
+    timer = Math.min(delay.get(), timer + event.frameTime);
+
+    updateTarget();
+
+    if (target == null) {
+      return;
     }
 
-    private final SettingGroup sgGeneral = settings.getDefaultGroup();
-
-    private final Setting<TargetMode> targetMode = sgGeneral.add(new EnumSetting.Builder<TargetMode>()
-        .name("Target Mode")
-        .description("Which opponent should be targeted.")
-        .defaultValue(TargetMode.Health)
-        .build()
-    );
-    private final Setting<Integer> maxHp = sgGeneral.add(new IntSetting.Builder()
-        .name("Max HP")
-        .description("Target's health must be under this value.")
-        .defaultValue(36)
-        .min(0)
-        .sliderMax(36)
-        .build()
-    );
-    private final Setting<Double> delay = sgGeneral.add(new DoubleSetting.Builder()
-        .name("Delay")
-        .description("Delay that will be used for hits.")
-        .defaultValue(0.500)
-        .min(0)
-        .sliderMax(1)
-        .build()
-    );
-    private final Setting<RotationMode> rotationMode = sgGeneral.add(new EnumSetting.Builder<RotationMode>()
-        .name("Rotation mode")
-        .description("When should we rotate. Only active if attack rotations are enabled in rotation settings.")
-        .defaultValue(RotationMode.OnHit)
-        .build()
-    );
-    private final Setting<SwitchMode> switchMode = sgGeneral.add(new EnumSetting.Builder<SwitchMode>()
-        .name("Switch mode")
-        .description("Should be set to disabled.")
-        .defaultValue(SwitchMode.Disabled)
-        .build()
-    );
-    private final Setting<Boolean> onlyWeapon = sgGeneral.add(new BoolSetting.Builder()
-        .name("Only Weapon")
-        .description("Only attacks with a weapon.")
-        .defaultValue(true)
-        .build()
-    );
-    private final Setting<Boolean> swing = sgGeneral.add(new BoolSetting.Builder()
-        .name("Swing")
-        .description("Renders swing animation when attacking an entity.")
-        .defaultValue(true)
-        .build()
-    );
-    private final Setting<SwingHand> swingHand = sgGeneral.add(new EnumSetting.Builder<SwingHand>()
-        .name("Swing Hand")
-        .description("Which hand should be swung.")
-        .defaultValue(SwingHand.RealHand)
-        .visible(swing::get)
-        .build()
-    );
-
-    private double timer = 0;
-    private Player target = null;
-
-    @EventHandler
-    private void onRender(Render3DEvent event) {
-        timer = Math.min(delay.get(), timer + event.frameTime);
-
-        updateTarget();
-
-        if (target == null) {
-            return;
+    boolean switched = false;
+    switch (switchMode.get()) {
+      case Disabled ->
+          switched =
+              !onlyWeapon.get()
+                  || mc.player.getMainHandItem().is(ItemTags.SWORDS)
+                  || mc.player.getMainHandItem().getItem() instanceof AxeItem;
+      case Normal -> {
+        int slot = bestSlot(false);
+        if (slot >= 0) {
+          InvUtils.swap(slot, true);
+          switched = true;
         }
-
-        boolean switched = false;
-        switch (switchMode.get()) {
-            case Disabled ->
-                switched = !onlyWeapon.get() || mc.player.getMainHandItem().is(ItemTags.SWORDS) || mc.player.getMainHandItem().getItem() instanceof AxeItem;
-            case Normal -> {
-                int slot = bestSlot(false);
-                if (slot >= 0) {
-                    InvUtils.swap(slot, true);
-                    switched = true;
-                }
-            }
-            case InvSwitch, PickSwitch, Silent -> switched = true;
-        }
-
-        if (!switched) {
-            return;
-        }
-
-        boolean rotated = rotationMode.get() != RotationMode.Constant || !SettingUtils.shouldRotate(RotationType.Attacking) || Managers.ROTATION.start(target.getBoundingBox(), priority, RotationType.Attacking, Objects.hash(name + "attacking"));
-
-        if (!rotated || timer < delay.get()) {
-            return;
-        }
-
-        rotated = rotationMode.get() != RotationMode.OnHit || !SettingUtils.shouldRotate(RotationType.Attacking) || Managers.ROTATION.start(target.getBoundingBox(), priority, RotationType.Attacking, Objects.hash(name + "attacking"));
-
-        if (!rotated) {
-            return;
-        }
-
-
-        switch (switchMode.get()) {
-            case Silent -> {
-                switched = false;
-                int slot = bestSlot(false);
-                if (slot >= 0) {
-                    InvUtils.swap(slot, true);
-                    switched = true;
-                }
-            }
-            case PickSwitch -> {
-                switched = false;
-                int slot = bestSlot(true);
-                if (slot >= 0) {
-                    switched = BOInvUtils.pickSwitch(slot);
-                }
-            }
-            case InvSwitch -> {
-                switched = false;
-                int slot = bestSlot(true);
-                if (slot >= 0) {
-                    switched = BOInvUtils.invSwitch(slot);
-                }
-            }
-        }
-
-        if (!switched) {
-            return;
-        }
-
-        attackTarget();
-
-        switch (switchMode.get()) {
-            case Silent -> InvUtils.swapBack();
-            case InvSwitch -> BOInvUtils.swapBack();
-            case PickSwitch -> BOInvUtils.pickSwapBack();
-        }
-
-        if (rotationMode.get() == RotationMode.OnHit) {
-            Managers.ROTATION.end(Objects.hash(name + "attacking"));
-        }
+      }
+      case InvSwitch, PickSwitch, Silent -> switched = true;
     }
 
-    private void attackTarget() {
-        timer = 0;
-
-        SettingUtils.swing(SwingState.Pre, SwingType.Attacking, InteractionHand.MAIN_HAND);
-
-        sendPacket(new ServerboundAttackPacket(target.getId()));
-
-        SettingUtils.swing(SwingState.Post, SwingType.Attacking, InteractionHand.MAIN_HAND);
-        if (swing.get()) clientSwing(swingHand.get(), InteractionHand.MAIN_HAND);
+    if (!switched) {
+      return;
     }
 
-    private int bestSlot(boolean inventory) {
-        int slot = -1;
-        double hDmg = -1;
-        double dmg;
-        for (int i = 0; i < (inventory ? mc.player.getInventory().getContainerSize() + 1 : 9); i++) {
-            ItemStack stack = mc.player.getInventory().getItem(i);
-            if (onlyWeapon.get() && !(stack.getItem().getDefaultInstance().is(ItemTags.SWORDS)) && !(stack.getItem() instanceof AxeItem)) {
-                continue;
-            }
+    boolean rotated =
+        rotationMode.get() != RotationMode.Constant
+            || !SettingUtils.shouldRotate(RotationType.Attacking)
+            || Managers.ROTATION.start(
+                target.getBoundingBox(),
+                priority,
+                RotationType.Attacking,
+                Objects.hash(name + "attacking"));
 
-            dmg = DamageUtils.getAttackDamage(mc.player, target, stack);
-            if (dmg > hDmg) {
-                slot = i;
-                hDmg = dmg;
-            }
+    if (!rotated || timer < delay.get()) {
+      return;
+    }
+
+    rotated =
+        rotationMode.get() != RotationMode.OnHit
+            || !SettingUtils.shouldRotate(RotationType.Attacking)
+            || Managers.ROTATION.start(
+                target.getBoundingBox(),
+                priority,
+                RotationType.Attacking,
+                Objects.hash(name + "attacking"));
+
+    if (!rotated) {
+      return;
+    }
+
+    switch (switchMode.get()) {
+      case Silent -> {
+        switched = false;
+        int slot = bestSlot(false);
+        if (slot >= 0) {
+          InvUtils.swap(slot, true);
+          switched = true;
         }
-        return slot;
+      }
+      case PickSwitch -> {
+        switched = false;
+        int slot = bestSlot(true);
+        if (slot >= 0) {
+          switched = BOInvUtils.pickSwitch(slot);
+        }
+      }
+      case InvSwitch -> {
+        switched = false;
+        int slot = bestSlot(true);
+        if (slot >= 0) {
+          switched = BOInvUtils.invSwitch(slot);
+        }
+      }
     }
 
-    private void updateTarget() {
-        double value = 0;
-        target = null;
+    if (!switched) {
+      return;
+    }
 
-        mc.level.players().forEach(player -> {
-            if (player.getHealth() <= 0 || player.isSpectator() || player.getHealth() + player.getAbsorptionAmount() > maxHp.get() || !SettingUtils.inAttackRange(player.getBoundingBox()) || player == mc.player || Friends.get().isFriend(player)) {
+    attackTarget();
+
+    switch (switchMode.get()) {
+      case Silent -> InvUtils.swapBack();
+      case InvSwitch -> BOInvUtils.swapBack();
+      case PickSwitch -> BOInvUtils.pickSwapBack();
+    }
+
+    if (rotationMode.get() == RotationMode.OnHit) {
+      Managers.ROTATION.end(Objects.hash(name + "attacking"));
+    }
+  }
+
+  private void attackTarget() {
+    timer = 0;
+
+    SettingUtils.swing(SwingState.Pre, SwingType.Attacking, InteractionHand.MAIN_HAND);
+
+    sendPacket(new ServerboundAttackPacket(target.getId()));
+
+    SettingUtils.swing(SwingState.Post, SwingType.Attacking, InteractionHand.MAIN_HAND);
+    if (swing.get()) clientSwing(swingHand.get(), InteractionHand.MAIN_HAND);
+  }
+
+  private int bestSlot(boolean inventory) {
+    int slot = -1;
+    double hDmg = -1;
+    double dmg;
+    for (int i = 0; i < (inventory ? mc.player.getInventory().getContainerSize() + 1 : 9); i++) {
+      ItemStack stack = mc.player.getInventory().getItem(i);
+      if (onlyWeapon.get()
+          && !(stack.getItem().getDefaultInstance().is(ItemTags.SWORDS))
+          && !(stack.getItem() instanceof AxeItem)) {
+        continue;
+      }
+
+      dmg = DamageUtils.getAttackDamage(mc.player, target, stack);
+      if (dmg > hDmg) {
+        slot = i;
+        hDmg = dmg;
+      }
+    }
+    return slot;
+  }
+
+  private void updateTarget() {
+    double value = 0;
+    target = null;
+
+    mc.level
+        .players()
+        .forEach(
+            player -> {
+              if (player.getHealth() <= 0
+                  || player.isSpectator()
+                  || player.getHealth() + player.getAbsorptionAmount() > maxHp.get()
+                  || !SettingUtils.inAttackRange(player.getBoundingBox())
+                  || player == mc.player
+                  || Friends.get().isFriend(player)) {
                 return;
-            }
+              }
 
-            double val = switch (targetMode.get()) {
-                case Health -> 10000 - player.getHealth() - player.getAbsorptionAmount();
-                case Angle -> 10000 - Math.abs(RotationUtils.yawAngle(mc.player.getYRot(), Rotations.getYaw(player)));
-                case Distance -> 10000 - mc.player.position().distanceTo(player.position());
-            };
-            if (val > value) {
+              double val =
+                  switch (targetMode.get()) {
+                    case Health -> 10000 - player.getHealth() - player.getAbsorptionAmount();
+                    case Angle ->
+                        10000
+                            - Math.abs(
+                                RotationUtils.yawAngle(
+                                    mc.player.getYRot(), Rotations.getYaw(player)));
+                    case Distance -> 10000 - mc.player.position().distanceTo(player.position());
+                  };
+              if (val > value) {
                 target = player;
-            }
-        });
-    }
+              }
+            });
+  }
 
-    public enum TargetMode {
-        Health,
-        Angle,
-        Distance
-    }
+  public enum TargetMode {
+    Health,
+    Angle,
+    Distance
+  }
 
-    public enum RotationMode {
-        OnHit,
-        Constant
-    }
+  public enum RotationMode {
+    OnHit,
+    Constant
+  }
 
-    public enum SwitchMode {
-        Disabled,
-        Normal,
-        Silent,
-        PickSwitch,
-        InvSwitch
-    }
+  public enum SwitchMode {
+    Disabled,
+    Normal,
+    Silent,
+    PickSwitch,
+    InvSwitch
+  }
 }
