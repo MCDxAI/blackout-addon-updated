@@ -26,6 +26,7 @@ import net.minecraft.world.entity.vehicle.minecart.MinecartTNT;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.EntityHitResult;
 
 /**
  * @author Marc3D Ported from Meta's AutoMineCart module
@@ -102,19 +103,22 @@ public class AutoCart extends BlackOutModule {
               .description("How to switch items.")
               .defaultValue(SwitchMode.Silent)
               .build());
-  private final Setting<PlaceMode> placeMode =
-      sgPlacement.add(
-          new EnumSetting.Builder<PlaceMode>()
-              .name("Place Mode")
-              .description("How to place blocks and items.")
-              .defaultValue(PlaceMode.Packet)
-              .build());
   private final Setting<Boolean> limitPlacements =
       sgPlacement.add(
           new BoolSetting.Builder()
               .name("Limit Placements")
               .description("Limit the number of minecarts placed.")
               .defaultValue(false)
+              .build());
+  private final Setting<Integer> placementLimit =
+      sgPlacement.add(
+          new IntSetting.Builder()
+              .name("Placement Limit")
+              .description("Max TNT minecarts placed per target position.")
+              .defaultValue(26)
+              .range(1, 64)
+              .sliderMax(64)
+              .visible(limitPlacements::get)
               .build());
   private final Setting<Boolean> autoDisable =
       sgPlacement.add(
@@ -287,7 +291,7 @@ public class AutoCart extends BlackOutModule {
             renderPos.getY() + 0.125,
             renderPos.getZ() + 1.0);
 
-    event.renderer.box(renderPos, color, color, shapeMode.get(), 0);
+    event.renderer.box(box, color, color, shapeMode.get(), 0);
   }
 
   private void runIgnitePlacement() {
@@ -415,7 +419,7 @@ public class AutoCart extends BlackOutModule {
       renderPos = targetPos;
 
       if (System.currentTimeMillis() - lastPlaceTime >= placeDelay.get()
-          && (cartCount < 26 || !limitPlacements.get())) {
+          && (cartCount < placementLimit.get() || !limitPlacements.get())) {
         placeCart(targetPos);
       }
     }
@@ -446,17 +450,11 @@ public class AutoCart extends BlackOutModule {
     return closest;
   }
 
+  // Matches the codebase convention used by Blocker/HoleFillPlus. HoleUtils.inHole is slightly
+  // stricter than the old 4-wall check (it also requires a solid floor and a recognized hole
+  // pattern), aligning AutoCart's onlyHole/onlySelfHole gates with the rest of BlackOut.
   private boolean isInHole(Player player) {
-    BlockPos pos = player.blockPosition();
-    if (!mc.level.getBlockState(pos).canBeReplaced()) return false;
-
-    int solid = 0;
-    for (Direction dir : Direction.Plane.HORIZONTAL) {
-      if (!mc.level.getBlockState(pos.relative(dir)).canBeReplaced()) {
-        solid++;
-      }
-    }
-    return solid >= 4;
+    return HoleUtils.inHole(player);
   }
 
   private BlockPos getPredictedPosition(Player target) {
@@ -492,6 +490,14 @@ public class AutoCart extends BlackOutModule {
         mc.level.getEntitiesOfClass(MinecartTNT.class, box).stream()
             .filter(minecart -> minecart.isAlive())
             .count();
+  }
+
+  private MinecartTNT findMinecartAt(BlockPos pos) {
+    AABB box = new AABB(pos).inflate(0.5);
+    for (MinecartTNT minecart : mc.level.getEntitiesOfClass(MinecartTNT.class, box)) {
+      if (minecart.isAlive()) return minecart;
+    }
+    return null;
   }
 
   private void placeRail(BlockPos pos) {
@@ -652,6 +658,9 @@ public class AutoCart extends BlackOutModule {
   }
 
   private void igniteCart(BlockPos pos) {
+    MinecartTNT minecart = findMinecartAt(pos);
+    if (minecart == null || mc.gameMode == null) return;
+
     FindItemResult flintAndSteel = InvUtils.find(Items.FLINT_AND_STEEL);
     if (!flintAndSteel.found()) return;
 
@@ -678,7 +687,14 @@ public class AutoCart extends BlackOutModule {
                 pos, priority, RotationType.Interact, Objects.hash(name + "ignite"));
 
     if (rotated) {
-      interactBlock(hand, pos.below().getCenter(), Direction.UP, pos.below());
+      // TNT minecarts are entities, so ignite by using flint & steel on the minecart itself. This
+      // sends a ServerboundInteractPacket (INTERACT_AT) via MultiPlayerGameMode.interact, rather
+      // than a block-use packet against the floor (which did nothing).
+      EntityHitResult hitResult =
+          new EntityHitResult(minecart, minecart.getBoundingBox().getCenter());
+      SettingUtils.swing(SwingState.Pre, SwingType.Interact, hand);
+      mc.gameMode.interact(mc.player, minecart, hitResult, hand);
+      SettingUtils.swing(SwingState.Post, SwingType.Interact, hand);
 
       if (swing.get()) clientSwing(swingHand.get(), hand);
       if (SettingUtils.shouldRotate(RotationType.Interact)) {
@@ -701,11 +717,6 @@ public class AutoCart extends BlackOutModule {
     Silent,
     PickSilent,
     InvSwitch
-  }
-
-  public enum PlaceMode {
-    Packet,
-    Controller
   }
 
   private enum Stage {
