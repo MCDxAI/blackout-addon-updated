@@ -33,6 +33,7 @@ dependencies {
     // Meteor
     implementation(libs.meteor.client)
     compileOnly(libs.baritone)
+    runtimeOnly(libs.baritone) // runtime for runClient: MC Test Harness PathingService needs baritone.api.* (Meteor loads the same way via plain implementation; this Loom has no mod* configs / no loom.mods block)
 }
 
 loom {

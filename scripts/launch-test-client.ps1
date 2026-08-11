@@ -18,9 +18,9 @@
   Gradle always runs with --no-daemon to avoid orphaned daemon processes.
 
 .PARAMETER Variant
-  meteor (default, port 38861) — controls Meteor/BlackOut modules. Use this to
+  meteor (default, port 38861) -- controls Meteor/BlackOut modules. Use this to
                                   verify BlackOut.
-  universal (port 38862)        — engine-agnostic DOM testing, no Meteor module CRUD.
+  universal (port 38862)        -- engine-agnostic DOM testing, no Meteor module CRUD.
 
 .PARAMETER SkipBuild
   Reuse the already-built harness jar (skip the gradle build). Speeds up re-launches.
@@ -75,7 +75,7 @@ if (-not $SkipBuild) {
     }
     finally { Pop-Location }
 } else {
-    Write-Step "SkipBuild set — reusing existing harness jar."
+    Write-Step "SkipBuild set -- reusing existing harness jar."
 }
 
 # --- 2. stage jar into blackout runClient mods --------------------------------
@@ -92,7 +92,7 @@ Get-ChildItem $modsDir -Filter ($variantConfig.JarGlob -replace '\*','*') -File 
 Copy-Item $jar.FullName $dest -Force
 Write-Step "Staged $($jar.Name) -> $dest"
 
-if ($NoLaunch) { Write-Step "NoLaunch set — staged only. Exiting."; return }
+if ($NoLaunch) { Write-Step "NoLaunch set -- staged only. Exiting."; return }
 
 # --- 3. launch blackout runClient detached ------------------------------------
 Write-Step "Launching BlackOut runClient (MC 26.1.2 + Meteor + BlackOut + harness) ..."
@@ -115,7 +115,7 @@ while ((Get-Date) -lt $deadline) {
         $up = $true; break
     } catch [System.Net.WebException] {
         if ($_.Exception.Response -ne $null) { $up = $true; break }
-        # else: connection refused — keep polling
+        # else: connection refused -- keep polling
     } catch {
         # newer PS: Microsoft.PowerShell.Commands.HttpResponseException has .Response
         if ($_.Exception.Response -ne $null) { $up = $true; break }
@@ -135,5 +135,5 @@ if ($up) {
     Write-Host ""
     Write-Host "=== MCP ENDPOINT DID NOT COME UP within ${BootTimeoutSec}s ===" -ForegroundColor Yellow
     Write-Host "Check the log for a mixin/crash: $logPath"
-    Write-Host "(The client may still be booting — re-run the poll or raise -BootTimeoutSec.)"
+    Write-Host "(The client may still be booting -- re-run the poll or raise -BootTimeoutSec.)"
 }
