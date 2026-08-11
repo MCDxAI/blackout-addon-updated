@@ -6,10 +6,7 @@ import kassuk.addon.blackout.modules.StepPlus;
 import meteordevelopment.meteorclient.systems.modules.Modules;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.Pose;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.InteractionResult;
-import net.minecraft.world.InteractionHand;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.VoxelShape;
@@ -34,9 +31,6 @@ public abstract class MixinEntity {
 
     @Shadow
     public abstract Level level();
-
-    @Shadow
-    public abstract InteractionResult interact(Player player, InteractionHand hand);
 
     @Shadow
     public abstract float maxUpStep();

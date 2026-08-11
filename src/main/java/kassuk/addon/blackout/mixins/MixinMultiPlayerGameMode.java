@@ -83,7 +83,7 @@ public abstract class MixinMultiPlayerGameMode {
         autoMine.onStart(position);
     }
 
-    @Redirect(method = "startDestroyBlock", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/multiplayer/ClientPacketListener;sendPacket(Lnet/minecraft/network/protocol/Packet;)V", ordinal = 0))
+    @Redirect(method = "startDestroyBlock", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/multiplayer/ClientPacketListener;send(Lnet/minecraft/network/protocol/Packet;)V", ordinal = 0))
     private void onAbort(ClientPacketListener instance, Packet<?> packet) {
         AutoMine autoMine = Modules.get().get(AutoMine.class);
 
@@ -112,7 +112,7 @@ public abstract class MixinMultiPlayerGameMode {
         autoMine.onStop(position);
     }
 
-    @Redirect(method = "stopDestroyBlock", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/multiplayer/ClientPacketListener;sendPacket(Lnet/minecraft/network/protocol/Packet;)V"))
+    @Redirect(method = "stopDestroyBlock", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/multiplayer/ClientPacketListener;send(Lnet/minecraft/network/protocol/Packet;)V"))
     private void cancel(ClientPacketListener instance, Packet<?> packet) {
         AutoMine autoMine = Modules.get().get(AutoMine.class);
 

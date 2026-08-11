@@ -36,7 +36,7 @@ public abstract class MixinLocalPlayer {
         sent = false;
     }
 
-    @Inject(method = "sendPosition", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/multiplayer/ClientPacketListener;sendPacket(Lnet/minecraft/network/protocol/Packet;)V"))
+    @Inject(method = "sendPosition", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/multiplayer/ClientPacketListener;send(Lnet/minecraft/network/protocol/Packet;)V"))
     private void onSendPacket(CallbackInfo ci) {
         sent = true;
     }
@@ -51,22 +51,22 @@ public abstract class MixinLocalPlayer {
         }
     }
 
-    @Redirect(method = "sendPosition", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/multiplayer/ClientPacketListener;sendPacket(Lnet/minecraft/network/protocol/Packet;)V", ordinal = 0))
+    @Redirect(method = "sendPosition", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/multiplayer/ClientPacketListener;send(Lnet/minecraft/network/protocol/Packet;)V", ordinal = 0))
     private void sendPacketFull(ClientPacketListener instance, Packet<?> packet) {
         connection.send(Managers.ROTATION.onFull((ServerboundMovePlayerPacket.PosRot) packet));
     }
 
-    @Redirect(method = "sendPosition", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/multiplayer/ClientPacketListener;sendPacket(Lnet/minecraft/network/protocol/Packet;)V", ordinal = 1))
+    @Redirect(method = "sendPosition", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/multiplayer/ClientPacketListener;send(Lnet/minecraft/network/protocol/Packet;)V", ordinal = 1))
     private void sendPacketPosGround(ClientPacketListener instance, Packet<?> packet) {
         connection.send(Managers.ROTATION.onPositionOnGround((ServerboundMovePlayerPacket.Pos) packet));
     }
 
-    @Redirect(method = "sendPosition", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/multiplayer/ClientPacketListener;sendPacket(Lnet/minecraft/network/protocol/Packet;)V", ordinal = 2))
+    @Redirect(method = "sendPosition", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/multiplayer/ClientPacketListener;send(Lnet/minecraft/network/protocol/Packet;)V", ordinal = 2))
     private void sendPacketLookAndOnGround(ClientPacketListener instance, Packet<?> packet) {
         connection.send(Managers.ROTATION.onLookAndOnGround((ServerboundMovePlayerPacket.Rot) packet));
     }
 
-    @Redirect(method = "sendPosition", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/multiplayer/ClientPacketListener;sendPacket(Lnet/minecraft/network/protocol/Packet;)V", ordinal = 3))
+    @Redirect(method = "sendPosition", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/multiplayer/ClientPacketListener;send(Lnet/minecraft/network/protocol/Packet;)V", ordinal = 3))
     private void sendPacketOnGroundOnly(ClientPacketListener instance, Packet<?> packet) {
         connection.send(Managers.ROTATION.onOnlyOnground((ServerboundMovePlayerPacket.StatusOnly) packet));
     }

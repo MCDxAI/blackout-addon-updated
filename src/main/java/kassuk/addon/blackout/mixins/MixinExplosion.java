@@ -17,7 +17,7 @@ public class MixinExplosion {
         method = "handleExplosion",
         at = @At(
             value = "INVOKE",
-            target = "Lnet/minecraft/client/multiplayer/ClientLevel;playSoundClient(DDDLnet/minecraft/sounds/SoundEvent;Lnet/minecraft/sounds/SoundSource;FFZ)V"
+            target = "Lnet/minecraft/client/multiplayer/ClientLevel;playLocalSound(DDDLnet/minecraft/sounds/SoundEvent;Lnet/minecraft/sounds/SoundSource;FFZ)V"
         )
     )
     private void onExplosion(ClientLevel instance, double x, double y, double z, SoundEvent sound, SoundSource category, float volume, float pitch, boolean useDistance, Operation<Void> original) {
