@@ -31,6 +31,10 @@ begins, semantic-version sections with a compare-link footer will be added.
 - RaytraceSettings: renamed the public field `ClipContext` -> `clipContext` (it
   shadowed its own type name; Google Style wants lowerCamelCase) and updated all
   19 access sites. The `ClipContext` type is unchanged. (`8d902fa`)
+- Housekeeping: expanded the `RaytraceSettings` wildcard settings import to
+  explicit imports (Google Style §3.3.1), and corrected the `CLAUDE.md` target
+  table's stale Yarn-mappings row (the build uses no mappings line — MC 26.1.x
+  ships de-obfuscated). (`aba89ff`)
 
 ### Removed
 
