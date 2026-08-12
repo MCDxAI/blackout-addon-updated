@@ -15,7 +15,7 @@
     "meteor-harness": {
       "type": "http",
       "url": "http://127.0.0.1:38861/mcp",
-      "_comment": "In-game MCP server hosted by the MC Test Harness (meteor variant) running INSIDE the dev client. Only reachable while scripts/launch-test-client.ps1 has the client up. Server name 'meteor-harness' matches the live-tester agent convention."
+      "_comment": "In-game MCP server hosted by the MC Test Harness (meteor variant) running INSIDE the dev client. Only reachable while a dev client (MC 26.1.2 + Meteor) is running. Server name 'meteor-harness' matches the live-tester agent convention."
     }
   }
 }
