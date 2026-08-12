@@ -28,11 +28,17 @@ begins, semantic-version sections with a compare-link footer will be added.
 - Build: wired Spotless with Google Java Format and normalized the entire source
   tree to the project style (2-space indent, no wildcard imports, K&R braces,
   100-column limit). (`9a2b392`, #8)
+- RaytraceSettings: renamed the public field `ClipContext` -> `clipContext` (it
+  shadowed its own type name; Google Style wants lowerCamelCase) and updated all
+  19 access sites. The `ClipContext` type is unchanged. (`8d902fa`)
 
 ### Removed
 
 - Cleanup: dropped stale IDE-remapper junk comments left behind in 7 modules.
   (`f6a62d4`)
+- blackout.accesswidener: removed the unused `Holder$Reference bindKey` entry
+  (added by the port, referenced nowhere in `src/`); the widener now resolves
+  against MC 26.1.2 with its two surviving entries. (`8d902fa`)
 
 ### Fixed
 
