@@ -1,4 +1,3 @@
 accessWidener	v2	official
 accessible	method	net/minecraft/client/multiplayer/MultiPlayerGameMode	startPrediction	(Lnet/minecraft/client/multiplayer/ClientLevel;Lnet/minecraft/client/multiplayer/prediction/PredictiveAction;)V
 accessible	method	net/minecraft/client/multiplayer/ClientLevel	getBlockStatePredictionHandler	()Lnet/minecraft/client/multiplayer/prediction/BlockStatePredictionHandler;
-accessible	method	net/minecraft/core/Holder$Reference	bindKey	(Lnet/minecraft/resources/ResourceKey;)V

@@ -153,7 +153,7 @@ public class RaytraceSettings extends BlackOutModule {
   }
 
   private final Vec3 vec = new Vec3(0, 0, 0);
-  public ClipContext ClipContext;
+  public ClipContext clipContext;
   public BlockHitResult result;
   public int hit = 0;
 
@@ -167,38 +167,38 @@ public class RaytraceSettings extends BlackOutModule {
 
     switch (placeMode.get()) {
       case SinglePoint -> {
-        ((IClipContext) ClipContext)
+        ((IClipContext) clipContext)
             .blackout$setTo(
                 new Vec3(pos.getX() + 0.5, pos.getY() + placeHeight.get(), pos.getZ() + 0.5));
 
-        result = BODamageUtils.raycast(ClipContext);
+        result = BODamageUtils.raycast(clipContext);
         return result.getBlockPos().equals(pos);
       }
       case DoublePoint -> {
-        ((IClipContext) ClipContext)
+        ((IClipContext) clipContext)
             .blackout$setTo(
                 new Vec3(pos.getX() + 0.5, pos.getY() + placeHeight1.get(), pos.getZ() + 0.5));
 
-        result = BODamageUtils.raycast(ClipContext);
+        result = BODamageUtils.raycast(clipContext);
         if (result.getBlockPos().equals(pos)) {
           return true;
         }
 
-        ((IClipContext) ClipContext)
+        ((IClipContext) clipContext)
             .blackout$setTo(
                 new Vec3(pos.getX() + 0.5, pos.getY() + placeHeight2.get(), pos.getZ() + 0.5));
 
-        result = BODamageUtils.raycast(ClipContext);
+        result = BODamageUtils.raycast(clipContext);
         return result.getBlockPos().equals(pos);
       }
       case Sides -> {
         ((IVec3) vec).meteor$set(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5);
         for (Direction dir : Direction.values()) {
-          ((IClipContext) ClipContext)
+          ((IClipContext) clipContext)
               .blackout$setTo(
                   vec.add(dir.getStepX() / 2f, dir.getStepY() / 2f, dir.getStepZ() / 2f));
 
-          result = BODamageUtils.raycast(ClipContext);
+          result = BODamageUtils.raycast(clipContext);
           if (result.getBlockPos().equals(pos)) {
             return true;
           }
@@ -211,10 +211,10 @@ public class RaytraceSettings extends BlackOutModule {
         for (int x = 0; x <= 2; x += 1) {
           for (int y = 0; y <= 2; y += 1) {
             for (int z = 0; z <= 2; z += 1) {
-              ((IClipContext) ClipContext)
+              ((IClipContext) clipContext)
                   .blackout$setTo(vec.add(0.1 + x * 0.4, 0.1 + y * 0.4, 0.1 + z * 0.4));
 
-              result = BODamageUtils.raycast(ClipContext);
+              result = BODamageUtils.raycast(clipContext);
               if (result.getBlockPos().equals(pos)) {
                 hit++;
                 if (hit >= exposure.get() / 100 * 27) {
@@ -232,10 +232,10 @@ public class RaytraceSettings extends BlackOutModule {
         for (int x = 0; x <= 2; x += 1) {
           for (int y = 0; y <= 2; y += 1) {
             for (int z = 0; z <= 2; z += 1) {
-              ((IClipContext) ClipContext)
+              ((IClipContext) clipContext)
                   .blackout$setTo(vec.add(0.1 + x * 0.4, 0.1 + y * 0.4, 0.1 + z * 0.4));
 
-              result = BODamageUtils.raycast(ClipContext);
+              result = BODamageUtils.raycast(clipContext);
               if (result.getBlockPos().equals(pos)) {
                 return true;
               }
@@ -308,14 +308,14 @@ public class RaytraceSettings extends BlackOutModule {
         for (int x = 0; x <= 2; x += 1) {
           for (int y = 0; y <= 2; y += 1) {
             for (int z = 0; z <= 2; z += 1) {
-              ((IClipContext) ClipContext)
+              ((IClipContext) clipContext)
                   .blackout$setTo(
                       vec.add(
                           Mth.lerp(x / 2f, 0.1, xw - 0.1),
                           Mth.lerp(y / 2f, 0.0, yh - 0.1),
                           Mth.lerp(z / 2f, 0.1, zw - 0.1)));
 
-              result = BODamageUtils.raycast(ClipContext);
+              result = BODamageUtils.raycast(clipContext);
               if (result.getType() != HitResult.Type.BLOCK) {
                 hit++;
                 if (hit >= attackExposure.get() / 100 * 27) {
@@ -335,14 +335,14 @@ public class RaytraceSettings extends BlackOutModule {
         for (int x = 0; x <= 2; x += 1) {
           for (int y = 0; y <= 2; y += 1) {
             for (int z = 0; z <= 2; z += 1) {
-              ((IClipContext) ClipContext)
+              ((IClipContext) clipContext)
                   .blackout$setTo(
                       vec.add(
                           Mth.lerp(x / 2f, 0.1, xw - 0.1),
                           Mth.lerp(y / 2f, 0.0, yh - 0.1),
                           Mth.lerp(z / 2f, 0.1, zw - 0.1)));
 
-              result = BODamageUtils.raycast(ClipContext);
+              result = BODamageUtils.raycast(clipContext);
               if (result.getType() != HitResult.Type.BLOCK) {
                 return true;
               }
@@ -355,8 +355,8 @@ public class RaytraceSettings extends BlackOutModule {
   }
 
   private void updateContext() {
-    if (ClipContext == null) {
-      ClipContext =
+    if (clipContext == null) {
+      clipContext =
           new net.minecraft.world.level.ClipContext(
               mc.player.getEyePosition(),
               null,
@@ -364,7 +364,7 @@ public class RaytraceSettings extends BlackOutModule {
               net.minecraft.world.level.ClipContext.Fluid.ANY,
               mc.player);
     } else {
-      ((IClipContext) ClipContext).blackout$setFrom(mc.player.getEyePosition());
+      ((IClipContext) clipContext).blackout$setFrom(mc.player.getEyePosition());
     }
   }
 }
