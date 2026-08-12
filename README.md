@@ -1,10 +1,10 @@
-![logo](https://raw.githubusercontent.com/MCDxAI/blackout-addon-updated/main/src/main/resources/assets/blackout/logo.png)
+![logo](src/main/resources/assets/blackout/logo.png)
 
 # BlackOut
 
 A [Meteor Client](https://meteorclient.com/) addon focused on CrystalPVP — an improved CrystalAura, BedAura, PacketFly, and more, built to push you above the competition.
 
-> This is the port maintained at [`MCDxAI/blackout-addon-updated`](https://github.com/MCDxAI/blackout-addon-updated), updated for **Minecraft 26.1.2** and **Meteor Client 26.1.x**. The original BlackOut addon by KassuK is no longer maintained.
+> A port of the original BlackOut addon by KassuK (now unmaintained), updated for **Minecraft 26.1.2** and **Meteor Client 26.1.x**.
 
 ## Requirements
 
@@ -21,8 +21,6 @@ A [Meteor Client](https://meteorclient.com/) addon focused on CrystalPVP — an 
 2. Download [Meteor Client](https://meteorclient.com/) and place it in your `mods/` folder.
 3. Download the latest BlackOut jar from the [releases page](https://github.com/MCDxAI/blackout-addon-updated/releases) and place it in `mods/` alongside Meteor.
 4. Launch the game.
-
-> BlackOut is a Meteor **addon**, not a standalone mod — Meteor Client is required.
 
 ## Building from source
 
