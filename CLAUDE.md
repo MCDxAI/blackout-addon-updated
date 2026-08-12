@@ -16,13 +16,15 @@ Autonomously port **BlackOut** — a Meteor Client Minecraft addon — to **Mete
 | ---------------- | ------------------ |
 | Minecraft        | `26.1.2`           |
 | Meteor Client    | `26.1.2-SNAPSHOT`  |
-| Yarn mappings    | `1.21.11+build.3`  |
+| Mappings         | n/a (mojmap)      |
 | Fabric Loader    | `0.19.2`           |
 | Fabric Loom      | `1.15-SNAPSHOT`    |
 | JDK              | `25`               |
 | Mod version      | `0.67.0`           |
 
 Note: Meteor's new versioning scheme is `YY.D` (year.drop). The build script converts `26.1.2` → compatibility string `~26.1` for `fabric.mod.json`.
+
+Note: MC 26.1.x ships **de-obfuscated** with Mojang official names, so the build uses **no Loom mappings line** and the source, mixins, and `blackout.accesswidener` (`v2 official` header) are all written in **mojmap** — this project is *not* yarn-mapped. See `build.gradle.kts` (lines ~25-29) for the details.
 
 ## Workspace Layout
 
