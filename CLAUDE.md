@@ -20,7 +20,7 @@ Autonomously port **BlackOut** — a Meteor Client Minecraft addon — to **Mete
 | Fabric Loader    | `0.19.2`           |
 | Fabric Loom      | `1.15-SNAPSHOT`    |
 | JDK              | `25`               |
-| Mod version      | `0.67.0`           |
+| Mod version      | `2.0.0`            |
 
 Note: Meteor's new versioning scheme is `YY.D` (year.drop). The build script converts `26.1.2` → compatibility string `~26.1` for `fabric.mod.json`.
 
