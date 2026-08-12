@@ -35,6 +35,13 @@ begins, semantic-version sections with a compare-link footer will be added.
   explicit imports (Google Style §3.3.1), and corrected the `CLAUDE.md` target
   table's stale Yarn-mappings row (the build uses no mappings line — MC 26.1.x
   ships de-obfuscated). (`aba89ff`)
+- RaytraceSettings: consolidated onto Meteor's built-in `IClipContext`
+  (`meteordevelopment...mixininterface.IClipContext`), dropping BlackOut's own
+  duplicate `mixins/IClipContext`. The two parallel mutation paths
+  (`blackout$set*` vs `meteor$set`) targeted the same `ClipContext`; Meteor's
+  exposes the same `from`/`to` fields plus more, so BlackOut's was a pure
+  maintenance duplicate with zero unique capability. The 8 `setTo` call sites
+  now route through a small `setClipTo()` helper. (`16226a4`)
 
 ### Removed
 
@@ -43,6 +50,13 @@ begins, semantic-version sections with a compare-link footer will be added.
 - blackout.accesswidener: removed the unused `Holder$Reference bindKey` entry
   (added by the port, referenced nowhere in `src/`); the widener now resolves
   against MC 26.1.2 with its two surviving entries. (`8d902fa`)
+- Cleanup: deleted 7 vestigial accessor mixins that had zero call sites in
+  `src/` (latent startup-crash risk under `defaultRequire: 1`): BlackOut's own
+  `IClipContext` (see Changed) plus six packet accessors —
+  `IServerboundMovePlayerPacket`, `IClientboundMoveEntityPacket`,
+  `IClientboundRotateHeadPacket`, `IClientboundEntityEventPacket`,
+  `IClientboundSetCameraPacket`, `IServerboundTeleportToEntityPacket`.
+  `blackout.mixins.json` now lists 12 mixins matching 12 files. (`16226a4`)
 
 ### Fixed
 
