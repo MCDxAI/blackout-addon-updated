@@ -1,32 +1,53 @@
-![banner](https://raw.githubusercontent.com/KassuK1/BlackOut/main/src/main/resources/assets/blackout/logo.png)
+![logo](https://raw.githubusercontent.com/MCDxAI/blackout-addon-updated/main/src/main/resources/assets/blackout/logo.png)
 
-## Join the Discord and help improve BlackOut! [https://discord.com/invite/VPHpTe6Z2U](https://discord.com/invite/VPHpTe6Z2U)
-<hr>
+# BlackOut
 
-# Blackout
-An addon for Meteor client that adds a variety of new/improved features to the Meteor client
-such as a new and improved CrystalAura, BedAura and PacketFly and a lot more of new things to push you above the competition.
+A [Meteor Client](https://meteorclient.com/) addon focused on CrystalPVP — an improved CrystalAura, BedAura, PacketFly, and more, built to push you above the competition.
 
-### Development
-The development of the addon might not be super active due to us having our own lives contrary to the popular belief.
+> This is the port maintained at [`MCDxAI/blackout-addon-updated`](https://github.com/MCDxAI/blackout-addon-updated), updated for **Minecraft 26.1.2** and **Meteor Client 26.1.x**. The original BlackOut addon by KassuK is no longer maintained.
 
-### How to use Blackout:
- - Install Fabric 1.21.11.
- - Download Meteor Client and put it in your mod's folder.
- - Put Blackout in your "mods" folder with Meteor.
- - Run Fabric.
- - Enjoy the addon.
- - Join the Discord server if you have any issues with it.
+## Requirements
 
-#### Latest build: [Latest Build](https://github.com/Marccccccccccccccc/BlackOut/releases/tag/1.5.2)
+| Dependency        | Version                |
+| ----------------- | ---------------------- |
+| Minecraft         | 26.1.x (tested 26.1.2) |
+| Meteor Client     | 26.1.x                 |
+| Fabric Loader     | 0.19.2 or newer        |
+| Java              | 25 or newer            |
 
-#### Credits
-Doogie13 for helping with the block mining calculations and step offsets.
+## Installation
 
-RickyTheRaccoon for his InvSwitch.
+1. Install [Fabric Loader](https://fabricmc.net/) for **Minecraft 26.1.x**.
+2. Download [Meteor Client](https://meteorclient.com/) and place it in your `mods/` folder.
+3. Download the latest BlackOut jar from the [releases page](https://github.com/MCDxAI/blackout-addon-updated/releases) and place it in `mods/` alongside Meteor.
+4. Launch the game.
 
-H1ggsK for updating to 1.21.4+.
+> BlackOut is a Meteor **addon**, not a standalone mod — Meteor Client is required.
 
-[#### Official youtube channel https://www.youtube.com/channel/UCq_NxTxgS-Xk0TsSmhqXoyg]: #
+## Building from source
 
-### Once you go black you never go back
+```bash
+./gradlew build
+```
+
+The build targets **JDK 25** (Fabric Loom + Gradle version catalog). The finished jar is written to `build/libs/`.
+
+## Credits
+
+**Original authors** — KassuK, OLEPOSSU, H1ggsK, Crosby, Wide_Cat.
+
+Thanks to Doogie13 (mining calculations and step offsets) and RickyTheRaccoon (InvSwitch).
+
+See [CHANGELOG.md](CHANGELOG.md) for the 26.1.x port work.
+
+## Community
+
+Join the BlackOut Discord: <https://discord.com/invite/VPHpTe6Z2U>
+
+## License
+
+Distributed under the [GPL-3.0-or-later](LICENSE) license.
+
+---
+
+*Once you go black you never go back.*
