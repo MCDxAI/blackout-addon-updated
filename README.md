@@ -40,14 +40,6 @@ Thanks to Doogie13 (mining calculations and step offsets) and RickyTheRaccoon (I
 
 See [CHANGELOG.md](CHANGELOG.md) for the 26.1.x port work.
 
-## Community
-
-Join the BlackOut Discord: <https://discord.com/invite/VPHpTe6Z2U>
-
 ## License
 
 Distributed under the [GPL-3.0-or-later](LICENSE) license.
-
----
-
-*Once you go black you never go back.*
