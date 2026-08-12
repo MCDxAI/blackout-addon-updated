@@ -96,11 +96,11 @@ if ($NoLaunch) { Write-Step "NoLaunch set -- staged only. Exiting."; return }
 
 # --- 3. launch blackout runClient detached ------------------------------------
 Write-Step "Launching BlackOut runClient (MC 26.1.2 + Meteor + BlackOut + harness) ..."
-# Start-Process so the client survives this script exiting.
-# NOTE: invoke the wrapper by FULL PATH. Agent/CI shells often set
-# NoDefaultCurrentDirectoryInExePath=1, which makes cmd.exe refuse to resolve a
-# bare `gradlew.bat` from the current directory ("is not recognized as an
-# internal or external command") even right after `cd /d` into the project.
+# Use Start-Process so the client survives after this script exits.
+# NOTE: invoke the wrapper by its full path. Agent and CI shells often set
+# NoDefaultCurrentDirectoryInExePath=1. With that flag, cmd.exe will not resolve a bare
+# `gradlew.bat` from the current directory. It reports "is not recognized as an internal or
+# external command". This happens even right after `cd /d` into the project.
 $gradlew = Join-Path $BlackoutDir "gradlew.bat"
 if (-not (Test-Path $gradlew)) { throw "Gradle wrapper not found: $gradlew" }
 Start-Process -FilePath "cmd.exe" `

@@ -42,7 +42,7 @@ public class RotationUtils {
     return Math.acos(p);
   }
 
-  // These 2 are from meteor rotation utils
+  // These two are from Meteor rotation utils.
   public static double getYaw(Vec3 start, Vec3 target) {
     return mc.player.getYRot()
         + Mth.wrapDegrees(

@@ -366,7 +366,7 @@ public class RaytraceSettings extends BlackOutModule {
     }
   }
 
-  /** Sets the clip context destination, preserving the current origin and collision shape. */
+  /** Sets the clip context destination. It keeps the current origin and collision shape. */
   private void setClipTo(Vec3 to) {
     ((IClipContext) clipContext)
         .meteor$set(

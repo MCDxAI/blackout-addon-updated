@@ -70,30 +70,31 @@ public class FacingSettings extends BlackOutModule {
         double cDist = -1;
         for (Direction dir : Direction.values()) {
 
-          // Doesn't place on top of max height
+          // Do not place above the maximum height.
           if (heightCheck(pos.offset(dir.getUnitVec3i()))) {
             continue;
           }
 
-          // Checks if block is an entity (chests, shulkers)
+          // Checks if the block has a block entity (chests, shulkers).
           if (ignoreContainers
               && mc.level.getBlockState(pos.offset(dir.getUnitVec3i())).hasBlockEntity()) {
             continue;
           }
 
-          // Test if there is block in the side and if predicate is valid
+          // Test if there is a block on the side and if the predicate is valid.
           if (!OLEPOSSUtils.solid(pos.offset(dir.getUnitVec3i()))
               && (predicate != null && !predicate.test(pos.offset(dir.getUnitVec3i())))) {
             continue;
           }
 
-          // Strict dir check (checks if face is on opposite side of the block to player)
+          // Strict direction check (checks if the face is on the opposite side of the block to the
+          // player).
           if (strictDir.get()
               && !OLEPOSSUtils.strictDir(pos.offset(dir.getUnitVec3i()), dir.getOpposite())) {
             continue;
           }
 
-          // Only accepts if closer than previous accepted direction
+          // Only accepts a direction that is closer than the previous one.
           double dist = SettingUtils.placeRangeTo(pos.offset(dir.getUnitVec3i()));
           if (dist >= 0 && (cDist < 0 || dist < cDist)) {
             best = dir;
@@ -123,31 +124,32 @@ public class FacingSettings extends BlackOutModule {
         double cDist = -1;
         for (Direction dir : Direction.values()) {
 
-          // Doesn't place on top of max height
+          // Do not place above the maximum height.
           if (heightCheck(pos.offset(dir.getUnitVec3i()))) {
             continue;
           }
 
-          // Checks if block is an entity (chests, shulkers)
+          // Checks if the block has a block entity (chests, shulkers).
           if (ignoreContainers
               && mc.level.getBlockState(pos.offset(dir.getUnitVec3i())).hasBlockEntity()) {
             continue;
           }
 
-          // Test if there is block in the side and if predicate is valid
+          // Test if there is a block on the side and if the predicate is valid.
           if (!OLEPOSSUtils.solid(pos.offset(dir.getUnitVec3i()))
               || (predicate != null && !predicate.test(dir))
               || (predicatePos != null && !predicatePos.test(pos.offset(dir.getUnitVec3i())))) {
             continue;
           }
 
-          // Strict dir check (checks if face is on opposite side of the block to player)
+          // Strict direction check (checks if the face is on the opposite side of the block to the
+          // player).
           if (strictDir.get()
               && !OLEPOSSUtils.strictDir(pos.offset(dir.getUnitVec3i()), dir.getOpposite())) {
             continue;
           }
 
-          // Only accepts if closer than previous accepted direction
+          // Only accepts a direction that is closer than the previous one.
           double dist = SettingUtils.placeRangeTo(pos.offset(dir.getUnitVec3i()));
           if (dist >= 0 && (cDist < 0 || dist < cDist)) {
             best = dir;
@@ -173,29 +175,30 @@ public class FacingSettings extends BlackOutModule {
         double cDist = -1;
         for (Direction dir : Direction.values()) {
 
-          // Doesn't place on top of max height
+          // Do not place above the maximum height.
           if (heightCheck(pos.offset(dir.getUnitVec3i()))) {
             continue;
           }
 
-          // Checks if block is an entity (chests, shulkers)
+          // Checks if the block has a block entity (chests, shulkers).
           if (ignoreContainers
               && mc.level.getBlockState(pos.offset(dir.getUnitVec3i())).hasBlockEntity()) {
             continue;
           }
 
-          // Test if there is block in the side and if predicate is valid
+          // Test if there is a block on the side and if the predicate is valid.
           if (!OLEPOSSUtils.solid(pos.offset(dir.getUnitVec3i()))) {
             continue;
           }
 
-          // Strict dir check (checks if face is on opposite side of the block to player)
+          // Strict direction check (checks if the face is on the opposite side of the block to the
+          // player).
           if (strictDir.get()
               && !OLEPOSSUtils.strictDir(pos.offset(dir.getUnitVec3i()), dir.getOpposite())) {
             continue;
           }
 
-          // Only accepts if closer than previous accepted direction
+          // Only accepts a direction that is closer than the previous one.
           double dist = SettingUtils.placeRangeTo(pos.offset(dir.getUnitVec3i()));
           if (dist >= 0 && (cDist < 0 || dist < cDist)) {
             best = dir;
@@ -218,22 +221,23 @@ public class FacingSettings extends BlackOutModule {
       double cDist = -1;
       for (Direction dir : Direction.values()) {
 
-        // Doesn't place on top of max height
+        // Do not place above the maximum height.
         if (heightCheck(pos.offset(dir.getUnitVec3i()))) {
           continue;
         }
 
-        // Unblocked check (mostly for autocrystal placement facings)
+        // Unblocked check (mostly for AutoCrystal placement facings).
         if (unblocked.get() && !(getBlock(pos.offset(dir.getUnitVec3i())) instanceof AirBlock)) {
           continue;
         }
 
-        // Strict dir check (checks if face isnt on opposite side of the block to player)
+        // Strict direction check (checks if the face is not on the opposite side of the block to
+        // the player).
         if (strictDir.get() && !OLEPOSSUtils.strictDir(pos, dir)) {
           continue;
         }
 
-        // Only accepts if closer than last accepted direction
+        // Only accepts a direction that is closer than the last one.
         double dist = dist(pos, dir);
         if (dist >= 0 && (cDist < 0 || dist < cDist)) {
           best = dir;
@@ -249,7 +253,7 @@ public class FacingSettings extends BlackOutModule {
         >= switch (maxHeight.get()) {
           case Old -> 255;
           case New -> 319;
-          case Disabled -> 1000; // im pretty sure 1000 is enough
+          case Disabled -> 1000; // 1000 is enough.
         };
   }
 

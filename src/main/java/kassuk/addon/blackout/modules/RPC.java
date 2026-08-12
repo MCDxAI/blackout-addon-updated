@@ -311,7 +311,7 @@ public class RPC extends BlackOutModule {
     try {
       return Long.parseLong(s.trim());
     } catch (Exception ignored) {
-      // fallback to old hardcoded id if user types nonsense
+      // Fall back to the old hardcoded ID if the input is invalid.
       return 1038168991258136576L;
     }
   }

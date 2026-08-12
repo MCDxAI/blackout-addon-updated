@@ -191,9 +191,8 @@ import net.minecraft.world.phys.Vec3;
  */
 
 // H1ggsK here
-// I had to invalidate a bunch of packet types, some have been changed to the point that I cannot
-// fix the definitions. Luckily, these only were unneeded ones.
-// SOMEONE WILL NEED TO FIX THIS EVENTUALLY
+// I invalidated many packet types. Some changed so much that I cannot fix the definitions.
+// These were only the unneeded ones. Someone must fix the rest later.
 
 public class PacketNames {
   public static final Map<Class<?>, PacketData<?>> s2c = new HashMap<>();

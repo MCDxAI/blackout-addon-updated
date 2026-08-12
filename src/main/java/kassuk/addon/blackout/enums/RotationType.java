@@ -6,5 +6,5 @@ public enum RotationType {
   Attacking,
   Mining,
   Use,
-  Other // Antiaim and stuff
+  Other // Antiaim and related rotations.
 }

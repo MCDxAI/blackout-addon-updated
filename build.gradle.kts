@@ -22,18 +22,22 @@ repositories {
 
 dependencies {
     // Fabric
-    // MC 26.1.x ships de-obfuscated with Mojang official names, so Loom refuses an
-    // explicit officialMojangMappings() declaration: "Cannot use Mojang mappings in a
-    // non-obfuscated environment." The default (no mappings line) IS Mojang official —
-    // matching the mojmap-converted sources and the blackout.accesswidener (v2 official).
-    // Do NOT re-add a mappings(...) line; it cannot compile in this environment.
+    // MC 26.1.x is not obfuscated. It uses Mojang official names.
+    // Loom rejects an explicit officialMojangMappings() call:
+    // "Cannot use Mojang mappings in a non-obfuscated environment."
+    // Omit the mappings line. The default matches the mojmap source files
+    // and the blackout.accesswidener (v2 official).
+    // Do not re-add a mappings(...) line. It will not compile.
     minecraft(libs.minecraft)
     implementation(libs.fabric.loader)
 
     // Meteor
     implementation(libs.meteor.client)
     compileOnly(libs.baritone)
-    runtimeOnly(libs.baritone) // runtime for runClient: MC Test Harness PathingService needs baritone.api.* (Meteor loads the same way via plain implementation; this Loom has no mod* configs / no loom.mods block)
+    // runClient needs Baritone at runtime. The test-harness PathingService uses baritone.api.*.
+    // Meteor loads Baritone the same way via a plain implementation call.
+    // This Loom setup has no mod* configs and no loom.mods block.
+    runtimeOnly(libs.baritone)
 }
 
 loom {

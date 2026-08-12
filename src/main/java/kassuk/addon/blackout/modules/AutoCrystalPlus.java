@@ -1097,7 +1097,7 @@ public class AutoCrystalPlus extends BlackOutModule {
     }
   }
 
-  // Other stuff
+  // Other
   private void update() {
     placing = false;
     expEntity = null;
@@ -1487,7 +1487,7 @@ public class AutoCrystalPlus extends BlackOutModule {
               || !crystalBlock(pos.below())
               || blockBroken(pos.below())) continue;
 
-          // Checks if there is possible placing direction
+          // Checks if there is a possible placement direction.
           Direction dir = SettingUtils.getPlaceOnDirection(pos.below());
           if (dir == null) continue;
 

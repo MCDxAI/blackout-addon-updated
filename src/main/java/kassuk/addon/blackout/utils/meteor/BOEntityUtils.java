@@ -29,30 +29,34 @@ import net.minecraft.world.phys.AABB;
 public class BOEntityUtils {
 
   /**
-   * Section-scoped, allocation-free, first-hit-early-exit entity-intersection test. The
-   * intersection check uses the custom/extrapolated box when present, else the entity's real
-   * bounding box, and runs over raw section iteration so extrapolated-box-only entities are seen.
+   * Section-scoped, allocation-free entity-intersection test. It returns on the first hit.
    *
-   * <p>This fast path was removed in commits {@code f67c37c}/{@code 1a53cd9} after a Meteor
-   * accessor rename was mistaken for a removal. The "behavior preserved exactly" claim in {@code
-   * 1a53cd9} was false: {@code Level#getEntities} pre-filters by each entity's real bounding box,
-   * so players whose extrapolated box intersects but whose real box does not were silently dropped,
-   * regressing AutoCrystal/HoleFill extrapolation accuracy and allocating a List per call.
+   * <p>The intersection check uses the custom or extrapolated box when one is present. Otherwise it
+   * uses the entity's real bounding box. The check iterates the raw entity sections, so it can
+   * still see entities that only have an extrapolated box.
    *
-   * <p>Restored here with Meteor's renamed accessors ({@link LevelAccessor}, {@link
-   * LevelEntityGetterAdapterAccessor}, {@link EntitySectionStorageAccessor}, {@link
-   * EntitySectionAccessor}). Do not replace with {@code Level#getEntities}.
+   * <p>Commits {@code f67c37c} and {@code 1a53cd9} removed this fast path. A Meteor accessor rename
+   * looked like a removal, but it was not. The "behavior preserved exactly" claim in {@code
+   * 1a53cd9} was false. {@code Level#getEntities} pre-filters by each entity's real bounding box,
+   * so it silently drops players whose extrapolated box intersects but whose real box does not.
+   * This regressed AutoCrystal and HoleFill extrapolation accuracy, and it allocated a List per
+   * call.
+   *
+   * <p>The code below restores the fast path with Meteor's renamed accessors ({@link
+   * LevelAccessor}, {@link LevelEntityGetterAdapterAccessor}, {@link EntitySectionStorageAccessor},
+   * {@link EntitySectionAccessor}). Do not replace it with {@code Level#getEntities}.
    *
    * @param box the query volume
-   * @param predicate extra per-entity filter
-   * @param customBoxes extrapolated boxes keyed by player; used in preference to the real box
-   * @return {@code true} on the first intersecting, predicate-matching entity
+   * @param predicate an extra per-entity filter
+   * @param customBoxes extrapolated boxes indexed by player; the check prefers these to the real
+   *     box
+   * @return {@code true} on the first entity that intersects and matches the predicate
    */
   public static boolean intersectsWithEntity(
       AABB box, Predicate<Entity> predicate, Map<AbstractClientPlayer, AABB> customBoxes) {
     LevelEntityGetter<Entity> entityLookup = ((LevelAccessor) mc.level).meteor$getEntityLookup();
 
-    // Fast path: iterate only nearby sections, return on the first intersecting entity.
+    // Fast path: iterate only the nearby sections. Return on the first entity that intersects.
     if (entityLookup instanceof LevelEntityGetterAdapter adapter) {
       EntitySectionStorage<Entity> sectionStorage =
           ((LevelEntityGetterAdapterAccessor) adapter).<Entity>meteor$getSectionStorage();
@@ -99,7 +103,8 @@ public class BOEntityUtils {
       return false;
     }
 
-    // Slow fallback for non-adapter lookups; does not apply custom boxes (kept for correctness).
+    // Slow fallback for non-adapter lookups. It does not apply custom boxes. Keep it for
+    // correctness.
     AtomicBoolean found = new AtomicBoolean(false);
     entityLookup.get(
         box,

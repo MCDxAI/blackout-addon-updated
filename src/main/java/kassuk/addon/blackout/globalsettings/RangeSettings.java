@@ -300,7 +300,7 @@ public class RangeSettings extends BlackOutModule {
     return -1;
   }
 
-  // Attack Range Chesks
+  // Attack Range Checks
   public boolean inAttackRange(AABB bb, Vec3 from) {
     return inAttackRange(bb, getFeet(bb), from);
   }

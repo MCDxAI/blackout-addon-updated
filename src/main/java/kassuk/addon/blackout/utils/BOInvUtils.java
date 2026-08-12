@@ -29,9 +29,9 @@ public class BOInvUtils {
       Managers.HOLDING.modifyStartTime = System.currentTimeMillis();
       pickSlot = slot;
 
-      // Obtain the container ID and revision from the player's current screen handler.
+      // Get the container ID and revision from the player's current screen handler.
       int syncId = mc.player.containerMenu.containerId;
-      // Some implementations offer a revision getter; if not, you might default to 0.
+      // Some implementations offer a revision getter. If not, default to 0.
       int revision = mc.player.containerMenu.getStateId();
 
       // Define the click parameters:
@@ -63,13 +63,13 @@ public class BOInvUtils {
   // Updated by H1ggsK
   public static void pickSwapBack() {
     if (pickSlot >= 0) {
-      // Obtain the container (screen handler) ID and revision.
+      // Get the container (screen handler) ID and revision.
       int syncId = mc.player.containerMenu.containerId;
       // Use the current revision, or default to 0 if not available.
       int revision = mc.player.containerMenu.getStateId();
 
       // Set click parameters.
-      int button = 0; // Typically 0 for left-click; adjust as needed.
+      int button = 0; // Typically 0 for a left-click. Adjust as needed.
       ContainerInput actionType = ContainerInput.PICKUP;
 
       // Retrieve the item stack from the stored pickSlot.
@@ -94,7 +94,7 @@ public class BOInvUtils {
               stackHash);
       mc.getConnection().send(packet);
 
-      // Reset pickSlot after sending the packet.
+      // Reset pickSlot after you send the packet.
       pickSlot = -1;
     }
   }

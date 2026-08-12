@@ -450,9 +450,9 @@ public class AutoCart extends BlackOutModule {
     return closest;
   }
 
-  // Matches the codebase convention used by Blocker/HoleFillPlus. HoleUtils.inHole is slightly
-  // stricter than the old 4-wall check (it also requires a solid floor and a recognized hole
-  // pattern), aligning AutoCart's onlyHole/onlySelfHole gates with the rest of BlackOut.
+  // This matches the convention in Blocker and HoleFillPlus. HoleUtils.inHole is stricter
+  // than the old 4-wall check. It also requires a solid floor and a known hole pattern.
+  // This keeps AutoCart's onlyHole and onlySelfHole gates consistent with the rest of BlackOut.
   private boolean isInHole(Player player) {
     return HoleUtils.inHole(player);
   }
@@ -687,9 +687,9 @@ public class AutoCart extends BlackOutModule {
                 pos, priority, RotationType.Interact, Objects.hash(name + "ignite"));
 
     if (rotated) {
-      // TNT minecarts are entities, so ignite by using flint & steel on the minecart itself. This
-      // sends a ServerboundInteractPacket (INTERACT_AT) via MultiPlayerGameMode.interact, rather
-      // than a block-use packet against the floor (which did nothing).
+      // TNT minecarts are entities. Ignite them with flint & steel on the minecart itself.
+      // This sends a ServerboundInteractPacket (INTERACT_AT) via MultiPlayerGameMode.interact.
+      // A block-use packet against the floor did nothing.
       EntityHitResult hitResult =
           new EntityHitResult(minecart, minecart.getBoundingBox().getCenter());
       SettingUtils.swing(SwingState.Pre, SwingType.Interact, hand);

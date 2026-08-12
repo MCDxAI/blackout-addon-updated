@@ -22,8 +22,8 @@ param(
 $ErrorActionPreference = "Continue"
 
 $runDir = (Join-Path $BlackoutDir "run")
-# Match: the MC client JVM (KnotClient/Minecraft + the run dir) and the detached
-# gradlew wrapper that launched it. Avoid matching unrelated java (IDEs, etc.).
+# Match the MC client JVM (KnotClient/Minecraft + the run dir) and the detached gradlew
+# wrapper that launched it. Do not match unrelated Java processes (IDEs, etc.).
 $pattern = "(?:KnotClient|Minecraft\.client\.main|net\.minecraft|gradlew\.bat.*runClient|$([regex]::Escape($runDir)))"
 
 $procs = Get-CimInstance Win32_Process -Filter "Name = 'java.exe' OR Name = 'javaw.exe' OR Name = 'cmd.exe'" |

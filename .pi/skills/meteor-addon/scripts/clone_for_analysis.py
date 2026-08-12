@@ -34,7 +34,7 @@ def clone_repo(repo_url: str, target_dir: Path) -> bool:
     print(f"[CLONE] Cloning {repo_name}...", file=sys.stderr)
     
     try:
-        # Pass env with GIT_TERMINAL_PROMPT=0 to avoid hanging on auth requests
+        # Pass GIT_TERMINAL_PROMPT=0 in the env to prevent a hang on auth requests
         env = os.environ.copy()
         env['GIT_TERMINAL_PROMPT'] = '0'
         

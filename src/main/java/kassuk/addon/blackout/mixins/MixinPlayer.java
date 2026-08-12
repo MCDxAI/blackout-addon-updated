@@ -24,11 +24,12 @@ public abstract class MixinPlayer {
     attackEntity = target;
   }
 
-  // In 26.1.2 Player.attack no longer calls Level.playSound directly: every server-side
-  // attack sound (KNOCKBACK/NODAMAGE/CRIT/STRONG/WEAK/SWEEP) is routed through the private
-  // playServerSideSound helper, which performs the single `this.level().playSound(...)`.
-  // Redirecting that INVOKE faithfully restores the original crystal-hit scaling for every
-  // attack sound. @At owner is Level = static type of this.level() (Entity.level() : Level).
+  // In 26.1.2, Player.attack no longer calls Level.playSound directly. The game routes
+  // every server-side attack sound (KNOCKBACK/NODAMAGE/CRIT/STRONG/WEAK/SWEEP) through the
+  // private playServerSideSound helper. This helper does the single `this.level().playSound(...)`.
+  // This @Redirect of that INVOKE restores the original crystal-hit damage scaling for every
+  // attack sound. The @At owner is Level. This is the static type of this.level() (Entity.level() :
+  // Level).
   @Redirect(
       method = "playServerSideSound",
       at =
