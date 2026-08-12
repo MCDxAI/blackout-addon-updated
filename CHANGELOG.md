@@ -5,12 +5,13 @@ Minecraft 26.1.2 are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-No releases have been cut yet, so all changes currently live under
-**[Unreleased]**. Each entry is annotated with the short commit hash (`abcdefg`)
-it shipped in, plus GitHub issue references where applicable. Once tagging
-begins, semantic-version sections with a compare-link footer will be added.
+Each entry is annotated with the short commit hash (`abcdefg`) it shipped in,
+plus GitHub issue references where applicable. Compare links are at the bottom
+of this file.
 
 ## [Unreleased]
+
+## [2.0.0] - 2026-08-12
 
 ### Added
 
@@ -89,3 +90,6 @@ begins, semantic-version sections with a compare-link footer will be added.
   whose *extrapolated* box was the only overlap (AutoCrystal/HoleFill accuracy),
   and allocated a `List` per call with no early exit on the crystal hot path. An
   in-code Javadoc now documents this so it is not reintroduced. (`e08e498`, #7)
+
+[Unreleased]: https://github.com/MCDxAI/blackout-addon-updated/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/MCDxAI/blackout-addon-updated/releases/tag/v2.0.0
