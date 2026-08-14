@@ -369,7 +369,7 @@ public class AnchorAuraRewrite extends BlackOutModule {
       hand = InteractionHand.MAIN_HAND;
     }
 
-    placeBlock(hand, placeData.pos().getCenter(), placeData.dir(), placeData.pos());
+    placeBlock(hand, Vec3.atCenterOf(placeData.pos()), placeData.dir(), placeData.pos());
 
     anchors.remove(t -> t.value.pos.equals(placePos));
     anchors.add(new Anchor(placePos, AnchorState.Anchor, 0), 0.5);
@@ -462,7 +462,7 @@ public class AnchorAuraRewrite extends BlackOutModule {
       glowHand = InteractionHand.MAIN_HAND;
     }
 
-    interactBlock(glowHand, explodePos.getCenter(), explodeDir, explodePos);
+    interactBlock(glowHand, Vec3.atCenterOf(explodePos), explodeDir, explodePos);
 
     Anchor a = anchors.remove(t -> t.value.pos.equals(placePos));
     anchors.add(new Anchor(placePos, AnchorState.Loaded, a.charges + 1), 0.5);
@@ -493,7 +493,7 @@ public class AnchorAuraRewrite extends BlackOutModule {
       explodeHand = InteractionHand.MAIN_HAND;
     }
 
-    interactBlock(explodeHand, explodePos.getCenter(), explodeDir, explodePos);
+    interactBlock(explodeHand, Vec3.atCenterOf(explodePos), explodeDir, explodePos);
 
     lastExplode = System.currentTimeMillis();
 
@@ -600,7 +600,7 @@ public class AnchorAuraRewrite extends BlackOutModule {
               BODamageUtils.anchorDamage(
                   target,
                   extMap.containsKey(target) ? extMap.get(target) : target.getBoundingBox(),
-                  pos.getCenter(),
+                  Vec3.atCenterOf(pos),
                   pos,
                   true);
 

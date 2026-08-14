@@ -336,7 +336,7 @@ public class RotationManager {
   }
 
   public boolean start(BlockPos pos, double p, RotationType type, long key) {
-    return start(pos, AABB.of(new BoundingBox(pos)), pos.getCenter(), p, type, key);
+    return start(pos, AABB.of(new BoundingBox(pos)), Vec3.atCenterOf(pos), p, type, key);
   }
 
   public boolean start(BlockPos pos, Vec3 vec, double p, RotationType type, long key) {

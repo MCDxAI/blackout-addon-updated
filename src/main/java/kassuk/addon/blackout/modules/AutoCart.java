@@ -27,6 +27,7 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.EntityHitResult;
+import net.minecraft.world.phys.Vec3;
 
 /**
  * @author Marc3D Ported from Meta's AutoMineCart module
@@ -535,7 +536,7 @@ public class AutoCart extends BlackOutModule {
                 Objects.hash(name + "rail"));
 
     if (rotated) {
-      placeBlock(hand, placeOn.getCenter(), placeDir, placeOn);
+      placeBlock(hand, Vec3.atCenterOf(placeOn), placeDir, placeOn);
 
       if (swing.get()) clientSwing(swingHand.get(), hand);
       if (SettingUtils.shouldRotate(RotationType.BlockPlace)) {
@@ -581,7 +582,7 @@ public class AutoCart extends BlackOutModule {
                 pos, priority, RotationType.Interact, Objects.hash(name + "cart"));
 
     if (rotated) {
-      interactBlock(hand, pos.getCenter(), Direction.DOWN, pos);
+      interactBlock(hand, Vec3.atCenterOf(pos), Direction.DOWN, pos);
       lastPlaceTime = System.currentTimeMillis();
       placeCounter++;
 

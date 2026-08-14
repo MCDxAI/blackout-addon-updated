@@ -112,7 +112,7 @@ public class BlackOutModule extends Module {
   }
 
   public void sendMessage(Component text, int id) {
-    ((IChatHud) mc.gui.getChat()).meteor$add(text, id);
+    ((IChatHud) mc.gui.hud.getChat()).meteor$add(text, id);
   }
 
   public void sendPacket(Packet<?> packet) {

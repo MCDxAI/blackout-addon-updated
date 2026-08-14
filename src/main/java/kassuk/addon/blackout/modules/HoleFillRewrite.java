@@ -436,7 +436,7 @@ public class HoleFillRewrite extends BlackOutModule {
   private void place(PlaceData d, BlockPos ogPos, InteractionHand hand) {
     timers.add(ogPos, delay.get());
 
-    placeBlock(hand, d.pos().getCenter(), d.dir(), d.pos());
+    placeBlock(hand, Vec3.atCenterOf(d.pos()), d.dir(), d.pos());
 
     if (placeSwing.get()) clientSwing(placeHand.get(), hand);
 

@@ -248,7 +248,7 @@ public class AnchorAuraPlus extends BlackOutModule {
       dmg = getDmg(pos);
       self =
           BODamageUtils.anchorDamage(
-              mc.player, mc.player.getBoundingBox(), pos.getCenter(), pos, false);
+              mc.player, mc.player.getBoundingBox(), Vec3.atCenterOf(pos), pos, false);
 
       if (!dmgCheck(dmg, self)) {
         continue;
@@ -411,7 +411,7 @@ public class AnchorAuraPlus extends BlackOutModule {
   }
 
   private void place(InteractionHand hand) {
-    placeBlock(hand, placeData.pos().getCenter(), placeData.dir(), placeData.pos());
+    placeBlock(hand, Vec3.atCenterOf(placeData.pos()), placeData.dir(), placeData.pos());
 
     if (placeSwing.get()) clientSwing(placeHand.get(), hand);
   }
@@ -655,7 +655,7 @@ public class AnchorAuraPlus extends BlackOutModule {
   }
 
   private void interact(BlockPos pos, Direction dir, InteractionHand hand) {
-    interactBlock(hand, pos.getCenter(), dir, pos);
+    interactBlock(hand, Vec3.atCenterOf(pos), dir, pos);
 
     if (interactSwing.get()) clientSwing(interactHand.get(), hand);
   }
@@ -674,7 +674,7 @@ public class AnchorAuraPlus extends BlackOutModule {
           Math.max(
               highest,
               BODamageUtils.anchorDamage(
-                  target, target.getBoundingBox(), pos.getCenter(), pos, true));
+                  target, target.getBoundingBox(), Vec3.atCenterOf(pos), pos, true));
     }
     return highest;
   }

@@ -452,7 +452,7 @@ public class HoleFillPlus extends BlackOutModule {
     holes.stream()
         .sorted(
             Comparator.comparingDouble(
-                pos -> pos.getCenter().distanceTo(mc.player.getEyePosition())))
+                pos -> Vec3.atCenterOf(pos).distanceTo(mc.player.getEyePosition())))
         .forEach(this::place);
 
     if (switched && hand == null) {
@@ -765,7 +765,7 @@ public class HoleFillPlus extends BlackOutModule {
 
     placeBlock(
         hand == null ? InteractionHand.MAIN_HAND : hand,
-        data.pos().getCenter(),
+        Vec3.atCenterOf(data.pos()),
         data.dir(),
         data.pos());
 

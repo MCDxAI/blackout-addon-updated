@@ -611,7 +611,7 @@ public class Blocker extends BlackOutModule {
 
     placeBlock(
         hand == null ? InteractionHand.MAIN_HAND : hand,
-        data.pos().getCenter(),
+        Vec3.atCenterOf(data.pos()),
         data.dir(),
         data.pos());
 

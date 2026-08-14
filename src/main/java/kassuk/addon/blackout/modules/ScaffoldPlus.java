@@ -489,7 +489,7 @@ public class ScaffoldPlus extends BlackOutModule {
     render.add(new Render(ogPos, System.currentTimeMillis()));
     placesLeft--;
 
-    placeBlock(hand, d.pos().getCenter(), d.dir(), d.pos());
+    placeBlock(hand, Vec3.atCenterOf(d.pos()), d.dir(), d.pos());
 
     if (placeSwing.get()) clientSwing(placeHand.get(), hand);
 

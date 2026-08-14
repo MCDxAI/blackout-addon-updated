@@ -201,7 +201,7 @@ public class AutoCraftingTable extends BlackOutModule {
       return false;
     }
 
-    interactBlock(InteractionHand.MAIN_HAND, tablePos.getCenter(), tableDir, tablePos);
+    interactBlock(InteractionHand.MAIN_HAND, Vec3.atCenterOf(tablePos), tableDir, tablePos);
 
     if (SettingUtils.shouldRotate(RotationType.Interact))
       Managers.ROTATION.end(Objects.hash(name + "interact"));
@@ -259,7 +259,7 @@ public class AutoCraftingTable extends BlackOutModule {
 
     InteractionHand rHand = hand != null ? hand : InteractionHand.MAIN_HAND;
 
-    placeBlock(rHand, placeData.pos().getCenter(), placeData.dir(), placeData.pos());
+    placeBlock(rHand, Vec3.atCenterOf(placeData.pos()), placeData.dir(), placeData.pos());
 
     if (SettingUtils.shouldRotate(RotationType.BlockPlace))
       Managers.ROTATION.end(Objects.hash(name + "placing"));

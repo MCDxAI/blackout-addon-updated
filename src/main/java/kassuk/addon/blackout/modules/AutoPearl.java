@@ -181,8 +181,8 @@ public class AutoPearl extends BlackOutModule {
     if (instaRot.get())
       sendPacket(
           new ServerboundMovePlayerPacket.Rot(
-              (float) RotationUtils.getYaw(mc.player.getEyePosition(), pos.getCenter()),
-              (float) RotationUtils.getPitch(mc.player.getEyePosition(), pos.getCenter()),
+              (float) RotationUtils.getYaw(mc.player.getEyePosition(), Vec3.atCenterOf(pos)),
+              (float) RotationUtils.getPitch(mc.player.getEyePosition(), Vec3.atCenterOf(pos)),
               Managers.ON_GROUND.isOnGround(),
               false));
 
@@ -217,7 +217,7 @@ public class AutoPearl extends BlackOutModule {
 
     placeBlock(
         hand == null ? InteractionHand.MAIN_HAND : hand,
-        pos.below().getCenter(),
+        Vec3.atCenterOf(pos.below()),
         Direction.UP,
         pos.below());
 

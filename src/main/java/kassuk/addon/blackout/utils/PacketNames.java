@@ -185,6 +185,7 @@ import net.minecraft.world.item.trading.ItemCost;
 import net.minecraft.world.level.saveddata.maps.MapDecoration;
 import net.minecraft.world.level.saveddata.maps.MapItemSavedData;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.scores.TeamColor;
 
 /**
  * @author OLEPOSSU
@@ -2033,13 +2034,13 @@ public class PacketNames {
           String suffix;
           if (packet.getParameters().isPresent()) {
             ClientboundSetPlayerTeamPacket.Parameters v = packet.getParameters().get();
-            displayName = v.getDisplayName().getString();
-            collisionRule = v.getCollisionRule().toString();
-            color = v.getColor().getName();
-            friendlyFlagsBitwise = String.valueOf(v.getOptions());
-            nameTagVisibilityRule = v.getNametagVisibility().toString();
-            prefix = v.getPlayerPrefix().getString();
-            suffix = v.getPlayerSuffix().getString();
+            displayName = v.displayName().getString();
+            collisionRule = v.collisionRule().toString();
+            color = v.color().map(TeamColor::getSerializedName).orElse("null");
+            friendlyFlagsBitwise = String.valueOf(v.options());
+            nameTagVisibilityRule = v.nameTagVisibility().toString();
+            prefix = v.playerPrefix().getString();
+            suffix = v.playerSuffix().getString();
           } else {
             displayName = "null";
             collisionRule = "null";

@@ -1318,7 +1318,8 @@ public class AutoCrystalPlus extends BlackOutModule {
       placeTimer = 1;
       placed = 0;
 
-      interactBlock(switched ? InteractionHand.MAIN_HAND : handToUse, pos.getCenter(), dir, pos);
+      interactBlock(
+          switched ? InteractionHand.MAIN_HAND : handToUse, Vec3.atCenterOf(pos), dir, pos);
 
       if (placeSwing.get())
         clientSwing(placeHand.get(), switched ? InteractionHand.MAIN_HAND : handToUse);

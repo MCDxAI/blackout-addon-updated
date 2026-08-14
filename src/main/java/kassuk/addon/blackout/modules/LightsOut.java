@@ -90,7 +90,7 @@ public class LightsOut extends BlackOutModule {
           BlockPos pos = mc.player.blockPosition().offset(x, y, z);
           // best code ever fr
           if (mc.level.getBlockState(pos).getBlock() instanceof TorchBlock) {
-            float dist = (float) vec.distanceTo(pos.getCenter());
+            float dist = (float) vec.distanceTo(Vec3.atCenterOf(pos));
             if (dist <= r && (closest == null || dist < closestDist)) {
               closest = pos;
               closestDist = dist;

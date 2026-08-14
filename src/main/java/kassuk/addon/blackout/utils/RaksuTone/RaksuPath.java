@@ -9,6 +9,7 @@ import java.util.List;
 import kassuk.addon.blackout.utils.OLEPOSSUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.world.phys.Vec3;
 
 public class RaksuPath {
   public final List<Movement> path = new ArrayList<>();
@@ -130,7 +131,7 @@ public class RaksuPath {
     if (reversed) {
       Comparator<Direction> c =
           Comparator.comparingDouble(
-              i -> from.relative(i).getCenter().distanceTo(target.getCenter()));
+              i -> Vec3.atCenterOf(from.relative(i)).distanceTo(Vec3.atCenterOf(target)));
       dirs =
           Arrays.stream(
                   new Direction[] {
@@ -146,7 +147,7 @@ public class RaksuPath {
                   })
               .sorted(
                   Comparator.comparingDouble(
-                      i -> from.relative(i).getCenter().distanceTo(target.getCenter())))
+                      i -> Vec3.atCenterOf(from.relative(i)).distanceTo(Vec3.atCenterOf(target))))
               .toList();
     }
   }

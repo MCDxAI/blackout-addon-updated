@@ -14,15 +14,15 @@ Autonomously port **BlackOut** — a Meteor Client Minecraft addon — to **Mete
 
 | Component        | Version            |
 | ---------------- | ------------------ |
-| Minecraft        | `26.1.2`           |
-| Meteor Client    | `26.1.2-SNAPSHOT`  |
+| Minecraft        | `26.2`             |
+| Meteor Client    | `26.2-SNAPSHOT`    |
 | Mappings         | n/a (mojmap)      |
-| Fabric Loader    | `0.19.2`           |
-| Fabric Loom      | `1.15-SNAPSHOT`    |
+| Fabric Loader    | `0.19.3`           |
+| Fabric Loom      | `1.17-SNAPSHOT`    |
 | JDK              | `25`               |
-| Mod version      | `2.0.0`            |
+| Mod version      | `2.1.0`            |
 
-Note: Meteor's new versioning scheme is `YY.D` (year.drop). The build script converts `26.1.2` → compatibility string `~26.1` for `fabric.mod.json`.
+Note: Meteor's new versioning scheme is `YY.D` (year.drop). The build script converts `26.2` → compatibility string `~26.2` for `fabric.mod.json`.
 
 Note: MC 26.1.x ships **de-obfuscated** with Mojang official names, so the build uses **no Loom mappings line** and the source, mixins, and `blackout.accesswidener` (`v2 official` header) are all written in **mojmap** — this project is *not* yarn-mapped. See `build.gradle.kts` (lines ~25-29) for the details.
 
@@ -38,7 +38,7 @@ Note: MC 26.1.x ships **de-obfuscated** with Mojang official names, so the build
 ├── references/              # 15 shallow third-party addon clones (gitignored; reference-only)
 ├── src/                      # BlackOut addon sources (we work directly on these)
 ├── build.gradle.kts          # Fabric Loom build (JDK 25, version catalog)
-├── gradle/libs.versions.toml # pinned versions: MC 26.1.2, Meteor 26.1.2-SNAPSHOT
+├── gradle/libs.versions.toml # pinned versions: MC 26.2, Meteor 26.2-SNAPSHOT
 ├── gradlew / gradlew.bat     # build wrapper
 └── CLAUDE.md
 ```

@@ -41,6 +41,7 @@ import net.minecraft.world.level.block.piston.PistonBaseBlock;
 import net.minecraft.world.level.block.piston.PistonHeadBlock;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 
 /**
  * @author OLEPOSSU
@@ -336,7 +337,7 @@ public class PistonPush extends BlackOutModule {
 
     hand = hand == null ? InteractionHand.MAIN_HAND : hand;
 
-    placeBlock(hand, pistonData.pos().getCenter(), pistonData.dir(), pistonData.pos());
+    placeBlock(hand, Vec3.atCenterOf(pistonData.pos()), pistonData.dir(), pistonData.pos());
 
     if (SettingUtils.shouldRotate(RotationType.BlockPlace))
       Managers.ROTATION.end(Objects.hash(name + "piston"));
@@ -396,7 +397,7 @@ public class PistonPush extends BlackOutModule {
 
     hand = hand == null ? InteractionHand.MAIN_HAND : hand;
 
-    placeBlock(hand, redstoneData.pos().getCenter(), redstoneData.dir(), redstoneData.pos());
+    placeBlock(hand, Vec3.atCenterOf(redstoneData.pos()), redstoneData.dir(), redstoneData.pos());
 
     if (SettingUtils.shouldRotate(RotationType.BlockPlace))
       Managers.ROTATION.end(Objects.hash(name + "redstone"));
@@ -496,7 +497,8 @@ public class PistonPush extends BlackOutModule {
         Direction.Plane.HORIZONTAL.stream()
             .sorted(
                 Comparator.comparingDouble(
-                    d -> eyePos.relative(d).getCenter().distanceTo(mc.player.getEyePosition())))
+                    d ->
+                        Vec3.atCenterOf(eyePos.relative(d)).distanceTo(mc.player.getEyePosition())))
             .toList()) {
       resetPos();
 
@@ -534,7 +536,7 @@ public class PistonPush extends BlackOutModule {
           Arrays.stream(Direction.values())
               .sorted(
                   Comparator.comparingDouble(
-                      i -> pos.relative(i).getCenter().distanceTo(mc.player.getEyePosition())))
+                      i -> Vec3.atCenterOf(pos.relative(i)).distanceTo(mc.player.getEyePosition())))
               .toList()) {
         if (direction == pistonDir.getOpposite()
             || direction == Direction.DOWN
@@ -582,7 +584,7 @@ public class PistonPush extends BlackOutModule {
         Arrays.stream(Direction.values())
             .sorted(
                 Comparator.comparingDouble(
-                    i -> pos.relative(i).getCenter().distanceTo(mc.player.getEyePosition())))
+                    i -> Vec3.atCenterOf(pos.relative(i)).distanceTo(mc.player.getEyePosition())))
             .toList()) {
       if (direction == pistonDir.getOpposite() || direction == Direction.DOWN) {
         continue;

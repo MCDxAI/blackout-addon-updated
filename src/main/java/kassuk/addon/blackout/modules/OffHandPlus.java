@@ -20,6 +20,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.network.protocol.game.ServerboundPlayerActionPacket;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.world.item.BedItem;
+import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -146,7 +147,7 @@ public class OffHandPlus extends BlackOutModule {
   private void update() {
     if (timer > 0) return;
     if (getPredicate(item).test(mc.player.getOffhandItem().getItem())) return;
-    if (onlyInInv.get() && !(mc.screen instanceof InventoryScreen)) return;
+    if (onlyInInv.get() && !(mc.gui.screen() instanceof InventoryScreen)) return;
 
     int slot = getSlot(getPredicate(item));
 
@@ -173,7 +174,7 @@ public class OffHandPlus extends BlackOutModule {
 
   private Predicate<Item> getPredicate(Item item) {
     if (item == Items.GOLDEN_APPLE) return OLEPOSSUtils::isGapple;
-    if (item == Items.RED_BED) return BedItem.class::isInstance;
+    if (item instanceof BedItem) return BedItem.class::isInstance;
     return item::equals;
   }
 
@@ -216,7 +217,7 @@ public class OffHandPlus extends BlackOutModule {
       }
       case Bed -> {
         if (itemAvailable(itemStack -> itemStack.getItem() instanceof BedItem)) {
-          return Items.RED_BED;
+          return Items.BED.pick(DyeColor.RED);
         }
       }
     }

@@ -658,7 +658,7 @@ public class SurroundPlus extends BlackOutModule {
 
     placeBlock(
         hand == null ? InteractionHand.MAIN_HAND : hand,
-        data.pos().getCenter(),
+        Vec3.atCenterOf(data.pos()),
         data.dir(),
         data.pos());
 
@@ -718,7 +718,7 @@ public class SurroundPlus extends BlackOutModule {
         continue;
       }
 
-      double y = Rotations.getYaw(pos.getCenter());
+      double y = Rotations.getYaw(Vec3.atCenterOf(pos));
 
       if (y < min) {
         support = false;
@@ -731,7 +731,7 @@ public class SurroundPlus extends BlackOutModule {
         continue;
       }
 
-      double y = Rotations.getYaw(pos.getCenter());
+      double y = Rotations.getYaw(Vec3.atCenterOf(pos));
 
       if (y < min) {
         support = true;

@@ -360,14 +360,14 @@ public class AutoPvp extends BlackOutModule {
 
       if (path == null || path.path.isEmpty()) return;
 
-      move(event.movement, path.path.get(0).pos().getCenter());
+      move(event.movement, Vec3.atCenterOf(path.path.get(0).pos()));
       return;
     }
 
     if (surroundMove.get()) {
       BlockPos walkPos = getSurroundWalk();
 
-      if (walkPos != null) move(event.movement, walkPos.getCenter());
+      if (walkPos != null) move(event.movement, Vec3.atCenterOf(walkPos));
     }
   }
 
@@ -390,7 +390,7 @@ public class AutoPvp extends BlackOutModule {
               camps.put(player, new Camp(player.blockPosition(), System.currentTimeMillis()));
             });
 
-    if (mc.screen instanceof DeathScreen && System.currentTimeMillis() - lastRespawn > 1000) {
+    if (mc.gui.screen() instanceof DeathScreen && System.currentTimeMillis() - lastRespawn > 1000) {
       mc.player.respawn();
       lastRespawn = System.currentTimeMillis();
     }
@@ -481,8 +481,8 @@ public class AutoPvp extends BlackOutModule {
     for (BlockPos pos : hole.positions) {
       if (closest == null
           || (target != null
-              && pos.getCenter().distanceTo(target.position())
-                  < closest.getCenter().distanceTo(target.position()))) {
+              && Vec3.atCenterOf(pos).distanceTo(target.position())
+                  < Vec3.atCenterOf(closest).distanceTo(target.position()))) {
         closest = pos;
       }
     }
