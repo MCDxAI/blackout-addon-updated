@@ -4,7 +4,7 @@ Guidance for Claude Code working in this repository.
 
 ## Project Purpose
 
-Autonomously port **BlackOut** — a Meteor Client Minecraft addon — to **Meteor 26.1.X**.
+Autonomously maintain **BlackOut** — a Meteor Client Minecraft addon, ported to Meteor 26.1.X and updated through **Meteor 26.2 / Minecraft 26.2**.
 
 - The original BlackOut (`kassuk/blackout`) is abandoned and targets old Minecraft/Meteor versions.
 - Reference fork: <https://github.com/Marccccccccccccccc/BlackOut> — updated to MC 1.21.11, then further along its `main` branch it begins a **26.1.X port** (HEAD commit: *"start porting to 26.1.X"*).

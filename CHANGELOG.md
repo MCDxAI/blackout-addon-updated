@@ -1,7 +1,7 @@
 # Changelog
 
-All notable changes to the **BlackOut** addon's port to Meteor Client 26.1.2 /
-Minecraft 26.1.2 are documented in this file.
+All notable changes to the **BlackOut** addon — the Meteor Client port and its
+Minecraft version updates through **26.2** — are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
@@ -10,6 +10,41 @@ plus GitHub issue references where applicable. Compare links are at the bottom
 of this file.
 
 ## [Unreleased]
+
+## [2.1.0] - 2026-08-14
+
+### Changed
+
+- Build: updated to **Minecraft 26.2** / **Meteor Client 26.2-SNAPSHOT** — Baritone
+  26.2-SNAPSHOT, Fabric Loader 0.19.3, Fabric Loom 1.17-SNAPSHOT, Gradle 9.6.1;
+  mod version 2.1.0, with `fabric.mod.json` declaring `~26.2` compatibility and
+  requiring meteor-client `>=26.2-0` (matches Meteor's distributed `26.2-N` pre-release versions). (`39a6dd5`)
+- Port: migrated all 62 `BlockPos.getCenter()` call sites (22 files) to the static
+  `Vec3.atCenterOf(pos)` — the instance method was removed in Minecraft 26.2.
+  (`39a6dd5`)
+
+### Fixed
+
+- Port: moved entity-type constants to 26.2's new `EntityTypes` class
+  (`EntityTypes.ITEM`, `EntityTypes.END_CRYSTAL`) in AutoTrapPlus and SelfTrapPlus.
+  (`39a6dd5`)
+- OffHandPlus: adapted to 26.2's bed item collapse — `Items.RED_BED` no longer
+  exists as a constant; bed detection now uses `instanceof BedItem` and the red-bed
+  default resolves via `Items.BED.pick(DyeColor.RED)`. (`39a6dd5`)
+- Port: replaced the removed `Minecraft.screen` field with `mc.gui.screen()`
+  (AutoPvp death-screen check, OffHandPlus inventory check) and routed chat output
+  through `mc.gui.hud.getChat()` (BlackOutModule). (`39a6dd5`)
+- PacketNames: `ClientboundSetPlayerTeamPacket.Parameters` became a record in
+  26.2 — accessors renamed, and the team color is read from the new
+  `Optional<TeamColor>` via its serialized name. (`39a6dd5`)
+- Mixins: retargeted `MixinItemInHandRenderer` to 26.2's renamed
+  `ItemInHandRenderer.submitHandsWithItems`/`submitArmWithItem` — the stale strings
+  compiled fine but would have hard-crashed at launch under `defaultRequire: 1`.
+  All 12 mixins and both `blackout.accesswidener` entries were revalidated against
+  26.2 mojmap. (`39a6dd5`)
+- Verified: boots and loads cleanly in a 26.2 test instance alongside the
+  distributed meteor-client `26.2-4` build, Baritone 26.2-SNAPSHOT, and the
+  MCDxAI addon set. (`39a6dd5`)
 
 ## [2.0.0] - 2026-08-12
 
@@ -91,5 +126,6 @@ of this file.
   and allocated a `List` per call with no early exit on the crystal hot path. An
   in-code Javadoc now documents this so it is not reintroduced. (`e08e498`, #7)
 
-[Unreleased]: https://github.com/MCDxAI/blackout-addon-updated/compare/v2.0.0...HEAD
+[Unreleased]: https://github.com/MCDxAI/blackout-addon-updated/compare/v2.1.0...HEAD
+[2.1.0]: https://github.com/MCDxAI/blackout-addon-updated/releases/tag/v2.1.0
 [2.0.0]: https://github.com/MCDxAI/blackout-addon-updated/releases/tag/v2.0.0
