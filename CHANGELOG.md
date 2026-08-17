@@ -11,6 +11,25 @@ of this file.
 
 ## [Unreleased]
 
+## [2.2.0] - 2026-08-16
+
+### Changed
+
+- Build: mod version 2.2.0.
+
+### Fixed
+
+- HUD: corrected all deferred (post-task) draw positions after Meteor 26.2's
+  `HudRenderer` pose change — `begin()` now pushes a `1/guiScale` pose and post
+  tasks run inside it, so posted draws expect full GUI-pixel coordinates.
+  ArmorHud+ armor icons, TargetHud player heads (Blackout and ExhibitionOld
+  modes), and GearHud items drew detached toward the top-left because they
+  carried 1.21.11-era `/2` coordinate compensation that had only ever been
+  correct at guiScale 2. GearHud items are now deferred through `renderer.post`
+  per the 26.2 contract (they were drawn synchronously with a stale
+  compensation hack), and ArmorHudPlus's dead `PoseStack` usage is dropped.
+  Verified in-game on MC 26.2 / Meteor 26.2-SNAPSHOT. (`4ea4516`)
+
 ## [2.1.0] - 2026-08-14
 
 ### Changed
@@ -126,6 +145,7 @@ of this file.
   and allocated a `List` per call with no early exit on the crystal hot path. An
   in-code Javadoc now documents this so it is not reintroduced. (`e08e498`, #7)
 
-[Unreleased]: https://github.com/MCDxAI/blackout-addon-updated/compare/v2.1.0...HEAD
+[Unreleased]: https://github.com/MCDxAI/blackout-addon-updated/compare/v2.2.0...HEAD
+[2.2.0]: https://github.com/MCDxAI/blackout-addon-updated/releases/tag/v2.2.0
 [2.1.0]: https://github.com/MCDxAI/blackout-addon-updated/releases/tag/v2.1.0
 [2.0.0]: https://github.com/MCDxAI/blackout-addon-updated/releases/tag/v2.0.0
