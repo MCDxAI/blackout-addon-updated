@@ -222,7 +222,7 @@ public class TargetHud extends HudElement {
 
       // Face
       if (renderSkinTextures != null) {
-        drawFace(renderer, (float) scale / 2, (translateX / 2) + 20, (translateY / 2) + 18, tilt);
+        drawFace(renderer, (float) scale, translateX + 40, translateY + 36, tilt);
       }
 
       // Name
@@ -327,7 +327,7 @@ public class TargetHud extends HudElement {
           new Color(102, 102, 102, 255));
 
       if (renderSkinTextures != null) {
-        drawFace(renderer, scale.get().floatValue(), x / 2f, y / 2f, 0);
+        drawFace(renderer, scale.get().floatValue(), x, y, 0);
       }
 
       // Name

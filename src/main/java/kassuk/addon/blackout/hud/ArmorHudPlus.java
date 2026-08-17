@@ -2,7 +2,6 @@ package kassuk.addon.blackout.hud;
 
 import static meteordevelopment.meteorclient.MeteorClient.mc;
 
-import com.mojang.blaze3d.vertex.PoseStack;
 import kassuk.addon.blackout.BlackOut;
 import meteordevelopment.meteorclient.settings.*;
 import meteordevelopment.meteorclient.systems.hud.HudElement;
@@ -86,10 +85,6 @@ public class ArmorHudPlus extends HudElement {
     }
 
     setSize(100 * scale.get() * 2, 28 * scale.get() * 2);
-    PoseStack stack = new PoseStack();
-
-    stack.translate(x, y, 0);
-    stack.scale((float) (scale.get() * 2), (float) (scale.get() * 2), 1);
 
     if (bg.get()) {
       renderer.quad(x, y, 100 * scale.get() * 2, 28 * scale.get() * 2, bgColor.get());
@@ -121,7 +116,7 @@ public class ArmorHudPlus extends HudElement {
           Matrix3x2fStack drawStack = renderer.graphics.pose();
           drawStack.pushMatrix();
 
-          drawStack.translate((float) (x / 2), (float) (y / 2));
+          drawStack.translate((float) x, (float) y);
           drawStack.scale((float) (scale.get() * 2), (float) (scale.get() * 2));
 
           for (EquipmentSlot slot :

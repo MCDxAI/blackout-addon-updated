@@ -13,7 +13,6 @@ import meteordevelopment.meteorclient.utils.render.color.SettingColor;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
-import org.joml.Matrix3x2fStack;
 
 /**
  * @author OLEPOSSU
@@ -78,20 +77,6 @@ public class GearHud extends HudElement {
     for (int i = 0; i < items.get().size(); i++) {
       int posY = (int) Math.round(y + i * 20 * scale.get() * scale.get());
 
-      Matrix3x2fStack drawStack = renderer.graphics.pose();
-      drawStack.pushMatrix();
-
-      drawStack.scale(scale.get().floatValue(), scale.get().floatValue());
-
-      renderer.item(
-          items.get().get(i).getDefaultInstance(),
-          (int) (x / scale.get()),
-          (int) (posY / scale.get()),
-          scale.get().floatValue(),
-          false);
-
-      drawStack.popMatrix();
-
       renderer.text(
           getText(items.get().get(i).asItem()),
           x + 25 * scale.get() * scale.get(),
@@ -100,6 +85,20 @@ public class GearHud extends HudElement {
           shadow.get(),
           scale.get());
     }
+
+    renderer.post(
+        () -> {
+          for (int i = 0; i < items.get().size(); i++) {
+            int posY = (int) Math.round(y + i * 20 * scale.get() * scale.get());
+
+            renderer.item(
+                items.get().get(i).getDefaultInstance(),
+                (int) x,
+                posY,
+                scale.get().floatValue() * scale.get().floatValue(),
+                false);
+          }
+        });
   }
 
   private int amountOf(Item item) {
